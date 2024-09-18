@@ -1,0 +1,25 @@
+[build-system]
+requires = [
+    "numpy>=2.0.0",
+]
+
+[project]
+name = "VisPy2"
+authors = [
+    {name = "Cyrille Rossant", email = "cyrille.rossant@gmail.com"},
+    {name = "Nicolas Rougier", email = "Nicolas.Rougier@inria.fr"},
+]
+maintainers = [
+    {name = "All the contributors"},
+]
+description = "High-performance interactive 2D/3D data visualization library."
+keywords = ["visualization", "scientific visualization"]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+]

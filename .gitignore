@@ -4,3 +4,5 @@
 dist
 MANIFEST
 .ipynb_checkpoints
+venv
+*.egg-info

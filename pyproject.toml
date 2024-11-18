@@ -1,10 +1,14 @@
 [build-system]
 requires = [
+    "setuptools>=40.8.0",
+    "wheel",
     "numpy>=2.0.0",
 ]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "VisPy2"
+name = "vispy2"
+version = "2.0.0-dev0"  # <- Added version
 authors = [
     {name = "Cyrille Rossant", email = "cyrille.rossant@gmail.com"},
     {name = "Nicolas Rougier", email = "Nicolas.Rougier@inria.fr"},
@@ -22,4 +26,8 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
+    "datoviz",
 ]
+
+[project.optional-dependencies]
+testing = ["pytest"]

@@ -18,7 +18,7 @@ Applications of VisPy include:
 
 ## Current Status
 
-VisPy 2 is a new project and does not follow the VisPy 0.x codebase. VisPy 2 is based on the graphics server protocol (GSP), matplotlib, and Datoviz. It is still experimental.
+VisPy 2 is a new project and does not follow the VisPy 0.x codebase. VisPy 2 is based on the graphics server protocol (GSP), matplotlib, and Datoviz. It is still experimental. [You can find some high-level notes about the new project here.](ARCHITECTURE.md)
 
 The [v0.x codebase](https://github.com/vispy/vispy) is available here.
 

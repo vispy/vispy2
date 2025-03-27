@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from vispy2 import scatter, run
+from vispy2 import Scatter, Figure, run
 
 
 # -------------------------------------------------------------------------------------------------
@@ -21,7 +21,8 @@ class TestScatter(unittest.TestCase):
         size = np.random.uniform(size=(n,), low=10, high=30)
         color = np.random.uniform(size=(n, 4), low=.25, high=.95)
 
-        scatter(x, y, s=size, c=color)
+        fig = Figure(800, 600)
+        Scatter(x, y, s=size, c=color, fig=fig)
         run()
 
 

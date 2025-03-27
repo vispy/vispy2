@@ -1,0 +1,7 @@
+{
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8" // Use autopep8 as the default formatter
+    },
+    "python.linting.enabled": true
+}

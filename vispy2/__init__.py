@@ -3,8 +3,7 @@
 # -------------------------------------------------------------------------------------------------
 
 import numpy as np
-import datoviz as dvz
-from .common import Figure, Axis, Panel, run
+from .common import Figure, Panel, run
 from .scatter import Scatter
 from .mesh import Mesh
 
@@ -13,4 +12,4 @@ from .mesh import Mesh
 # Constants
 # -------------------------------------------------------------------------------------------------
 
-__version__ = '2.0.0-dev'
+__version__ = "2.0.0-dev"

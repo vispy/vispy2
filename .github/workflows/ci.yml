@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: vispy/gsp
+          path: _gsp
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install validation tools and producer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "mypy>=1.15,<3" "pytest>=8,<10" "ruff>=0.11,<1" "uv>=0.7,<1"
+          python -m pip install -e _gsp/packages/gsp-core -e .
+      - name: Test
+        run: python -m pytest -q
+      - name: Type check
+        run: python -m mypy src --strict --show-error-codes
+      - name: Lint
+        run: python -m ruff check src tests examples
+      - name: Build wheels
+        run: |
+          mkdir -p "$RUNNER_TEMP/vispy2-dist"
+          uv build --wheel --out-dir "$RUNNER_TEMP/vispy2-dist" _gsp/packages/gsp-core
+          uv build --wheel --out-dir "$RUNNER_TEMP/vispy2-dist" .
+      - name: Test installed wheels
+        run: |
+          python -m venv "$RUNNER_TEMP/vispy2-wheel-venv"
+          "$RUNNER_TEMP/vispy2-wheel-venv/bin/python" -m pip install "$RUNNER_TEMP"/vispy2-dist/*.whl "pytest>=8,<10"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/vispy2-wheel-venv/bin/python" -m pytest -q "$GITHUB_WORKSPACE/tests"
+          "$RUNNER_TEMP/vispy2-wheel-venv/bin/python" "$GITHUB_WORKSPACE/examples/semantic_scene.py"

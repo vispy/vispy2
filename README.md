@@ -26,4 +26,5 @@ wheels together. Datoviz development additionally requires an explicit `GSP_DATO
 an ordinary RC3-compatible dependency artifact exists.
 
 This repository has a fresh history curated from the experimental `gsp_vispy2` producer in
-`vispy/GSP_API`. It is not yet published and has no configured remote.
+`vispy/GSP_API`. Its source repository is [vispy/vispy2](https://github.com/vispy/vispy2); the
+package is not yet published.

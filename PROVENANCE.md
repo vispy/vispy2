@@ -13,3 +13,12 @@ This repository has a fresh Git history curated from `vispy/GSP_API`.
 The complete research history remains recoverable from the source repository and bundle. Migration
 commits record source paths/blob IDs and exact-versus-derived status.
 
+## Producer migration
+
+`src/vispy2/protocol.py` is derived from source blob
+`2bc6e2f02cd75d676616c9c4d32270d9e286b9e9` at `src/gsp_vispy2/protocol.py`. Direct Matplotlib
+imports and backend-specific rendering methods were removed; `Figure.to_scene()` and GSP session
+delegation replace them. `src/vispy2/session.py` is a replacement for source blob
+`531f4787829b98669cf036c6c540b859f160e0cd`: it delegates to the provider SPI and imports no
+adapter. The package initializer is rewritten from source blob
+`9c9fb3d470fc0bfb088eda1186d7387bc8b93012` without legacy helper packages or prototype aliases.

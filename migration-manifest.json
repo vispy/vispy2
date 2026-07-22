@@ -1,0 +1,256 @@
+{
+  "schema_version": "gsp.migration_manifest.v1",
+  "generated_at": "2026-07-22",
+  "source": {
+    "repository": "vispy/GSP_API",
+    "commit": "463d34d1d6560f045e5c40af594372d0fea93ab5",
+    "bundle": "/Users/cyrille/GIT/Viz/archives/GSP_API/GSP_API-source-463d34d1-2026-07-22.bundle",
+    "bundle_sha256": "4b6b8bdd0e403ea9f0ed7d169a7694ac0985e7a8906890d2f74cf1dc5c611f8b"
+  },
+  "targets": {
+    "gsp": {
+      "planned_remote": "vispy/gsp",
+      "distributions": ["gsp-core", "gsp-matplotlib", "gsp-datoviz"]
+    },
+    "vispy2": {
+      "planned_remote": "vispy/vispy2",
+      "distributions": ["vispy2"]
+    }
+  },
+  "classification_counts": {
+    "migrate-now": 16,
+    "archive-only": 11,
+    "defer-reassess": 4
+  },
+  "components": [
+    {
+      "id": "gsp-authority-root",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "PROJECT_CHARTER.md", "type": "blob", "oid": "e009283a38f419e42389db24e01f407c32d4794e"},
+        {"path": "ARCHITECTURE.md", "type": "blob", "oid": "2a0ec34a8a9f7ee0a579bf12e25394ab06b35f1b"},
+        {"path": "SPEC_INDEX.md", "type": "blob", "oid": "66928a9aab045e26d08e8b39ef27d0af3614afb3"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["PROJECT_CHARTER.md", "ARCHITECTURE.md", "SPEC_INDEX.md"],
+      "mode": "curated-copy",
+      "notes": "Retain authority order and rewrite repository-specific wording only with explicit provenance."
+    },
+    {
+      "id": "gsp-core-protocol",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "src/gsp/protocol", "type": "tree", "oid": "b2c4798ae58aefac2ea98cf6c727eeae71572bd9"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-core/src/gsp"],
+      "mode": "curated-copy-and-rewrite",
+      "selection": {"include": ["*.py"], "exclude": []},
+      "blockers": ["gsp.protocol.color_mapping imports matplotlib and must become backend-independent before the isolated core wheel is accepted"],
+      "notes": "All 25 formal protocol modules migrate; legacy siblings under src/gsp do not."
+    },
+    {
+      "id": "gsp-core-runtime-spi",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "adr/ADR-0035-gsp-vispy2-repository-separation.md", "type": "blob", "oid": "892f81825f8e414e2e692c53f154ac816f7f021e"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-core/src/gsp/backends.py", "packages/gsp-core/src/gsp/session.py"],
+      "mode": "new-derived-implementation",
+      "blockers": ["BackendProvider SPI, lazy entry-point discovery, duplicate detection, compatibility checks, and backend-neutral Session do not exist yet"],
+      "notes": "ADR-0035 is design provenance; no legacy RendererRegistry code is copied."
+    },
+    {
+      "id": "gsp-current-specification",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "spec/current", "type": "tree", "oid": "fe13fdc6fb3913a833aa572462fbe1e9e393ded9"},
+        {"path": "spec/requirements", "type": "tree", "oid": "4dceb71f8ba2d165fa11ef6ca559d75e9f16f0f5"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["specs/current", "specs/requirements"],
+      "mode": "curated-copy",
+      "notes": "The requirements inventory remains the machine-readable selector for detailed normative sources."
+    },
+    {
+      "id": "gsp-detailed-normative-sources",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "spec/requirements/source_inventory.json", "type": "blob", "oid": "411759df6ea53193166c4680c3ae5d1d0fec3384"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["specs/topics"],
+      "mode": "inventory-selected-copy",
+      "selection": {"source_inventory_classifications": ["detailed-normative-source"]},
+      "notes": "Copy only the 39 files selected by the committed inventory; preserve paths and identifiers during the first import."
+    },
+    {
+      "id": "gsp-accepted-adrs-decisions",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "adr", "type": "tree", "oid": "2c19d1e29b1e788085ba08fb793d90a116d8d869"},
+        {"path": ".agent", "type": "tree", "oid": "cf1d721025f17be7d467b4bbae1360475dd2016c"},
+        {"path": "spec/requirements/source_inventory.json", "type": "blob", "oid": "411759df6ea53193166c4680c3ae5d1d0fec3384"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["adrs"],
+      "mode": "inventory-selected-copy-or-summary",
+      "selection": {"source_inventory_classifications": ["accepted-rationale", "accepted-decision-record"]},
+      "notes": "Migrate accepted ADRs directly; rewrite selected .agent decisions as concise ADR addenda with original path provenance. Do not copy control-plane history."
+    },
+    {
+      "id": "gsp-conformance-fixtures",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "fixtures/conformance", "type": "tree", "oid": "ffd3203053e64ca8efe7c1ed3483a2d45be4b7b9"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["conformance/fixtures"],
+      "mode": "curated-copy",
+      "notes": "Retain canonical JSON/NPZ replay inputs and negative fixtures; exclude generated run output."
+    },
+    {
+      "id": "gsp-core-conformance-tests",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "tests", "type": "tree", "oid": "6fea750cf1d6af58d45e69c8aa5d54af3269817b"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-core/tests", "conformance/tests"],
+      "mode": "curated-split",
+      "selection": {
+        "include": ["test_*protocol.py", "test_protocol_spine.py", "test_canvas_size_policy.py", "test_color_mapping_protocol.py", "test_conformance_*.py", "test_extension_data_sources.py", "test_layout_protocol.py", "test_mesh_visual_protocol.py", "test_navigation_protocol.py", "test_s020_*.py", "test_s021_*.py", "test_s022_*.py", "test_spec_traceability.py", "test_texture_sampling_reference.py", "test_tick_resolver.py", "test_transform_protocol.py", "test_view3d_protocol.py"],
+        "exclude": ["test_buffer.py", "test_mesh_textured_material.py"]
+      },
+      "notes": "Split mixed tests at semantic boundaries; source-tree import assumptions must be removed."
+    },
+    {
+      "id": "gsp-matplotlib-current-adapter",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "src/gsp_matplotlib", "type": "tree", "oid": "2a128e69f5fc83d1e6406dbc1688454b8ca55a78"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-matplotlib/src/gsp_matplotlib"],
+      "mode": "selected-files-and-rewrite",
+      "selection": {"include": ["capabilities.py", "color_mapping.py", "guide_query.py", "guides.py", "layout.py", "layout_query.py", "navigation.py", "protocol_query.py", "protocol_renderer.py", "scoped_query.py", "tiled_image.py", "transforms.py"], "exclude": ["animator/**", "extra/**", "renderer/**", "utils/**", "viewport_events/**", "renderer_registration.py"]},
+      "blockers": ["The current package initializer eagerly imports legacy packages and must be replaced", "A lightweight gsp.backends provider entry point must be added"],
+      "notes": "Selected implementation files have individual blob provenance available from the source tree; copy only after initializer and plugin boundaries are designed."
+    },
+    {
+      "id": "gsp-matplotlib-tests",
+      "classification": "migrate-now",
+      "source_objects": [{"path": "tests", "type": "tree", "oid": "6fea750cf1d6af58d45e69c8aa5d54af3269817b"}],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-matplotlib/tests"],
+      "mode": "curated-copy-and-rewrite",
+      "selection": {"include": ["test_axis_provider_capabilities.py", "test_conformance_baseline.py", "test_layout_protocol.py", "test_matplotlib_*.py", "test_profile_consistency.py"], "exclude": []},
+      "notes": "Run against installed gsp-core and gsp-matplotlib wheels."
+    },
+    {
+      "id": "gsp-datoviz-current-adapter",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "src/gsp_datoviz", "type": "tree", "oid": "18d3dd30696ea841f0478f58433066beffd65a36"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-datoviz/src/gsp_datoviz"],
+      "mode": "selected-files-and-rewrite",
+      "selection": {"include": ["capabilities.py", "latest_api_contract.py", "protocol_renderer.py", "query.py", "v04_import.py"], "exclude": ["animator/**", "renderer/**", "utils/**", "viewport_events/**", "renderer_registration.py"]},
+      "blockers": ["v04_import.py and capability probes support a sibling source bootstrap that cannot define the public package", "Provider discovery must not import Datoviz or create native resources", "Publication waits for an installable RC3-compatible artifact"],
+      "notes": "The local-source bootstrap may remain development-only until ordinary dependency installation is proven."
+    },
+    {
+      "id": "gsp-datoviz-tests-checkpoints",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "tests", "type": "tree", "oid": "6fea750cf1d6af58d45e69c8aa5d54af3269817b"},
+        {"path": "tools", "type": "tree", "oid": "912b1d6412fd43635cd6844efcc2c62bd8ebf365"},
+        {"path": "src/gsp/qa", "type": "tree", "oid": "427d02453c0f8cfe4caecb6048118fdc0e48e8f8"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["packages/gsp-datoviz/tests", "conformance/datasets", "tools"],
+      "mode": "curated-copy-and-provider-rewrite",
+      "selection": {"include": ["tests/test_datoviz_v04_*.py", "tests/test_texture_sampling_reference.py", "tools/run_datoviz_v04dev_checkpoint.sh", "tools/run_datoviz_texture2d_checkpoint.sh", "tools/verify_datoviz_texture_filter_artifacts.py", "src/gsp/qa/visual/texture_reference.py"], "exclude": ["generated checkpoint outputs"]},
+      "notes": "Retain exact nearest/linear expectations and provenance; parameterize shared QA through providers instead of direct adapter imports."
+    },
+    {
+      "id": "gsp-conformance-qa-tooling",
+      "classification": "migrate-now",
+      "source_objects": [{"path": "src/gsp/qa", "type": "tree", "oid": "427d02453c0f8cfe4caecb6048118fdc0e48e8f8"}],
+      "destination_repository": "gsp",
+      "destination": ["conformance/src/gsp_conformance"],
+      "mode": "curated-rewrite",
+      "blockers": ["Current visual runner and review-pack modules directly import both adapters", "QA modules must move out of gsp-core and consume provider/session interfaces"],
+      "notes": "Migrate reusable case specifications, reports, image comparison, and texture reference logic; exclude stage-specific probes and bulk outputs."
+    },
+    {
+      "id": "vispy2-producer",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "src/gsp_vispy2/__init__.py", "type": "blob", "oid": "9c9fb3d470fc0bfb088eda1186d7387bc8b93012"},
+        {"path": "src/gsp_vispy2/protocol.py", "type": "blob", "oid": "2bc6e2f02cd75d676616c9c4d32270d9e286b9e9"},
+        {"path": "src/gsp_vispy2/session.py", "type": "blob", "oid": "531f4787829b98669cf036c6c540b859f160e0cd"}
+      ],
+      "destination_repository": "vispy2",
+      "destination": ["src/vispy2"],
+      "mode": "rename-and-rewrite",
+      "blockers": ["protocol.py imports gsp_matplotlib directly", "session.py imports gsp_datoviz directly and accepts only datoviz", "Figure.to_scene does not exist", "Package imports old axes and plot helpers from the archive-only subtree"],
+      "notes": "Preserve producer semantics while replacing execution with gsp-core sessions and removing the temporary gsp_vispy2 identity."
+    },
+    {
+      "id": "vispy2-tests-docs-examples",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "tests", "type": "tree", "oid": "6fea750cf1d6af58d45e69c8aa5d54af3269817b"},
+        {"path": "mkdocs_source", "type": "tree", "oid": "5f16d28a4ba1b1de0bf1286150a29734a135a78e"},
+        {"path": "examples", "type": "tree", "oid": "1450b970a27492d22d124bd774bc816ac9925ecd"}
+      ],
+      "destination_repository": "vispy2",
+      "destination": ["tests", "docs", "examples"],
+      "mode": "curated-copy-and-rewrite",
+      "selection": {"include": ["tests/test_vispy2_protocol_mvp.py", "tests/test_vispy2_session.py", "tests/test_vispy2_s051_acceptance.py", "mkdocs_source/api/producer.md", "mkdocs_source/getting-started/first-scene.md", "examples/vispy2_protocol_*.py", "examples/vispy2_datoviz_*.py"], "exclude": ["old vispy_plot_example.py", "old vispy_scatter_example.py"]},
+      "notes": "Producer tests must pass with only an installed gsp-core wheel; execution tests install adapters explicitly."
+    },
+    {
+      "id": "gsp-public-docs-examples",
+      "classification": "migrate-now",
+      "source_objects": [
+        {"path": "mkdocs_source", "type": "tree", "oid": "5f16d28a4ba1b1de0bf1286150a29734a135a78e"},
+        {"path": "examples", "type": "tree", "oid": "1450b970a27492d22d124bd774bc816ac9925ecd"},
+        {"path": "mkdocs.yml", "type": "blob", "oid": "c3a4ffba89880df9262548f56f5d85aac54768fe"}
+      ],
+      "destination_repository": "gsp",
+      "destination": ["docs", "examples"],
+      "mode": "curated-rewrite",
+      "selection": {"include": ["current architecture/capability/scene/query/lifecycle documentation", "protocol_*.py", "review examples needed for current backend conformance"], "exclude": ["legacy package API pages", "generated gallery output", "development-history pages copied verbatim"]},
+      "notes": "Split producer-specific material into vispy2; rebuild navigation and generated API pages."
+    },
+
+    {"id": "legacy-gsp-object-graph", "classification": "archive-only", "source_objects": [{"path": "src/gsp", "type": "tree", "oid": "858ba63ab65473249341ec3387635850a96f181a"}], "selection": {"exclude": ["protocol/**", "qa/**"]}, "notes": "Old mutable scene/object graph, materials, visuals, renderer registry, transforms, and utilities remain historical implementation material."},
+    {"id": "legacy-matplotlib-adapter", "classification": "archive-only", "source_objects": [{"path": "src/gsp_matplotlib", "type": "tree", "oid": "2a128e69f5fc83d1e6406dbc1688454b8ca55a78"}], "selection": {"include": ["animator/**", "extra/**", "renderer/**", "utils/**", "viewport_events/**", "renderer_registration.py"]}, "notes": "Legacy RendererBase adapter is not the new provider."},
+    {"id": "legacy-datoviz-v03-adapter", "classification": "archive-only", "source_objects": [{"path": "src/gsp_datoviz", "type": "tree", "oid": "18d3dd30696ea841f0478f58433066beffd65a36"}], "selection": {"include": ["animator/**", "renderer/**", "utils/**", "viewport_events/**", "renderer_registration.py"]}, "notes": "Datoviz 0.3 implementation and registration do not migrate."},
+    {"id": "legacy-vispy2-helpers", "classification": "archive-only", "source_objects": [{"path": "src/gsp_vispy2", "type": "tree", "oid": "ec98b8bd3e582fdba0841cf99adba1de9342f564"}], "selection": {"include": ["axes/**", "imshow/**", "plot/**", "scatter/**"]}, "notes": "Mine ergonomic ideas only; do not preserve module paths."},
+    {"id": "legacy-extra", "classification": "archive-only", "source_objects": [{"path": "src/gsp_extra", "type": "tree", "oid": "b3b774e746fd5e2e0fea363824fcfa3f1913cc1d"}], "notes": "No catch-all package in the new topology."},
+    {"id": "legacy-network", "classification": "archive-only", "source_objects": [{"path": "src/gsp_network", "type": "tree", "oid": "c38cb59847075fbffc12f1aaa95703af56613830"}], "notes": "Current full-scene HTTP renderer is not the accepted transport architecture."},
+    {"id": "legacy-pydantic", "classification": "archive-only", "source_objects": [{"path": "src/gsp_pydantic", "type": "tree", "oid": "f235a223c7a5e21c10f90eac14f2601dfb36f174"}], "notes": "Base64-heavy full-scene serialization does not migrate into core."},
+    {"id": "bulk-generated-artifacts", "classification": "archive-only", "source_objects": [{"path": "artifacts", "type": "tree", "oid": "c878d480df009abbbbdaa74339e14451eb0a07da"}], "notes": "Migrate only compact canonical fixtures and expectations selected by conformance components."},
+    {"id": "agent-control-history", "classification": "archive-only", "source_objects": [{"path": ".agent", "type": "tree", "oid": "cf1d721025f17be7d467b4bbae1360475dd2016c"}], "notes": "Only accepted rationale selected through the source inventory is rewritten into new ADRs."},
+    {"id": "research-experiments", "classification": "archive-only", "source_objects": [{"path": "tmp", "type": "tree", "oid": "15e09270dde942ad9e123c4a4dec25a0c967fed5"}, {"path": "my_doc", "type": "tree", "oid": "c4cc9d8a756e5a3ec66e6d44f767dac8a36d214f"}, {"path": ".claude", "type": "tree", "oid": "feee6fa5c6d1859c06342a26aa2d7a21c7040e49"}], "notes": "Complete content remains available through GSP_API and the verified bundle."},
+    {"id": "generated-legacy-documentation", "classification": "archive-only", "source_objects": [{"path": "docs", "type": "tree", "oid": "34bb6e3af35dd02b9bb3ec8311814b3b972f796d"}, {"path": "mkdocs_build", "type": "tree", "oid": "18bd26a0bfa991336a90de50c8bf9a35b92f46b0"}], "notes": "Rebuild current documentation from curated sources."},
+
+    {"id": "remote-transport-runtime", "classification": "defer-reassess", "source_objects": [{"path": "src/gsp_network", "type": "tree", "oid": "c38cb59847075fbffc12f1aaa95703af56613830"}], "destination_repository": "gsp", "notes": "Reassess only after framing, lifecycle, security, and capability negotiation ADRs define an optional transport package."},
+    {"id": "optional-encoding-package", "classification": "defer-reassess", "source_objects": [{"path": "src/gsp_pydantic", "type": "tree", "oid": "f235a223c7a5e21c10f90eac14f2601dfb36f174"}], "destination_repository": "gsp", "notes": "A future debug/replay encoding must consume rather than define the semantic model."},
+    {"id": "extra-algorithm-mining", "classification": "defer-reassess", "source_objects": [{"path": "src/gsp_extra", "type": "tree", "oid": "b3b774e746fd5e2e0fea363824fcfa3f1913cc1d"}], "notes": "Move an algorithm only after assigning it to a protocol, adapter, producer, or separate domain owner."},
+    {"id": "whitepaper-product-narrative", "classification": "defer-reassess", "source_objects": [{"path": "whitepaper", "type": "tree", "oid": "0eb08b41d4c563bc188b2c68bd49a1e666742535"}], "notes": "Rewrite after the new package/session API exists; do not carry old repository claims forward verbatim."}
+  ],
+  "migration_gates": [
+    "Every destination copy records source commit, path, object id, and whether it is exact or derived.",
+    "gsp-core installs without Matplotlib, Datoviz, legacy, network, or Pydantic dependencies.",
+    "Importing gsp and metadata-only backend discovery has no native or display side effects.",
+    "VisPy2 imports only gsp-core and never concrete adapters.",
+    "Current core, Matplotlib, Datoviz, and producer tests pass against built installed wheels.",
+    "No archive-only path is copied wholesale into either new repository."
+  ]
+}

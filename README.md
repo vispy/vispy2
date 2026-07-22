@@ -20,5 +20,10 @@ figure.savefig("figure.png")
 Use an explicit caller-owned session for Datoviz, non-blocking execution, or interactive lifecycle
 control. See [Producer and backend boundary](docs/producer-and-backends.md).
 
+The optional extras name the intended published package combinations. While these repositories are
+still local and unpublished, install the corresponding built `gsp-core`, adapter, and `vispy2`
+wheels together. Datoviz development additionally requires an explicit `GSP_DATOVIZ_SOURCE` until
+an ordinary RC3-compatible dependency artifact exists.
+
 This repository has a fresh history curated from the experimental `gsp_vispy2` producer in
 `vispy/GSP_API`. It is not yet published and has no configured remote.

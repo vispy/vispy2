@@ -50,6 +50,8 @@ from gsp.protocol import (
     PerspectiveProjection3D,
     PixelVisual,
     PointVisual,
+    PrimitiveTopology,
+    PrimitiveVisual,
     Projection3D,
     ScalarColorDomain,
     ScalarColorEncoding,
@@ -119,6 +121,7 @@ class Figure:
         | PixelVisual
         | SphereVisual
         | VectorVisual
+        | PrimitiveVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -222,6 +225,7 @@ class Axes:
         PointVisual
         | PixelVisual
         | VectorVisual
+        | PrimitiveVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -552,6 +556,37 @@ class Axes:
             anchor=_vector_anchor(anchor),
             start_cap=_vector_cap(start_cap),
             end_cap=_vector_cap(end_cap),
+            coordinate_space=CoordinateSpace.DATA,
+            transform=_visual_transform(transform),
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
+    def primitives(
+        self,
+        positions: npt.ArrayLike,
+        *,
+        topology: str | PrimitiveTopology,
+        color: npt.ArrayLike | None = None,
+        indices: npt.ArrayLike | None = None,
+        transform: npt.ArrayLike | VisualTransformBinding | None = None,
+        id: str | None = None,
+    ) -> PrimitiveVisual:
+        """Create bounded point, line, or triangle geometry in this 2D DATA view."""
+        vertices = _primitive_positions(positions, dimensions=2)
+        visual = PrimitiveVisual(
+            id=id or _visual_id("primitives"),
+            topology=_primitive_topology(topology),
+            positions=vertices,
+            colors=_colors(color, vertices.shape[0]),
+            indices=_primitive_indices(indices),
             coordinate_space=CoordinateSpace.DATA,
             transform=_visual_transform(transform),
         )
@@ -979,7 +1014,7 @@ class Axes3D:
     """Backend-neutral producer for one static GSP View3D."""
 
     figure: Figure
-    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual] = field(
+    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual | PrimitiveVisual] = field(
         default_factory=list
     )
     panel: Panel = field(init=False)
@@ -1338,6 +1373,35 @@ class Axes3D:
         )
         return visual
 
+    def primitives(
+        self,
+        positions: npt.ArrayLike,
+        *,
+        topology: str | PrimitiveTopology,
+        color: npt.ArrayLike | None = None,
+        indices: npt.ArrayLike | None = None,
+        id: str | None = None,
+    ) -> PrimitiveVisual:
+        """Create bounded point, line, or triangle geometry in 3D DATA space."""
+        vertices = _primitive_positions(positions, dimensions=3)
+        visual = PrimitiveVisual(
+            id=id or _visual_id("primitives"),
+            topology=_primitive_topology(topology),
+            positions=vertices,
+            colors=_colors(color, vertices.shape[0]),
+            indices=_primitive_indices(indices),
+            coordinate_space=CoordinateSpace.DATA,
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
     def quiver(
         self,
         x: npt.ArrayLike,
@@ -1421,6 +1485,17 @@ def vectors(
     return ax.vectors(x, y, u, v, **kwargs)
 
 
+def primitives(
+    positions: npt.ArrayLike,
+    *,
+    topology: str | PrimitiveTopology,
+    **kwargs: Any,
+) -> PrimitiveVisual:
+    """Create bounded 2D primitive geometry in a temporary one-axes figure."""
+    _, ax = subplots()
+    return ax.primitives(positions, topology=topology, **kwargs)
+
+
 def quiver(
     x: npt.ArrayLike,
     y: npt.ArrayLike,
@@ -1501,7 +1576,7 @@ def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, flo
 
 
 def _axes3d_data_bounds(
-    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual],
+    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual | PrimitiveVisual],
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     minima: list[npt.NDArray[np.float64]] = []
     maxima: list[npt.NDArray[np.float64]] = []
@@ -1765,6 +1840,40 @@ def _positions(x: npt.ArrayLike, y: npt.ArrayLike | None) -> npt.NDArray[np.floa
     if x_array.ndim != 1 or y_array.ndim != 1 or x_array.shape[0] != y_array.shape[0]:
         raise ValueError("x and y must be one-dimensional arrays with the same length")
     return np.ascontiguousarray(np.column_stack([x_array, y_array]).astype(np.float32))
+
+
+def _primitive_positions(positions: npt.ArrayLike, *, dimensions: int) -> npt.NDArray[np.float32]:
+    vertices = np.asarray(positions)
+    if vertices.ndim != 2 or vertices.shape[1] != dimensions:
+        raise ValueError(f"primitive positions must have shape (N, {dimensions})")
+    if not (
+        np.issubdtype(vertices.dtype, np.integer) or np.issubdtype(vertices.dtype, np.floating)
+    ):
+        raise TypeError("primitive positions must use a real integer or floating dtype")
+    if not np.all(np.isfinite(vertices)):
+        raise ValueError("primitive positions must be finite")
+    float32_limit = np.finfo(np.float32).max
+    if np.any(vertices > float32_limit) or np.any(vertices < -float32_limit):
+        raise ValueError("primitive positions must be representable as float32")
+    return np.ascontiguousarray(vertices, dtype=np.float32)
+
+
+def _primitive_indices(indices: npt.ArrayLike | None) -> npt.NDArray[Any] | None:
+    if indices is None:
+        return None
+    values = np.asarray(indices)
+    if values.ndim != 1:
+        raise ValueError("primitivevisual_invalid_indices_shape: indices must be flat")
+    return np.ascontiguousarray(values)
+
+
+def _primitive_topology(value: str | PrimitiveTopology) -> PrimitiveTopology:
+    if isinstance(value, PrimitiveTopology):
+        return value
+    try:
+        return PrimitiveTopology(value)
+    except ValueError as exc:
+        raise ValueError(f"unsupported primitive topology: {value!r}") from exc
 
 
 def _positions3d(

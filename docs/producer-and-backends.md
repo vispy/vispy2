@@ -118,6 +118,29 @@ vector fields and writes files through Matplotlib only, after checking the strai
 DATA-space View3D, and triangle-head capabilities. It rejects Datoviz file output until M284
 qualifies native capture.
 
+## Primitive visuals
+
+`Axes.primitives(positions, topology=...)`, `Axes3D.primitives(...)`, and module-level
+`vispy2.primitives(...)` produce the bounded `PrimitiveVisual` escape hatch. The only topologies
+are `point_list`, `line_list`, `line_strip`, `triangle_list`, and `triangle_strip`. Its bounded
+fields are an ID, topology, `(N, 2)` or `(N, 3)` real finite DATA-space positions, uniform or
+per-public-vertex RGBA colors, optional flat public vertex indices, coordinate space, and the
+existing 2D visual transform binding. Optional indices select from the public positions and colors;
+topology cardinality is validated on that resolved sequence after indexing.
+
+The API intentionally has no shader, pipeline, material, depth, culling, instancing, slot, or
+native-handle parameters. Datoviz lowering uses the public `dvz_primitive` constructor, dense
+position and color attributes, and optional public index binding. Matplotlib deterministically
+adapts the five topologies to point, line, or triangle collections. Point colors remain
+per-vertex; line and triangle colors are the mean of each primitive's vertex RGBA values rather
+than interpolated GPU colors. The 3D path projects vertices to a 2D overlay, uses painter ordering
+by mean projected depth for triangles, and does not claim native depth-buffer or exact raster
+semantics.
+
+The installed-wheel `examples/primitive_topologies.py` gallery includes all five topologies and
+both indexed and unindexed inputs. It writes through Matplotlib after checking every primitive
+capability and defers native Datoviz capture qualification to M284.
+
 # Pixel visuals
 
 `Axes.pixels(x, y, color=..., size=...)` creates 2D DATA-space screen-aligned squares. `Axes3D.pixels(x, y, z, ...)` creates screen-facing squares anchored at projected 3D DATA positions, and `vispy2.pixels(...)` is the module-level 2D convenience. `size` is a strictly positive logical-pixel width, scalar or per item.

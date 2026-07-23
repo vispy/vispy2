@@ -1,4 +1,8 @@
-# M283 capability matrix
+# M284 exact-head capability matrix
+
+Evidence revision: GSP `d2d25a2cd328b5026878015cb3f23560309d26b7`, VisPy2
+`66734a37487fa719ec0c3c1e10ba57eb74703548`. M284 refreshed the evidence at these exact heads
+without changing any capability status.
 
 Status vocabulary: **strict** preserves the named GSP semantic contract; **adapted** preserves
 bounded semantics with documented raster/layout/depth differences; **experimental** is opt-in and
@@ -31,4 +35,6 @@ result. “Probe” means gallery 6 checks installed provider metadata and diagn
 Guide/title and file-output support are cross-cutting. Matplotlib provides native axes/title layout
 and deterministic PNG/SVG/PDF. Datoviz provides native/adapted panel guides and PNG only when its
 capture binding qualifies; its resolved layout snapshot remains partial. M283 proves PNG capture
-for the exact probed runtime, not universal Datoviz lifecycle reliability.
+for the exact probed runtime. M284 additionally proves 25/25 isolated static and 25/25 isolated
+live View3D Datoviz processes under a 20-second boundary in the qualified unsandboxed native
+environment; this remains exact-runtime evidence, not a universal lifecycle claim.

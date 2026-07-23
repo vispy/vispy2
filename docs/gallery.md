@@ -1,5 +1,8 @@
 # Installed-wheel gallery
 
+For M284 owner acceptance, use the [human-review index](M284-human-review.md), which links all
+fourteen exact-head captures and provides the live navigation checklist.
+
 The seven M283 journeys are deliberately small and backend-neutral. Galleries 1--4 create seven
 PNG states for each backend; gallery 5 is manual and interactive; galleries 6--7 validate
 discovery and queries.
@@ -45,9 +48,10 @@ Use `Ctrl-C` if the native window cannot be closed. Do not automate this gallery
 
 ## Artifact interpretation
 
-The checked-in M283 artifacts were produced with wheel-installed GSP and VisPy2 imports while the
-scripts ran outside both source trees. Seven Matplotlib and seven Datoviz captures were visually
-reviewed for content, separation, camera coverage, clipping, and obvious corruption.
+The checked-in artifacts were reproduced during M284 with wheel-installed GSP and VisPy2 imports
+while the scripts ran outside both source trees. The full fourteen-image set was byte-identical to
+M283. Seven Matplotlib and seven Datoviz captures were visually reviewed for content, separation,
+camera coverage, clipping, and obvious corruption.
 
 The backends are not expected to match pixels. Matplotlib uses a 640×480 publication canvas;
 Datoviz uses an 800×600 native offscreen target. Titles and axes are native guides, and the
@@ -57,4 +61,6 @@ text placement. Compare the semantic scene and documented adaptations.
 The first M283 Datoviz invocation hung without an output file. Five isolated repeats of gallery 1
 and bounded captures of galleries 2--4 then succeeded, and the final harness succeeded. No
 reproducible adapter defect was found. The original event remains evidence for repeated
-capture/lifecycle stress in M284.
+capture/lifecycle stress in M284. M284's first two Codex-sandbox attempts also hung while macOS
+HIServices/LaunchServices access was denied; independent unsandboxed native qualification then
+passed 25/25 static and 25/25 live View3D isolated processes, each bounded at 20 seconds.

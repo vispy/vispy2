@@ -69,6 +69,9 @@ from gsp.protocol import (
     View3D,
     VisualAttachment,
     VisualTransformBinding,
+    VectorAnchor,
+    VectorCap,
+    VectorVisual,
     Zoom3DPayload,
     orbit_view3d,
     pan_view3d,
@@ -115,6 +118,7 @@ class Figure:
         PointVisual
         | PixelVisual
         | SphereVisual
+        | VectorVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -217,6 +221,7 @@ class Axes:
     visuals: list[
         PointVisual
         | PixelVisual
+        | VectorVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -515,6 +520,61 @@ class Axes:
             )
         )
         return visual
+
+    def vectors(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike,
+        u: npt.ArrayLike,
+        v: npt.ArrayLike,
+        *,
+        color: npt.ArrayLike | None = None,
+        width: npt.ArrayLike | float = 1.0,
+        scale: float = 1.0,
+        anchor: str | VectorAnchor = VectorAnchor.TAIL,
+        start_cap: str | VectorCap = VectorCap.BUTT,
+        end_cap: str | VectorCap = VectorCap.TRIANGLE_OUT,
+        transform: npt.ArrayLike | VisualTransformBinding | None = None,
+        id: str | None = None,
+    ) -> VectorVisual:
+        """Create straight 2D DATA-space vectors from x/y anchors and u/v displacements."""
+        positions = _positions(x, y)
+        displacements = _vector_components((u, v), dimensions=2)
+        if positions.shape != displacements.shape:
+            raise ValueError("x/y anchors and u/v vectors must have the same length")
+        visual = VectorVisual(
+            id=id or _visual_id("vectors"),
+            positions=positions,
+            vectors=displacements,
+            colors=_colors(color, positions.shape[0]),
+            widths_px=_sizes(width, positions.shape[0]),
+            scale=float(scale),
+            anchor=_vector_anchor(anchor),
+            start_cap=_vector_cap(start_cap),
+            end_cap=_vector_cap(end_cap),
+            coordinate_space=CoordinateSpace.DATA,
+            transform=_visual_transform(transform),
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
+    def quiver(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike,
+        u: npt.ArrayLike,
+        v: npt.ArrayLike,
+        **kwargs: Any,
+    ) -> VectorVisual:
+        """Thin alias for :meth:`vectors`; no Matplotlib quiver surface is emulated."""
+        return self.vectors(x, y, u, v, **kwargs)
 
     def markers(
         self,
@@ -919,7 +979,9 @@ class Axes3D:
     """Backend-neutral producer for one static GSP View3D."""
 
     figure: Figure
-    visuals: list[MeshVisual | PixelVisual | SphereVisual] = field(default_factory=list)
+    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual] = field(
+        default_factory=list
+    )
     panel: Panel = field(init=False)
     view: View3D = field(init=False)
     attachments: list[VisualAttachment] = field(default_factory=list)
@@ -1233,6 +1295,62 @@ class Axes3D:
         )
         return visual
 
+    def vectors(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike,
+        z: npt.ArrayLike,
+        u: npt.ArrayLike,
+        v: npt.ArrayLike,
+        w: npt.ArrayLike,
+        *,
+        color: npt.ArrayLike | None = None,
+        width: npt.ArrayLike | float = 1.0,
+        scale: float = 1.0,
+        anchor: str | VectorAnchor = VectorAnchor.TAIL,
+        start_cap: str | VectorCap = VectorCap.BUTT,
+        end_cap: str | VectorCap = VectorCap.TRIANGLE_OUT,
+        id: str | None = None,
+    ) -> VectorVisual:
+        """Create straight 3D DATA-space vectors from anchors and displacements."""
+        positions = _positions3d(x, y, z)
+        displacements = _vector_components((u, v, w), dimensions=3)
+        if positions.shape != displacements.shape:
+            raise ValueError("x/y/z anchors and u/v/w vectors must have the same length")
+        visual = VectorVisual(
+            id=id or _visual_id("vectors"),
+            positions=positions,
+            vectors=displacements,
+            colors=_colors(color, positions.shape[0]),
+            widths_px=_sizes(width, positions.shape[0]),
+            scale=float(scale),
+            anchor=_vector_anchor(anchor),
+            start_cap=_vector_cap(start_cap),
+            end_cap=_vector_cap(end_cap),
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
+    def quiver(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike,
+        z: npt.ArrayLike,
+        u: npt.ArrayLike,
+        v: npt.ArrayLike,
+        w: npt.ArrayLike,
+        **kwargs: Any,
+    ) -> VectorVisual:
+        """Thin 3D alias for :meth:`vectors`."""
+        return self.vectors(x, y, z, u, v, w, **kwargs)
+
     def _mesh_texture2d_resource(
         self, texture: npt.ArrayLike | None, uvs: npt.ArrayLike | None
     ) -> Texture2D | None:
@@ -1289,6 +1407,29 @@ def pixels(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> P
     """Create a pixel visual in a temporary one-axes figure."""
     _, ax = subplots()
     return ax.pixels(x, y, **kwargs)
+
+
+def vectors(
+    x: npt.ArrayLike,
+    y: npt.ArrayLike,
+    u: npt.ArrayLike,
+    v: npt.ArrayLike,
+    **kwargs: Any,
+) -> VectorVisual:
+    """Create a 2D vector visual in a temporary one-axes figure."""
+    _, ax = subplots()
+    return ax.vectors(x, y, u, v, **kwargs)
+
+
+def quiver(
+    x: npt.ArrayLike,
+    y: npt.ArrayLike,
+    u: npt.ArrayLike,
+    v: npt.ArrayLike,
+    **kwargs: Any,
+) -> VectorVisual:
+    """Thin alias for :func:`vectors`; no Matplotlib API emulation is provided."""
+    return vectors(x, y, u, v, **kwargs)
 
 
 def markers(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> MarkerVisual:
@@ -1360,7 +1501,7 @@ def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, flo
 
 
 def _axes3d_data_bounds(
-    visuals: list[MeshVisual | PixelVisual | SphereVisual],
+    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual],
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     minima: list[npt.NDArray[np.float64]] = []
     maxima: list[npt.NDArray[np.float64]] = []
@@ -1372,6 +1513,10 @@ def _axes3d_data_bounds(
             radii = np.asarray(visual.radius_values(), dtype=np.float64)[:, None]
             minima.append(positions - radii)
             maxima.append(positions + radii)
+        elif isinstance(visual, VectorVisual):
+            tails, heads = visual.endpoint_values()
+            minima.extend((tails, heads))
+            maxima.extend((tails, heads))
         else:
             minima.append(positions)
             maxima.append(positions)
@@ -1644,6 +1789,19 @@ def _positions3d(
     return np.ascontiguousarray(np.column_stack(arrays).astype(np.float32))
 
 
+def _vector_components(
+    values: tuple[npt.ArrayLike, ...], *, dimensions: int
+) -> npt.NDArray[np.float32]:
+    if len(values) != dimensions:
+        raise ValueError(f"vectors require exactly {dimensions} components")
+    arrays = tuple(np.asarray(value, dtype=np.float32) for value in values)
+    if any(array.ndim != 1 for array in arrays):
+        raise ValueError("vector components must be one-dimensional")
+    if len({array.shape[0] for array in arrays}) != 1:
+        raise ValueError("vector components must have the same length")
+    return np.ascontiguousarray(np.column_stack(arrays).astype(np.float32))
+
+
 def _faces(value: npt.ArrayLike) -> npt.NDArray[np.uint32]:
     array = np.asarray(value)
     if array.ndim != 2 or array.shape[1] != 3:
@@ -1870,6 +2028,18 @@ def _stroke_join(value: str | StrokeJoin) -> StrokeJoin:
     if isinstance(value, StrokeJoin):
         return value
     return StrokeJoin(value)
+
+
+def _vector_anchor(value: str | VectorAnchor) -> VectorAnchor:
+    if isinstance(value, VectorAnchor):
+        return value
+    return VectorAnchor(value)
+
+
+def _vector_cap(value: str | VectorCap) -> VectorCap:
+    if isinstance(value, VectorCap):
+        return value
+    return VectorCap(value)
 
 
 def _path_lengths(

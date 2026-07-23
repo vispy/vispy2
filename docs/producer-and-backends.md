@@ -94,6 +94,30 @@ Matplotlib reference captures are checked in under `examples/artifacts`. Native 
 tracked separately by M284 because `capture_png_bytes()` currently aborts after rendering in the
 available runtime.
 
+## Vector visuals
+
+`Axes.vectors(x, y, u, v, ...)` and `Axes3D.vectors(x, y, z, u, v, w, ...)` create
+straight DATA-space `VectorVisual` values. `scale` and `anchor="tail"|"center"|"head"` resolve
+canonical endpoints before backend lowering. Widths are logical canvas pixels; colors and widths
+may be uniform or per item. Caps are visual-wide and limited to the GSP `VectorCap` vocabulary.
+
+`Axes.quiver(...)`, `Axes3D.quiver(...)`, and module-level `vispy2.quiver(...)` are thin aliases
+over the same semantic record. They deliberately do not emulate Matplotlib's `quiver` keyword
+surface.
+
+Datoviz lowering uses public `dvz_vector` dense attributes plus `DvzVectorStyle`, preserving
+source item identity. M279 did not produce or qualify a native Datoviz capture; native GUI and
+capture qualification remain assigned to M284. Matplotlib uses deterministic line-and-marker-cap
+artists: endpoint placement, scale, color, and width are preserved, while head rasterization is
+explicitly adapted. Its 3D path projects the canonical endpoints into a 2D overlay rather than
+using native Matplotlib 3D axes. Curves, per-item caps, dashes, and backend-native style structures
+are outside this API.
+
+The installed-wheel example `examples/vectors_2d_3d.py` builds bounded 2D and perspective 3D
+vector fields and writes files through Matplotlib only, after checking the straight-vector,
+DATA-space View3D, and triangle-head capabilities. It rejects Datoviz file output until M284
+qualifies native capture.
+
 # Pixel visuals
 
 `Axes.pixels(x, y, color=..., size=...)` creates 2D DATA-space screen-aligned squares. `Axes3D.pixels(x, y, z, ...)` creates screen-facing squares anchored at projected 3D DATA positions, and `vispy2.pixels(...)` is the module-level 2D convenience. `size` is a strictly positive logical-pixel width, scalar or per item.

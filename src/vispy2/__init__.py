@@ -13,10 +13,12 @@ from .protocol import (
     path,
     pixels,
     plot,
+    quiver,
     scatter,
     segments,
     subplots,
     text,
+    vectors,
 )
 from .session import open_session
 
@@ -37,8 +39,10 @@ __all__ = [
     "path",
     "pixels",
     "plot",
+    "quiver",
     "scatter",
     "segments",
     "subplots",
     "text",
+    "vectors",
 ]

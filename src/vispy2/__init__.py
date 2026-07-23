@@ -2,6 +2,7 @@
 
 from .protocol import (
     Axes,
+    Axes3D,
     Figure,
     affine2d,
     color_scale,
@@ -23,6 +24,7 @@ __version__ = "0.2.0a1"
 __all__ = [
     "__version__",
     "Axes",
+    "Axes3D",
     "Figure",
     "affine2d",
     "color_scale",

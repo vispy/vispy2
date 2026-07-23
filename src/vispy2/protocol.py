@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from itertools import count
+import math
 from pathlib import Path
-from typing import Any, SupportsFloat, cast
+from typing import Any, Literal, SupportsFloat, cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -23,6 +24,7 @@ from gsp.protocol import (
     ColorbarGuideStyle,
     ColorbarOrientation,
     ColorbarPlacement,
+    Camera3D,
     CoordinateSpace,
     FontRole,
     ImageColormap,
@@ -38,11 +40,16 @@ from gsp.protocol import (
     MeshVisual,
     MarkerShape,
     MarkerVisual,
+    Orbit3DPayload,
+    OrthographicProjection3D,
     Panel,
+    Pan3DPayload,
     PanelTextGuide,
     PanelTextRole,
     PathVisual,
+    PerspectiveProjection3D,
     PointVisual,
+    Projection3D,
     ScalarColorDomain,
     ScalarColorEncoding,
     ScalarColorSlot,
@@ -57,8 +64,13 @@ from gsp.protocol import (
     Texture2D,
     TextureFilter,
     View2D,
+    View3D,
     VisualAttachment,
     VisualTransformBinding,
+    Zoom3DPayload,
+    orbit_view3d,
+    pan_view3d,
+    zoom_view3d,
 )
 
 from .session import require_session
@@ -73,14 +85,25 @@ _texture_counter = count(1)
 class Figure:
     """Backend-neutral container for semantic producer scene state."""
 
-    axes: list["Axes"] = field(default_factory=list)
+    axes: list["Axes | Axes3D"] = field(default_factory=list)
     id: str = "figure:main"
     color_scale_resources: list[ColorScale] = field(default_factory=list)
     texture2d_resources: list[Texture2D] = field(default_factory=list)
 
-    def add_axes(self) -> "Axes":
-        """Add one protocol-producing axes to the figure."""
-        axes = Axes(figure=self)
+    @overload
+    def add_axes(self, *, projection: Literal["2d"] = "2d") -> "Axes": ...
+
+    @overload
+    def add_axes(self, *, projection: Literal["3d"]) -> "Axes3D": ...
+
+    def add_axes(self, *, projection: str = "2d") -> "Axes | Axes3D":
+        """Add one 2D or 3D protocol-producing axes to the figure."""
+        if projection == "2d":
+            axes: Axes | Axes3D = Axes(figure=self)
+        elif projection == "3d":
+            axes = Axes3D(figure=self)
+        else:
+            raise ValueError("projection must be '2d' or '3d'")
         self.axes.append(axes)
         return axes
 
@@ -103,15 +126,13 @@ class Figure:
         """Return semantic panels without expanding guide visuals."""
         return tuple(axes.panel for axes in self.axes)
 
-    def views(self) -> tuple[View2D, ...]:
-        """Return semantic 2D views without expanding guide visuals."""
+    def views(self) -> tuple[View2D | View3D, ...]:
+        """Return semantic views without expanding guide visuals."""
         return tuple(axes.view for axes in self.axes)
 
     def attachments(self) -> tuple[VisualAttachment, ...]:
         """Return data visual attachments to panels/views."""
-        return tuple(
-            attachment for axes in self.axes for attachment in axes.attachments
-        )
+        return tuple(attachment for axes in self.axes for attachment in axes.attachments)
 
     def axis_guides(self) -> tuple[AxisGuide, ...]:
         """Return semantic axis guide intent without expanding guide visuals."""
@@ -135,9 +156,9 @@ class Figure:
 
     def to_scene(self) -> Scene:
         """Freeze current semantic producer state into one immutable GSP scene."""
-        if len(self.axes) > 1:
-            raise ValueError("Figure.to_scene() currently supports at most one Axes")
-        axes = self.axes[0] if self.axes else None
+        if len(self.axes) != 1:
+            raise ValueError("Figure.to_scene() requires exactly one 2D or 3D Axes")
+        axes = self.axes[0]
         scene_id = (
             self.id.replace("figure:", "scene:", 1)
             if self.id.startswith("figure:")
@@ -147,7 +168,8 @@ class Figure:
             id=scene_id,
             visuals=self.visuals(),
             panels=self.panels(),
-            view2d=axes.view if axes is not None else None,
+            view2d=axes.view if isinstance(axes, Axes) else None,
+            view3d=axes.view if isinstance(axes, Axes3D) else None,
             attachments=self.attachments(),
             axis_guides=self.axis_guides(),
             panel_text_guides=self.panel_text_guides(),
@@ -158,9 +180,7 @@ class Figure:
 
     def savefig(self, path: str | Path, **kwargs: Any) -> None:
         """Save through an ephemeral Matplotlib provider session."""
-        with require_session(
-            "matplotlib", extra="matplotlib", require={"output.file"}
-        ) as session:
+        with require_session("matplotlib", extra="matplotlib", require={"output.file"}) as session:
             session.render(self.to_scene(), target=path, **kwargs)
 
     def display(self, session: BackendSession, **kwargs: Any) -> Any:
@@ -301,9 +321,7 @@ class Axes:
     def set_title(self, text: str | None) -> str | None:
         """Set or clear the semantic panel title."""
         self.panel_text_guides = [
-            guide
-            for guide in self.panel_text_guides
-            if guide.role != PanelTextRole.TITLE
+            guide for guide in self.panel_text_guides if guide.role != PanelTextRole.TITLE
         ]
         if text:
             self.panel_text_guides.append(
@@ -328,9 +346,7 @@ class Axes:
     ) -> tuple[float, ...]:
         """Set explicit semantic x-axis tick values and optional labels."""
         values = _tick_values(ticks)
-        self._set_axis_guide(
-            AxisDimension.X, tick_spec=_explicit_tick_spec(values, labels)
-        )
+        self._set_axis_guide(AxisDimension.X, tick_spec=_explicit_tick_spec(values, labels))
         return values
 
     def get_xticks(self) -> tuple[float, ...]:
@@ -343,9 +359,7 @@ class Axes:
     ) -> tuple[float, ...]:
         """Set explicit semantic y-axis tick values and optional labels."""
         values = _tick_values(ticks)
-        self._set_axis_guide(
-            AxisDimension.Y, tick_spec=_explicit_tick_spec(values, labels)
-        )
+        self._set_axis_guide(AxisDimension.Y, tick_spec=_explicit_tick_spec(values, labels))
         return values
 
     def get_yticks(self) -> tuple[float, ...]:
@@ -448,9 +462,7 @@ class Axes:
             clim=clim,
             alpha=alpha,
         )
-        colors = (
-            None if encoding is not None else _colors(color_value, positions.shape[0])
-        )
+        colors = None if encoding is not None else _colors(color_value, positions.shape[0])
         sizes = _sizes(size if size is not None else s, positions.shape[0])
         visual = PointVisual(
             id=id or _visual_id("points"),
@@ -463,9 +475,7 @@ class Axes:
         )
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -505,9 +515,7 @@ class Axes:
             clim=clim,
             alpha=alpha,
         )
-        fill_colors = (
-            None if encoding is not None else _colors(color_value, positions.shape[0])
-        )
+        fill_colors = None if encoding is not None else _colors(color_value, positions.shape[0])
         sizes = _sizes(size if size is not None else s, positions.shape[0])
         visual = MarkerVisual(
             id=id or _visual_id("markers"),
@@ -524,9 +532,7 @@ class Axes:
         )
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -560,9 +566,7 @@ class Axes:
         )
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -598,9 +602,7 @@ class Axes:
         )
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -656,9 +658,7 @@ class Axes:
         )
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -686,11 +686,7 @@ class Axes:
         face_array = _faces(faces)
         texture_resource = self._mesh_texture2d_resource(texture, uvs)
         mesh_shading = _mesh_shading(shading)
-        mesh_uvs = (
-            None
-            if texture_resource is None
-            else _mesh_uvs(uvs, position_array.shape[0])
-        )
+        mesh_uvs = None if texture_resource is None else _mesh_uvs(uvs, position_array.shape[0])
         if texture_resource is not None and mesh_shading is not MeshShading.UNLIT_RGBA:
             raise ValueError("texture2d_unlit does not accept explicit mesh shading")
         visual = MeshVisual(
@@ -700,11 +696,7 @@ class Axes:
             coordinate_space=_coordinate_space(coordinate_space),
             color=_mesh_color(color),
             color_mode=_mesh_color_mode(color_mode),
-            shading=(
-                MeshShading.TEXTURE2D_UNLIT
-                if texture_resource is not None
-                else mesh_shading
-            ),
+            shading=(MeshShading.TEXTURE2D_UNLIT if texture_resource is not None else mesh_shading),
             normal_mode=_mesh_normal_mode(normal_mode),
             normals=_mesh_normals(normals),
             normal_generation=_mesh_normal_generation(normal_generation),
@@ -719,9 +711,7 @@ class Axes:
             self.figure.texture2d_resources.append(texture_resource)
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -797,9 +787,7 @@ class Axes:
         )
         self.visuals.append(visual)
         self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id
-            )
+            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
         )
         return visual
 
@@ -889,10 +877,306 @@ class Axes:
         return scale.id
 
 
-def subplots() -> tuple[Figure, Axes]:
-    """Create a one-axes GSP VisPy2 protocol figure."""
+@dataclass(slots=True)
+class Axes3D:
+    """Backend-neutral producer for one static GSP View3D."""
+
+    figure: Figure
+    visuals: list[MeshVisual] = field(default_factory=list)
+    panel: Panel = field(init=False)
+    view: View3D = field(init=False)
+    attachments: list[VisualAttachment] = field(default_factory=list)
+    axis_guides: list[AxisGuide] = field(default_factory=list)
+    panel_text_guides: list[PanelTextGuide] = field(default_factory=list)
+    colorbar_guides: list[ColorbarGuide] = field(default_factory=list)
+    _home_view: View3D = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        index = len(self.figure.axes) + 1
+        panel_id = f"panel:{index}"
+        self.panel = Panel(id=panel_id, figure_id=self.figure.id)
+        self.view = View3D(
+            id=f"view:{index}",
+            panel_id=panel_id,
+            camera=Camera3D(
+                eye=(3.0, 3.0, 3.0),
+                target=(0.0, 0.0, 0.0),
+                up=(0.0, 0.0, 1.0),
+            ),
+            projection=PerspectiveProjection3D(
+                fov_y_degrees=45.0,
+                near_far=(0.1, 1000.0),
+            ),
+        )
+        self._home_view = self.view
+
+    def set_camera(
+        self,
+        *,
+        eye: npt.ArrayLike,
+        target: npt.ArrayLike,
+        up: npt.ArrayLike,
+    ) -> Camera3D:
+        """Replace the semantic camera and increment the View3D revision."""
+        camera = Camera3D(
+            eye=_float3(eye, field_name="eye"),
+            target=_float3(target, field_name="target"),
+            up=_float3(up, field_name="up"),
+        )
+        self.view = replace(
+            self.view,
+            camera=camera,
+            revision=self.view.revision + 1,
+        )
+        return camera
+
+    def get_camera(self) -> Camera3D:
+        """Return the current semantic camera."""
+        return self.view.camera
+
+    def set_perspective(
+        self,
+        *,
+        fov_y_degrees: float = 45.0,
+        near: float = 0.1,
+        far: float = 1000.0,
+        aspect_ratio: float | None = None,
+    ) -> PerspectiveProjection3D:
+        """Set a perspective projection and increment the View3D revision."""
+        projection = PerspectiveProjection3D(
+            fov_y_degrees=float(fov_y_degrees),
+            near_far=(float(near), float(far)),
+            aspect_ratio=None if aspect_ratio is None else float(aspect_ratio),
+        )
+        self.view = replace(
+            self.view,
+            projection=projection,
+            revision=self.view.revision + 1,
+        )
+        return projection
+
+    def set_orthographic(
+        self,
+        *,
+        xlim: tuple[float, float] = (-1.0, 1.0),
+        ylim: tuple[float, float] = (-1.0, 1.0),
+        near: float = 0.0,
+        far: float = 1000.0,
+    ) -> OrthographicProjection3D:
+        """Set an orthographic projection and increment the View3D revision."""
+        projection = OrthographicProjection3D(
+            xlim=(float(xlim[0]), float(xlim[1])),
+            ylim=(float(ylim[0]), float(ylim[1])),
+            near_far=(float(near), float(far)),
+        )
+        self.view = replace(
+            self.view,
+            projection=projection,
+            revision=self.view.revision + 1,
+        )
+        return projection
+
+    def get_projection(self) -> Projection3D:
+        """Return the current semantic projection."""
+        return self.view.projection
+
+    def orbit(self, *, yaw_radians: float, pitch_radians: float) -> View3D:
+        """Orbit with the accepted GSP reducer."""
+        self.view = orbit_view3d(
+            self.view,
+            Orbit3DPayload(
+                delta_yaw_radians=float(yaw_radians),
+                delta_pitch_radians=float(pitch_radians),
+            ),
+        )
+        return self.view
+
+    def pan(self, *, right: float, up: float) -> View3D:
+        """Pan with the accepted GSP reducer."""
+        self.view = pan_view3d(
+            self.view,
+            Pan3DPayload(
+                delta_view_right=float(right),
+                delta_view_up=float(up),
+            ),
+        )
+        return self.view
+
+    def zoom(
+        self,
+        scale: float,
+        *,
+        anchor_ndc: tuple[float, float] | None = None,
+    ) -> View3D:
+        """Zoom with the accepted GSP reducer."""
+        anchor = None if anchor_ndc is None else (float(anchor_ndc[0]), float(anchor_ndc[1]))
+        self.view = zoom_view3d(
+            self.view,
+            Zoom3DPayload(
+                scale=float(scale),
+                anchor_panel_ndc_xy=anchor,
+            ),
+        )
+        return self.view
+
+    def reset_camera(self) -> View3D:
+        """Restore the camera and projection from axes construction."""
+        self.view = replace(
+            self._home_view,
+            revision=self.view.revision + 1,
+        )
+        return self.view
+
+    def fit_camera(self, *, margin: float = 1.1) -> View3D:
+        """Fit the current camera/projection to finite DATA-space 3D bounds."""
+        resolved_margin = float(margin)
+        if not math.isfinite(resolved_margin) or resolved_margin < 1.0:
+            raise ValueError("camera fit margin must be finite and at least 1")
+        bounds = _axes3d_data_bounds(self.visuals)
+        camera: Camera3D
+        projection: Projection3D
+        if isinstance(self.view.projection, PerspectiveProjection3D):
+            camera, projection = _fit_perspective_camera(
+                self.view,
+                bounds,
+                margin=resolved_margin,
+            )
+        else:
+            camera, projection = _fit_orthographic_camera(
+                self.view,
+                bounds,
+                margin=resolved_margin,
+            )
+        self.view = replace(
+            self.view,
+            camera=camera,
+            projection=projection,
+            revision=self.view.revision + 1,
+        )
+        return self.view
+
+    def set_title(self, text: str | None) -> str | None:
+        """Set or clear the semantic panel title."""
+        self.panel_text_guides = [
+            guide for guide in self.panel_text_guides if guide.role != PanelTextRole.TITLE
+        ]
+        if text:
+            self.panel_text_guides.append(
+                PanelTextGuide(
+                    id=f"guide:title-{self._index}",
+                    panel_id=self.panel.id,
+                    role=PanelTextRole.TITLE,
+                    text=text,
+                )
+            )
+        return text
+
+    def get_title(self) -> str | None:
+        """Return the semantic panel title, if any."""
+        for guide in self.panel_text_guides:
+            if guide.role == PanelTextRole.TITLE:
+                return guide.text
+        return None
+
+    def mesh(
+        self,
+        positions: npt.ArrayLike,
+        faces: npt.ArrayLike,
+        *,
+        color: npt.ArrayLike,
+        color_mode: str | MeshColorMode | None = None,
+        coordinate_space: str | CoordinateSpace = CoordinateSpace.DATA,
+        shading: str | MeshShading = MeshShading.UNLIT_RGBA,
+        normal_mode: str | MeshNormalMode | None = None,
+        normals: npt.ArrayLike | None = None,
+        normal_generation: str | MeshNormalGeneration = MeshNormalGeneration.NONE,
+        order: float = 0.0,
+        transform: npt.ArrayLike | VisualTransformBinding | None = None,
+        texture: npt.ArrayLike | None = None,
+        uvs: npt.ArrayLike | None = None,
+        texture_filter: str | TextureFilter = TextureFilter.NEAREST,
+        id: str | None = None,
+    ) -> MeshVisual:
+        """Create a 3D protocol mesh attached to this View3D."""
+        position_array = _positions(positions, None)
+        if position_array.shape[1] != 3:
+            raise ValueError("Axes3D.mesh() positions must have shape (N, 3)")
+        if transform is not None:
+            raise ValueError("Axes3D.mesh() transforms are not supported in this static 3D slice")
+        face_array = _faces(faces)
+        texture_resource = self._mesh_texture2d_resource(texture, uvs)
+        mesh_shading = _mesh_shading(shading)
+        mesh_uvs = None if texture_resource is None else _mesh_uvs(uvs, position_array.shape[0])
+        if texture_resource is not None and mesh_shading is not MeshShading.UNLIT_RGBA:
+            raise ValueError("texture2d_unlit does not accept explicit mesh shading")
+        visual = MeshVisual(
+            id=id or _visual_id("mesh"),
+            positions=position_array,
+            faces=face_array,
+            coordinate_space=_coordinate_space(coordinate_space),
+            color=_mesh_color(color),
+            color_mode=_mesh_color_mode(color_mode),
+            shading=(MeshShading.TEXTURE2D_UNLIT if texture_resource is not None else mesh_shading),
+            normal_mode=_mesh_normal_mode(normal_mode),
+            normals=_mesh_normals(normals),
+            normal_generation=_mesh_normal_generation(normal_generation),
+            texture2d_id=None if texture_resource is None else texture_resource.id,
+            uv_mode=MeshUVMode.NONE if texture_resource is None else MeshUVMode.VERTEX,
+            uvs=mesh_uvs,
+            order=float(order),
+            transform=None,
+            texture_filter=_texture_filter(texture_filter),
+        )
+        if texture_resource is not None:
+            self.figure.texture2d_resources.append(texture_resource)
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
+    def _mesh_texture2d_resource(
+        self, texture: npt.ArrayLike | None, uvs: npt.ArrayLike | None
+    ) -> Texture2D | None:
+        if texture is None and uvs is None:
+            return None
+        if texture is None or uvs is None:
+            raise ValueError("texture and uvs must be supplied together")
+        image = np.asarray(texture)
+        if image.dtype != np.dtype(np.uint8):
+            raise TypeError("texture2d_invalid_resource: texture must have dtype uint8")
+        return Texture2D(id=_texture_id("mesh"), image=image)
+
+    @property
+    def _index(self) -> int:
+        return int(self.panel.id.rsplit(":", maxsplit=1)[1])
+
+
+@overload
+def subplots() -> tuple[Figure, Axes]: ...
+
+
+@overload
+def subplots(*, projection: Literal["2d"]) -> tuple[Figure, Axes]: ...
+
+
+@overload
+def subplots(*, projection: Literal["3d"]) -> tuple[Figure, Axes3D]: ...
+
+
+def subplots(*, projection: str = "2d") -> tuple[Figure, Axes | Axes3D]:
+    """Create a one-axes 2D or 3D GSP VisPy2 protocol figure."""
     fig = Figure()
-    ax = fig.add_axes()
+    if projection == "2d":
+        ax: Axes | Axes3D = fig.add_axes(projection="2d")
+    elif projection == "3d":
+        ax = fig.add_axes(projection="3d")
+    else:
+        raise ValueError("projection must be '2d' or '3d'")
     return fig, ax
 
 
@@ -901,17 +1185,13 @@ def affine2d(matrix: npt.ArrayLike) -> VisualTransformBinding:
     return VisualTransformBinding.inline_affine(_affine_matrix(matrix))
 
 
-def scatter(
-    x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any
-) -> PointVisual:
+def scatter(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> PointVisual:
     """Create a point visual in a temporary one-axes figure."""
     _, ax = subplots()
     return ax.scatter(x, y, **kwargs)
 
 
-def markers(
-    x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any
-) -> MarkerVisual:
+def markers(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> MarkerVisual:
     """Create a marker visual in a temporary one-axes figure."""
     _, ax = subplots()
     return ax.markers(x, y, **kwargs)
@@ -970,6 +1250,160 @@ def colorbar(color_scale: str | ColorScale, **kwargs: Any) -> ColorbarGuide:
     return ax.colorbar(color_scale, **kwargs)
 
 
+def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, float]:
+    array = np.asarray(value, dtype=np.float64)
+    if array.shape != (3,):
+        raise ValueError(f"{field_name} must contain exactly three values")
+    if not np.all(np.isfinite(array)):
+        raise ValueError(f"{field_name} values must be finite")
+    return (float(array[0]), float(array[1]), float(array[2]))
+
+
+def _axes3d_data_bounds(
+    visuals: list[MeshVisual],
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    position_arrays = [
+        np.asarray(visual.positions, dtype=np.float64)
+        for visual in visuals
+        if visual.coordinate_space is CoordinateSpace.DATA and visual.positions.shape[1] == 3
+    ]
+    if not position_arrays:
+        raise ValueError("fit_camera() requires at least one DATA-space 3D visual")
+    positions = np.concatenate(position_arrays, axis=0)
+    if positions.size == 0 or not np.all(np.isfinite(positions)):
+        raise ValueError("fit_camera() requires finite non-empty DATA-space bounds")
+    return np.min(positions, axis=0), np.max(positions, axis=0)
+
+
+def _fit_epsilon(
+    bounds: tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+) -> float:
+    minimum, maximum = bounds
+    scale = max(float(np.max(np.abs(minimum))), float(np.max(np.abs(maximum))), 1.0)
+    return scale * 1.0e-6
+
+
+def _expanded_bounds_corners(
+    bounds: tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+) -> tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+]:
+    minimum, maximum = bounds
+    center = (minimum + maximum) * 0.5
+    epsilon = _fit_epsilon(bounds)
+    half_extent = np.maximum((maximum - minimum) * 0.5, epsilon * 0.5)
+    corners = np.asarray(
+        [
+            center + half_extent * np.asarray((x, y, z), dtype=np.float64)
+            for x in (-1.0, 1.0)
+            for y in (-1.0, 1.0)
+            for z in (-1.0, 1.0)
+        ],
+        dtype=np.float64,
+    )
+    return center, half_extent, corners
+
+
+def _fit_perspective_camera(
+    view: View3D,
+    bounds: tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+    *,
+    margin: float,
+) -> tuple[Camera3D, PerspectiveProjection3D]:
+    projection = view.projection
+    if not isinstance(projection, PerspectiveProjection3D):
+        raise TypeError("perspective camera fit requires PerspectiveProjection3D")
+    center, half_extent, _ = _expanded_bounds_corners(bounds)
+    fitted_radius = float(np.linalg.norm(half_extent)) * margin
+    vertical_half_angle = math.radians(projection.fov_y_degrees) * 0.5
+    aspect_ratio = 1.0 if projection.aspect_ratio is None else projection.aspect_ratio
+    horizontal_half_angle = math.atan(math.tan(vertical_half_angle) * aspect_ratio)
+    limiting_half_angle = min(vertical_half_angle, horizontal_half_angle)
+    epsilon = _fit_epsilon(bounds)
+    distance = fitted_radius / math.sin(limiting_half_angle) + epsilon
+    basis = view.camera.basis()
+    center3 = _array_float3(center)
+    eye = tuple(center3[index] - basis.forward[index] * distance for index in range(3))
+    near = max(distance - fitted_radius, epsilon)
+    far = max(distance + fitted_radius, near + epsilon)
+    return (
+        Camera3D(eye=cast(tuple[float, float, float], eye), target=center3, up=view.camera.up),
+        PerspectiveProjection3D(
+            fov_y_degrees=projection.fov_y_degrees,
+            near_far=(near, far),
+            aspect_ratio=projection.aspect_ratio,
+        ),
+    )
+
+
+def _fit_orthographic_camera(
+    view: View3D,
+    bounds: tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+    *,
+    margin: float,
+) -> tuple[Camera3D, OrthographicProjection3D]:
+    projection = view.projection
+    if not isinstance(projection, OrthographicProjection3D):
+        raise TypeError("orthographic camera fit requires OrthographicProjection3D")
+    center, _, corners = _expanded_bounds_corners(bounds)
+    center3 = _array_float3(center)
+    basis = view.camera.basis()
+    centered_corners = corners - center
+    right = np.asarray(basis.right, dtype=np.float64)
+    true_up = np.asarray(basis.true_up, dtype=np.float64)
+    forward = np.asarray(basis.forward, dtype=np.float64)
+    xlim = _expanded_projected_interval(centered_corners @ right, margin=margin)
+    ylim = _expanded_projected_interval(centered_corners @ true_up, margin=margin)
+    forward_offsets = centered_corners @ forward
+    distance = float(
+        np.linalg.norm(
+            np.asarray(view.camera.eye, dtype=np.float64)
+            - np.asarray(view.camera.target, dtype=np.float64)
+        )
+    )
+    near, far = _expanded_projected_interval(
+        forward_offsets + distance,
+        margin=margin,
+    )
+    epsilon = _fit_epsilon(bounds)
+    if near < epsilon:
+        shift = epsilon - near
+        distance += shift
+        near += shift
+        far += shift
+    eye = tuple(center3[index] - basis.forward[index] * distance for index in range(3))
+    if projection.xlim[1] < projection.xlim[0]:
+        xlim = (xlim[1], xlim[0])
+    if projection.ylim[1] < projection.ylim[0]:
+        ylim = (ylim[1], ylim[0])
+    return (
+        Camera3D(eye=cast(tuple[float, float, float], eye), target=center3, up=view.camera.up),
+        OrthographicProjection3D(
+            xlim=xlim,
+            ylim=ylim,
+            near_far=(near, far),
+        ),
+    )
+
+
+def _expanded_projected_interval(
+    values: npt.NDArray[np.float64],
+    *,
+    margin: float,
+) -> tuple[float, float]:
+    low = float(np.min(values))
+    high = float(np.max(values))
+    center = (low + high) * 0.5
+    half_span = (high - low) * 0.5 * margin
+    return center - half_span, center + half_span
+
+
+def _array_float3(array: npt.NDArray[np.float64]) -> tuple[float, float, float]:
+    return (float(array[0]), float(array[1]), float(array[2]))
+
+
 def _visual_transform(
     transform: npt.ArrayLike | VisualTransformBinding | None,
 ) -> VisualTransformBinding | None:
@@ -1023,9 +1457,7 @@ def _is_s026_colormap(
     return True
 
 
-def _scalar_values(
-    value: npt.ArrayLike, *, shape: tuple[int, ...]
-) -> npt.NDArray[np.float32]:
+def _scalar_values(value: npt.ArrayLike, *, shape: tuple[int, ...]) -> npt.NDArray[np.float32]:
     array = np.asarray(value, dtype=np.float32)
     if array.shape != shape:
         raise ValueError(f"scalar color values must have shape {shape}")
@@ -1058,14 +1490,10 @@ def _colorbar_style(
     base = style or ColorbarGuideStyle()
     return ColorbarGuideStyle(
         ramp_width_px=base.ramp_width_px if ramp_width_px is None else ramp_width_px,
-        tick_length_px=base.tick_length_px
-        if tick_length_px is None
-        else tick_length_px,
+        tick_length_px=base.tick_length_px if tick_length_px is None else tick_length_px,
         label_gap_px=base.label_gap_px if label_gap_px is None else label_gap_px,
         min_length_px=base.min_length_px if min_length_px is None else min_length_px,
-        length_fraction=base.length_fraction
-        if length_fraction is None
-        else length_fraction,
+        length_fraction=base.length_fraction if length_fraction is None else length_fraction,
     )
 
 
@@ -1073,9 +1501,7 @@ def _positions(x: npt.ArrayLike, y: npt.ArrayLike | None) -> npt.NDArray[np.floa
     x_array = np.asarray(x, dtype=np.float32)
     if y is None:
         if x_array.ndim != 2 or x_array.shape[1] not in (2, 3):
-            raise ValueError(
-                "scatter requires x/y arrays or an array with shape (N, 2) or (N, 3)"
-            )
+            raise ValueError("scatter requires x/y arrays or an array with shape (N, 2) or (N, 3)")
         return np.ascontiguousarray(x_array)
     y_array = np.asarray(y, dtype=np.float32)
     if x_array.ndim != 1 or y_array.ndim != 1 or x_array.shape[0] != y_array.shape[0]:
@@ -1150,16 +1576,12 @@ def _mesh_normals(value: npt.ArrayLike | None) -> npt.NDArray[np.float32] | None
     return np.ascontiguousarray(array)
 
 
-def _mesh_uvs(
-    value: npt.ArrayLike | None, vertex_count: int
-) -> npt.NDArray[np.float32]:
+def _mesh_uvs(value: npt.ArrayLike | None, vertex_count: int) -> npt.NDArray[np.float32]:
     if value is None:
         raise ValueError("texture and uvs must be supplied together")
     array = np.asarray(value, dtype=np.float32)
     if array.shape != (vertex_count, 2):
-        raise ValueError(
-            f"meshvisual_uv_shape_mismatch: uvs must have shape ({vertex_count}, 2)"
-        )
+        raise ValueError(f"meshvisual_uv_shape_mismatch: uvs must have shape ({vertex_count}, 2)")
     if not np.all(np.isfinite(array)):
         raise ValueError("meshvisual_uv_nonfinite: uvs must be finite")
     return np.ascontiguousarray(array)
@@ -1171,14 +1593,10 @@ def _mesh_color(
     array = np.asarray(value)
     if array.ndim == 1:
         if array.shape[0] != 4:
-            raise ValueError(
-                "mesh color must be RGBA with shape (4,), (M, 4), or (N, 4)"
-            )
+            raise ValueError("mesh color must be RGBA with shape (4,), (M, 4), or (N, 4)")
     elif array.ndim == 2:
         if array.shape[1] != 4:
-            raise ValueError(
-                "mesh color must be RGBA with shape (4,), (M, 4), or (N, 4)"
-            )
+            raise ValueError("mesh color must be RGBA with shape (4,), (M, 4), or (N, 4)")
     else:
         raise ValueError("mesh color must be RGBA with shape (4,), (M, 4), or (N, 4)")
     if array.dtype == np.dtype(np.uint8):
@@ -1188,9 +1606,7 @@ def _mesh_color(
     return np.ascontiguousarray(array.astype(np.float32))
 
 
-def _sizes(
-    value: npt.ArrayLike | float, count_: int
-) -> npt.NDArray[np.float32] | float:
+def _sizes(value: npt.ArrayLike | float, count_: int) -> npt.NDArray[np.float32] | float:
     if np.isscalar(value):
         return float(cast(SupportsFloat, value))
     array = np.asarray(value, dtype=np.float32)
@@ -1199,9 +1615,7 @@ def _sizes(
     return np.ascontiguousarray(array).astype(np.float32, copy=False)
 
 
-def _angles(
-    value: npt.ArrayLike | float, count_: int
-) -> npt.NDArray[np.float32] | float:
+def _angles(value: npt.ArrayLike | float, count_: int) -> npt.NDArray[np.float32] | float:
     if np.isscalar(value):
         return float(cast(SupportsFloat, value))
     array = np.asarray(value, dtype=np.float32)
@@ -1210,9 +1624,7 @@ def _angles(
     return np.ascontiguousarray(array).astype(np.float32, copy=False)
 
 
-def _text_values(
-    texts: str | tuple[str, ...] | list[str], count_: int
-) -> tuple[str, ...]:
+def _text_values(texts: str | tuple[str, ...] | list[str], count_: int) -> tuple[str, ...]:
     if isinstance(texts, str):
         if count_ != 1:
             raise ValueError("single text string requires exactly one position")

@@ -17,6 +17,18 @@ scene = figure.to_scene()
 figure.savefig("figure.png")
 ```
 
+For a static 3D scene, request an `Axes3D`, add a DATA-space mesh, and fit the semantic camera:
+
+```python
+figure, axes = vp.subplots(projection="3d")
+axes.mesh(
+    [[-1, -1, 0], [1, -1, 0], [0, 1, 0]],
+    [[0, 1, 2]],
+    color=[70, 130, 220, 255],
+)
+axes.fit_camera()
+```
+
 Use an explicit caller-owned session for Datoviz, non-blocking execution, or interactive lifecycle
 control. See [Producer and backend boundary](docs/producer-and-backends.md).
 

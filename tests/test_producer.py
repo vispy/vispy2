@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from dataclasses import fields
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pytest
 
 import gsp
 from gsp import BackendUnavailable
+from gsp.backends import BackendSession
 from gsp.protocol import (
     AxisDimension,
     CoordinateSpace,
@@ -130,7 +131,7 @@ def test_to_scene_rejects_currently_unsupported_multi_axes_layout() -> None:
     figure = vp.Figure()
     figure.add_axes()
     figure.add_axes()
-    with pytest.raises(ValueError, match="at most one Axes"):
+    with pytest.raises(ValueError, match="exactly one"):
         figure.to_scene()
 
 
@@ -149,7 +150,7 @@ def test_display_uses_caller_owned_session_without_retaining_it() -> None:
     figure, axes = vp.subplots()
     axes.scatter([0.0], [0.0])
     session = FakeSession()
-    scene, options = figure.display(session, block=False)
+    scene, options = figure.display(cast(BackendSession, session), block=False)
     assert scene is session.scenes[0]
     assert options == {"block": False}
     assert all(getattr(figure, item.name) is not session for item in fields(figure))

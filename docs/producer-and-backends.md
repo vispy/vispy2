@@ -141,6 +141,27 @@ The installed-wheel `examples/primitive_topologies.py` gallery includes all five
 both indexed and unindexed inputs. It writes through Matplotlib after checking every primitive
 capability and defers native Datoviz capture qualification to M284.
 
+## Text billboards in View3D
+
+`Axes3D.text(x, y, z, texts, ...)` creates screen-facing `TextVisual` billboards anchored at
+projected 3D DATA positions. Font size remains in logical pixels as camera distance changes.
+Generic sans, serif, and monospace roles, layout-box anchors, display-plane rotation, RGBA color,
+and integer `z_order` are semantic. Overlay ordering is stable: higher `z_order` values appear
+above lower values, without claiming depth occlusion.
+
+Matplotlib projects each DATA anchor into an axes-fraction overlay and maps generic roles through
+its configured font-family aliases. Datoviz public lowering uses retained UTF-8 text, style, and
+placement objects; because its public style takes a concrete font pointer rather than a generic
+role, the adapter leaves that pointer unset and uses the backend default font. Datoviz coverage in
+M281 is limited to lowering and a no-capture smoke path. No native Datoviz PNG was produced or
+qualified, and M284 owns native GUI/capture qualification.
+
+Exact fonts, glyph coverage, metrics, shaping, and rasterization vary by backend. Font files,
+glyph IDs or atlases, rich text, per-glyph query, raster parity, and strict depth occlusion are not
+part of this API. The Matplotlib-only installed-wheel gallery
+`examples/text_billboards_3d.py` uses three separated objects and independent sans, serif, and
+monospace labels; it rejects Datoviz before creating output or opening a session.
+
 # Pixel visuals
 
 `Axes.pixels(x, y, color=..., size=...)` creates 2D DATA-space screen-aligned squares. `Axes3D.pixels(x, y, z, ...)` creates screen-facing squares anchored at projected 3D DATA positions, and `vispy2.pixels(...)` is the module-level 2D convenience. `size` is a strictly positive logical-pixel width, scalar or per item.

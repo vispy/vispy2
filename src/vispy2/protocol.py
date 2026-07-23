@@ -1014,9 +1014,9 @@ class Axes3D:
     """Backend-neutral producer for one static GSP View3D."""
 
     figure: Figure
-    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual | PrimitiveVisual] = field(
-        default_factory=list
-    )
+    visuals: list[
+        MeshVisual | PixelVisual | SphereVisual | VectorVisual | PrimitiveVisual | TextVisual
+    ] = field(default_factory=list)
     panel: Panel = field(init=False)
     view: View3D = field(init=False)
     attachments: list[VisualAttachment] = field(default_factory=list)
@@ -1302,6 +1302,55 @@ class Axes3D:
         )
         return visual
 
+    def text(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike | None,
+        z: npt.ArrayLike | None,
+        texts: str | tuple[str, ...] | list[str],
+        *,
+        color: npt.ArrayLike | None = None,
+        font_size_px: npt.ArrayLike | float = 13.0,
+        font_role: str | FontRole = FontRole.DEFAULT,
+        anchor_x: str
+        | TextAnchorX
+        | tuple[str | TextAnchorX, ...]
+        | list[str | TextAnchorX] = TextAnchorX.LEFT,
+        anchor_y: str
+        | TextAnchorY
+        | tuple[str | TextAnchorY, ...]
+        | list[str | TextAnchorY] = TextAnchorY.BASELINE,
+        rotation_rad: npt.ArrayLike | float = 0.0,
+        z_order: int = 0,
+        id: str | None = None,
+    ) -> TextVisual:
+        """Create screen-facing billboard labels anchored in 3D DATA space."""
+        positions = _positions3d(x, y, z)
+        visual = TextVisual(
+            id=id or _visual_id("text"),
+            texts=_text_values(texts, positions.shape[0]),
+            positions=positions,
+            coordinate_space=CoordinateSpace.DATA,
+            rgba=_text_rgba(color, positions.shape[0]),
+            font_size_px=_positive_values(
+                font_size_px, positions.shape[0], field_name="font_size_px"
+            ),
+            font_role=_font_role(font_role),
+            anchor_x=_text_anchor_x(anchor_x, positions.shape[0]),
+            anchor_y=_text_anchor_y(anchor_y, positions.shape[0]),
+            rotation_rad=_angles(rotation_rad, positions.shape[0]),
+            z_order=int(z_order),
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
     def spheres(
         self,
         x: npt.ArrayLike,
@@ -1576,7 +1625,9 @@ def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, flo
 
 
 def _axes3d_data_bounds(
-    visuals: list[MeshVisual | PixelVisual | SphereVisual | VectorVisual | PrimitiveVisual],
+    visuals: list[
+        MeshVisual | PixelVisual | SphereVisual | VectorVisual | PrimitiveVisual | TextVisual
+    ],
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     minima: list[npt.NDArray[np.float64]] = []
     maxima: list[npt.NDArray[np.float64]] = []

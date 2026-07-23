@@ -9,6 +9,7 @@ import pytest
 import gsp
 from gsp.protocol import (
     Camera3D,
+    CoordinateSpace,
     OrthographicProjection3D,
     PerspectiveProjection3D,
     project_view3d_data_point,
@@ -84,6 +85,35 @@ def test_typed_subplots_builds_default_axes3d_scene() -> None:
     assert scene.attachments[0].view_id == axes.view.id
     assert scene.axis_guides == ()
     assert scene.panel_text_guides[0].text == "Static 3D mesh"
+
+
+def test_axes3d_text_emits_billboard_semantics_and_contributes_to_fit() -> None:
+    figure, axes = vp.subplots(projection="3d")
+    visual = axes.text(
+        [0.0, 2.0],
+        [0.0, 0.0],
+        [0.0, 1.0],
+        ["ASCII", "Δ café"],
+        color=[[255, 0, 0, 255], [0, 0, 255, 255]],
+        font_size_px=[16.0, 24.0],
+        font_role="serif",
+        anchor_x=["left", "right"],
+        anchor_y=["top", "bottom"],
+        rotation_rad=[0.0, 0.5],
+        z_order=7,
+        id="visual:billboards",
+    )
+
+    scene = figure.to_scene()
+    assert visual.positions.shape == (2, 3)
+    assert visual.coordinate_space is CoordinateSpace.DATA
+    assert visual.transform is None
+    assert visual.z_order == 7
+    assert scene.visuals == (visual,)
+    assert scene.view3d is axes.view
+    before = axes.get_camera()
+    axes.fit_camera()
+    assert axes.get_camera() != before
 
 
 def test_camera_projection_and_navigation_each_increment_revision() -> None:

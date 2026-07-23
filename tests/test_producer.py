@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import fields
+import inspect
 from pathlib import Path
 from typing import Any, cast
 
@@ -20,6 +21,8 @@ from gsp.protocol import (
     MeshVisual,
     PathVisual,
     PointVisual,
+    QueryResult,
+    QueryStatus,
     SegmentVisual,
     TextVisual,
     TextureFilter,
@@ -140,10 +143,26 @@ class FakeSession:
 
     def __init__(self) -> None:
         self.scenes: list[gsp.Scene] = []
+        self.queries: list[tuple[gsp.protocol.QueryRequest, str | None]] = []
+        self.query_error: RuntimeError | None = None
+        self.query_result = QueryResult(
+            request_id="query:fake",
+            status=QueryStatus.MISS,
+            hit=False,
+            panel_coordinate=(0.0, 0.0),
+        )
 
     def display(self, scene: gsp.Scene, **kwargs: Any) -> tuple[gsp.Scene, dict[str, Any]]:
         self.scenes.append(scene)
         return scene, kwargs
+
+    def query(
+        self, request: gsp.protocol.QueryRequest, *, scene_id: str | None = None
+    ) -> QueryResult:
+        self.queries.append((request, scene_id))
+        if self.query_error is not None:
+            raise self.query_error
+        return self.query_result
 
 
 def test_display_uses_caller_owned_session_without_retaining_it() -> None:
@@ -155,6 +174,59 @@ def test_display_uses_caller_owned_session_without_retaining_it() -> None:
     assert options == {"block": False}
     assert all(getattr(figure, item.name) is not session for item in fields(figure))
     assert all(getattr(axes, item.name) is not session for item in fields(axes))
+
+
+def test_query_targets_stable_scene_id_without_retaining_session() -> None:
+    figure, axes = vp.subplots()
+    axes.scatter([0.0], [0.0])
+    session = FakeSession()
+    request = gsp.protocol.QueryRequest(
+        id="query:point",
+        panel_id=axes.panel.id,
+        coordinate=(0.0, 0.0),
+    )
+
+    result = figure.query(cast(BackendSession, session), request)
+
+    assert result is session.query_result
+    assert session.queries == [(request, "scene:main")]
+    assert figure.to_scene().id == "scene:main"
+    assert all(getattr(figure, item.name) is not result for item in fields(figure))
+    assert all(getattr(figure, item.name) is not session for item in fields(figure))
+    assert all(getattr(axes, item.name) is not session for item in fields(axes))
+
+
+def test_query_forwards_session_lifecycle_errors_unchanged() -> None:
+    figure, axes = vp.subplots()
+    axes.scatter([0.0], [0.0])
+    session = FakeSession()
+    expected = RuntimeError("session is closed")
+    session.query_error = expected
+    request = gsp.protocol.QueryRequest(
+        id="query:closed",
+        panel_id=axes.panel.id,
+        coordinate=(0.0, 0.0),
+    )
+
+    with pytest.raises(RuntimeError) as raised:
+        figure.query(cast(BackendSession, session), request)
+
+    assert raised.value is expected
+    assert session.queries == [(request, "scene:main")]
+
+
+def test_query_signature_has_no_backend_or_renderer_retention_escape() -> None:
+    forbidden = {
+        "backend",
+        "backend_name",
+        "renderer",
+        "native_handle",
+        "target",
+        "output",
+    }
+    signature = inspect.signature(vp.Figure.query)
+    assert tuple(signature.parameters) == ("self", "session", "request")
+    assert forbidden.isdisjoint(signature.parameters)
 
 
 def test_nonblocking_show_requires_explicit_session() -> None:

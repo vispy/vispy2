@@ -53,6 +53,8 @@ from gsp.protocol import (
     PrimitiveTopology,
     PrimitiveVisual,
     Projection3D,
+    QueryRequest,
+    QueryResult,
     ScalarColorDomain,
     ScalarColorEncoding,
     ScalarColorSlot,
@@ -197,6 +199,11 @@ class Figure:
     def display(self, session: BackendSession, **kwargs: Any) -> Any:
         """Display through a caller-owned session without retaining backend state."""
         return session.display(self.to_scene(), **kwargs)
+
+    def query(self, session: BackendSession, request: QueryRequest) -> QueryResult:
+        """Query this figure's stable scene through a caller-owned session."""
+        scene_id = self.to_scene().id
+        return session.query(request, scene_id=scene_id)
 
     def show(
         self,

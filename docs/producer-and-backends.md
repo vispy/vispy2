@@ -32,6 +32,44 @@ The current `Scene` execution boundary requires exactly one `Axes` or `Axes3D`;
 `Figure.to_scene()` rejects empty, mixed, and multi-axes figures instead of silently discarding
 views.
 
+## Minimal public query
+
+Open and retain a caller-owned session, render the figure into that same session, then pass a GSP
+`QueryRequest` to `Figure.query()`:
+
+```python
+from gsp.protocol import QueryPayload, QueryRequest
+
+request = QueryRequest(
+    id="query:point",
+    panel_id=axes.panel.id,
+    coordinate=(0.0, 0.0),
+    requested_payload=(QueryPayload.IDENTITY,),
+)
+with vp.open_session("matplotlib", require={"query.panel"}) as session:
+    figure.display(session, block=False)
+    result = figure.query(session, request)
+```
+
+`Figure.query()` neither creates, runs, nor closes a session. It rebuilds the semantic snapshot,
+forwards the request with the figure's stable scene ID, returns the session's `QueryResult`
+unchanged, and retains neither object. The caller owns the session for the entire display/query
+sequence and must redisplay after changing figure state. Calling `session.query(request)` directly
+targets that session's latest rendered scene; an explicit `scene_id=...` selects another render
+that is still owned by the same open session.
+
+Lifecycle errors and query capability results are distinct. Querying through a session that is
+closed, or before that stable scene ID has been rendered into the session, raises the backend's
+session-state error unchanged. Once lifecycle state and request structure are valid, a rendered
+visual family without a proven query path returns a structured `QueryResult` with
+`status=UNSUPPORTED`; it is not converted into an exception. Supported paths may return `HIT`,
+`MISS`, or another protocol status.
+
+The Matplotlib-only installed-wheel example `examples/minimal_query.py` verifies one point `HIT`
+and the current structured `UNSUPPORTED` result for a scene containing a sphere and vector. This
+is a bounded integration example, not a claim of comprehensive picking, 3D occlusion picking, or
+sphere/vector item queries.
+
 ## Static View3D and camera
 
 Use `projection="3d"` to create an `Axes3D`. It owns semantic camera and projection state only:

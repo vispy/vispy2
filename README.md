@@ -29,6 +29,20 @@ axes.mesh(
 axes.fit_camera()
 ```
 
+For bounded DATA-space spheres, use `Axes3D.spheres()`. Camera fitting includes radii:
+
+```python
+figure, axes = vp.subplots(projection="3d")
+axes.spheres(
+    [0.0, 1.0],
+    [0.0, 0.0],
+    [0.0, -0.5],
+    radius=[0.5, 0.25],
+    color=[[230, 57, 70, 255], [69, 123, 157, 255]],
+)
+axes.fit_camera()
+```
+
 Use an explicit caller-owned session for Datoviz, non-blocking execution, or interactive lifecycle
 control. See [Producer and backend boundary](docs/producer-and-backends.md).
 

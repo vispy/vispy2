@@ -74,6 +74,26 @@ adapt them.
 
 The installed-wheel example `examples/static_mesh3d.py` builds both projections and captures PNGs
 through either backend.
+
+## Sphere visuals
+
+`Axes3D.spheres(x, y, z, radius=..., color=...)` creates DATA-space `SphereVisual` values.
+`radius` accepts one strictly positive DATA-space radius or one radius per sphere; `color` accepts
+one RGBA value or one RGBA value per sphere. Camera fitting includes the full
+`position - radius` to `position + radius` extent rather than fitting sphere centers alone.
+
+Opening a session for the sphere example requires the provider capability `visual.sphere`.
+Datoviz lowers spheres to its public raycast-impostor visual and advertises
+`spherevisual.analytic_surface_depth.v1` only when that binding surface is available. Matplotlib
+advertises only `spherevisual.v1`: it draws projected circles in far-to-near center-depth order,
+and perspective radius projection is a view-plane approximation rather than exact sphere
+silhouette or analytic surface depth.
+
+The installed-wheel example `examples/spheres_3d.py` builds perspective and orthographic scenes.
+Matplotlib reference captures are checked in under `examples/artifacts`. Native Datoviz capture is
+tracked separately by M284 because `capture_png_bytes()` currently aborts after rendering in the
+available runtime.
+
 # Pixel visuals
 
 `Axes.pixels(x, y, color=..., size=...)` creates 2D DATA-space screen-aligned squares. `Axes3D.pixels(x, y, z, ...)` creates screen-facing squares anchored at projected 3D DATA positions, and `vispy2.pixels(...)` is the module-level 2D convenience. `size` is a strictly positive logical-pixel width, scalar or per item.

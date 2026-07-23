@@ -1,0 +1,7 @@
+# M278 sphere camera/depth review
+
+The `spheres_3d.py` scene uses four opaque DATA-space spheres with distinct radii and colors in both perspective and orthographic View3D projections. The blue central sphere overlaps the red, green, and orange spheres, making center projection and DATA-radius scaling visible while deliberately exposing near/far surface ordering for later native qualification.
+
+Datoviz adapter tests cover public `dvz_sphere` lowering, `DVZ_SPHERE_MODE_RAYCAST_IMPOSTOR`, DATA coordinate attachment, and dense `position`, `color`, and `radius` uploads. With the real binding, the scene was constructed and reached `rendered`, but `capture_png_bytes()` then aborted with exit code 134 in both the plain environment and the prescribed `direnv` Vulkan environment. No native Datoviz PNG was produced. M284 owns the native GUI/capture qualification, so `datoviz-perspective-spheres3d.png` and `datoviz-orthographic-spheres3d.png` are not M278 evidence.
+
+Matplotlib renders deterministic projected circles ordered far-to-near by center depth. In perspective, each circle uses a projected view-plane radius; this is an approximation rather than an exact sphere silhouette or analytic surface-depth result. The reviewed captures `matplotlib-perspective-spheres3d.png` and `matplotlib-orthographic-spheres3d.png` are reference/adaptation evidence only. The backend advertises `spherevisual.v1` and deliberately does not advertise `spherevisual.analytic_surface_depth.v1`.

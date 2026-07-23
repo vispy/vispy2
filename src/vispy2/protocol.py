@@ -55,6 +55,7 @@ from gsp.protocol import (
     ScalarColorEncoding,
     ScalarColorSlot,
     SegmentVisual,
+    SphereVisual,
     StrokeCap,
     StrokeJoin,
     TextAnchorX,
@@ -113,6 +114,7 @@ class Figure:
     ) -> tuple[
         PointVisual
         | PixelVisual
+        | SphereVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -917,7 +919,7 @@ class Axes3D:
     """Backend-neutral producer for one static GSP View3D."""
 
     figure: Figure
-    visuals: list[MeshVisual | PixelVisual] = field(default_factory=list)
+    visuals: list[MeshVisual | PixelVisual | SphereVisual] = field(default_factory=list)
     panel: Panel = field(init=False)
     view: View3D = field(init=False)
     attachments: list[VisualAttachment] = field(default_factory=list)
@@ -1203,6 +1205,34 @@ class Axes3D:
         )
         return visual
 
+    def spheres(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike,
+        z: npt.ArrayLike,
+        *,
+        radius: npt.ArrayLike | float,
+        color: npt.ArrayLike,
+        id: str | None = None,
+    ) -> SphereVisual:
+        """Create DATA-space spheres with scalar or per-sphere radii and RGBA colors."""
+        positions = _positions3d(x, y, z)
+        visual = SphereVisual(
+            id=id or _visual_id("spheres"),
+            positions=positions,
+            radii=_radii(radius, positions.shape[0]),
+            colors=_colors(color, positions.shape[0]),
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
     def _mesh_texture2d_resource(
         self, texture: npt.ArrayLike | None, uvs: npt.ArrayLike | None
     ) -> Texture2D | None:
@@ -1330,19 +1360,32 @@ def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, flo
 
 
 def _axes3d_data_bounds(
-    visuals: list[MeshVisual | PixelVisual],
+    visuals: list[MeshVisual | PixelVisual | SphereVisual],
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    position_arrays = [
-        np.asarray(visual.positions, dtype=np.float64)
-        for visual in visuals
-        if visual.coordinate_space is CoordinateSpace.DATA and visual.positions.shape[1] == 3
-    ]
-    if not position_arrays:
+    minima: list[npt.NDArray[np.float64]] = []
+    maxima: list[npt.NDArray[np.float64]] = []
+    for visual in visuals:
+        if visual.coordinate_space is not CoordinateSpace.DATA or visual.positions.shape[1] != 3:
+            continue
+        positions = np.asarray(visual.positions, dtype=np.float64)
+        if isinstance(visual, SphereVisual):
+            radii = np.asarray(visual.radius_values(), dtype=np.float64)[:, None]
+            minima.append(positions - radii)
+            maxima.append(positions + radii)
+        else:
+            minima.append(positions)
+            maxima.append(positions)
+    if not minima:
         raise ValueError("fit_camera() requires at least one DATA-space 3D visual")
-    positions = np.concatenate(position_arrays, axis=0)
-    if positions.size == 0 or not np.all(np.isfinite(positions)):
+    minimum_points = np.concatenate(minima, axis=0)
+    maximum_points = np.concatenate(maxima, axis=0)
+    if (
+        minimum_points.size == 0
+        or not np.all(np.isfinite(minimum_points))
+        or not np.all(np.isfinite(maximum_points))
+    ):
         raise ValueError("fit_camera() requires finite non-empty DATA-space bounds")
-    return np.min(positions, axis=0), np.max(positions, axis=0)
+    return np.min(minimum_points, axis=0), np.max(maximum_points, axis=0)
 
 
 def _fit_epsilon(
@@ -1704,6 +1747,15 @@ def _sizes(value: npt.ArrayLike | float, count_: int) -> npt.NDArray[np.float32]
     array = np.asarray(value, dtype=np.float32)
     if array.ndim != 1 or array.shape[0] != count_:
         raise ValueError("size must be scalar or shape (N,)")
+    return np.ascontiguousarray(array).astype(np.float32, copy=False)
+
+
+def _radii(value: npt.ArrayLike | float, count_: int) -> npt.NDArray[np.float32] | float:
+    if np.isscalar(value):
+        return float(cast(SupportsFloat, value))
+    array = np.asarray(value, dtype=np.float32)
+    if array.ndim != 1 or array.shape[0] != count_:
+        raise ValueError("radius must be scalar or shape (N,)")
     return np.ascontiguousarray(array).astype(np.float32, copy=False)
 
 

@@ -48,6 +48,7 @@ from gsp.protocol import (
     PanelTextRole,
     PathVisual,
     PerspectiveProjection3D,
+    PixelVisual,
     PointVisual,
     Projection3D,
     ScalarColorDomain,
@@ -111,6 +112,7 @@ class Figure:
         self,
     ) -> tuple[
         PointVisual
+        | PixelVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -212,6 +214,7 @@ class Axes:
     figure: Figure
     visuals: list[
         PointVisual
+        | PixelVisual
         | MarkerVisual
         | SegmentVisual
         | PathVisual
@@ -476,6 +479,38 @@ class Axes:
         self.visuals.append(visual)
         self.attachments.append(
             VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
+        )
+        return visual
+
+    def pixels(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike | None = None,
+        *,
+        color: npt.ArrayLike | None = None,
+        size: npt.ArrayLike | float = 1.0,
+        transform: npt.ArrayLike | VisualTransformBinding | None = None,
+        id: str | None = None,
+    ) -> PixelVisual:
+        """Create screen-aligned square pixels in this 2D DATA view."""
+        positions = _positions(x, y)
+        if positions.shape[1] != 2:
+            raise ValueError("Axes.pixels() positions must have shape (N, 2)")
+        visual = PixelVisual(
+            id=id or _visual_id("pixels"),
+            positions=positions,
+            colors=_colors(color, positions.shape[0]),
+            pixel_size_px=_sizes(size, positions.shape[0]),
+            coordinate_space=CoordinateSpace.DATA,
+            transform=_visual_transform(transform),
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
         )
         return visual
 
@@ -882,7 +917,7 @@ class Axes3D:
     """Backend-neutral producer for one static GSP View3D."""
 
     figure: Figure
-    visuals: list[MeshVisual] = field(default_factory=list)
+    visuals: list[MeshVisual | PixelVisual] = field(default_factory=list)
     panel: Panel = field(init=False)
     view: View3D = field(init=False)
     attachments: list[VisualAttachment] = field(default_factory=list)
@@ -1139,6 +1174,35 @@ class Axes3D:
         )
         return visual
 
+    def pixels(
+        self,
+        x: npt.ArrayLike,
+        y: npt.ArrayLike | None = None,
+        z: npt.ArrayLike | None = None,
+        *,
+        color: npt.ArrayLike | None = None,
+        size: npt.ArrayLike | float = 1.0,
+        id: str | None = None,
+    ) -> PixelVisual:
+        """Create projected square pixels anchored in 3D DATA space."""
+        positions = _positions3d(x, y, z)
+        visual = PixelVisual(
+            id=id or _visual_id("pixels"),
+            positions=positions,
+            colors=_colors(color, positions.shape[0]),
+            pixel_size_px=_sizes(size, positions.shape[0]),
+            coordinate_space=CoordinateSpace.DATA,
+        )
+        self.visuals.append(visual)
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual.id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+            )
+        )
+        return visual
+
     def _mesh_texture2d_resource(
         self, texture: npt.ArrayLike | None, uvs: npt.ArrayLike | None
     ) -> Texture2D | None:
@@ -1189,6 +1253,12 @@ def scatter(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> 
     """Create a point visual in a temporary one-axes figure."""
     _, ax = subplots()
     return ax.scatter(x, y, **kwargs)
+
+
+def pixels(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> PixelVisual:
+    """Create a pixel visual in a temporary one-axes figure."""
+    _, ax = subplots()
+    return ax.pixels(x, y, **kwargs)
 
 
 def markers(x: npt.ArrayLike, y: npt.ArrayLike | None = None, **kwargs: Any) -> MarkerVisual:
@@ -1260,7 +1330,7 @@ def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, flo
 
 
 def _axes3d_data_bounds(
-    visuals: list[MeshVisual],
+    visuals: list[MeshVisual | PixelVisual],
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     position_arrays = [
         np.asarray(visual.positions, dtype=np.float64)
@@ -1507,6 +1577,28 @@ def _positions(x: npt.ArrayLike, y: npt.ArrayLike | None) -> npt.NDArray[np.floa
     if x_array.ndim != 1 or y_array.ndim != 1 or x_array.shape[0] != y_array.shape[0]:
         raise ValueError("x and y must be one-dimensional arrays with the same length")
     return np.ascontiguousarray(np.column_stack([x_array, y_array]).astype(np.float32))
+
+
+def _positions3d(
+    x: npt.ArrayLike,
+    y: npt.ArrayLike | None,
+    z: npt.ArrayLike | None,
+) -> npt.NDArray[np.float32]:
+    if y is None and z is None:
+        positions = _positions(x, None)
+        if positions.shape[1] != 3:
+            raise ValueError(
+                "Axes3D.pixels() requires x/y/z arrays or an array with shape (N, 3)"
+            )
+        return positions
+    if y is None or z is None:
+        raise ValueError("Axes3D.pixels() requires both y and z")
+    arrays = tuple(np.asarray(value, dtype=np.float32) for value in (x, y, z))
+    if any(array.ndim != 1 for array in arrays):
+        raise ValueError("x, y, and z must be one-dimensional")
+    if len({array.shape[0] for array in arrays}) != 1:
+        raise ValueError("x, y, and z must have the same length")
+    return np.ascontiguousarray(np.column_stack(arrays).astype(np.float32))
 
 
 def _faces(value: npt.ArrayLike) -> npt.NDArray[np.uint32]:

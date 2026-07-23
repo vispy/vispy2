@@ -74,3 +74,8 @@ adapt them.
 
 The installed-wheel example `examples/static_mesh3d.py` builds both projections and captures PNGs
 through either backend.
+# Pixel visuals
+
+`Axes.pixels(x, y, color=..., size=...)` creates 2D DATA-space screen-aligned squares. `Axes3D.pixels(x, y, z, ...)` creates screen-facing squares anchored at projected 3D DATA positions, and `vispy2.pixels(...)` is the module-level 2D convenience. `size` is a strictly positive logical-pixel width, scalar or per item.
+
+Matplotlib preserves deterministic square shape and logical width in 2D; its 3D path is an explicit projected-square overlay adaptation without strict GPU depth occlusion. The Datoviz adapter uses the public v0.4 `dvz_pixel` visual and its `pixel_size_px` attribute, with exact lowering covered by binding tests; native capture qualification is deferred to the dedicated Datoviz runtime mission.

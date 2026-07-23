@@ -6,15 +6,78 @@ Datoviz preserve the same semantic scene but are not expected to match pixels.
 
 ## Static captures
 
-| Journey | Matplotlib | Datoviz |
-|---|---|---|
-| Priority 2D | [![Matplotlib priority 2D](../examples/artifacts/matplotlib-gallery-01-priority-2d.png)](../examples/artifacts/matplotlib-gallery-01-priority-2d.png) | [![Datoviz priority 2D](../examples/artifacts/datoviz-gallery-01-priority-2d.png)](../examples/artifacts/datoviz-gallery-01-priority-2d.png) |
-| Perspective 3D | [![Matplotlib perspective 3D](../examples/artifacts/matplotlib-gallery-02-perspective-3d.png)](../examples/artifacts/matplotlib-gallery-02-perspective-3d.png) | [![Datoviz perspective 3D](../examples/artifacts/datoviz-gallery-02-perspective-3d.png)](../examples/artifacts/datoviz-gallery-02-perspective-3d.png) |
-| Orthographic 3D | [![Matplotlib orthographic 3D](../examples/artifacts/matplotlib-gallery-03-orthographic-3d.png)](../examples/artifacts/matplotlib-gallery-03-orthographic-3d.png) | [![Datoviz orthographic 3D](../examples/artifacts/datoviz-gallery-03-orthographic-3d.png)](../examples/artifacts/datoviz-gallery-03-orthographic-3d.png) |
-| Camera fit | [![Matplotlib camera fit](../examples/artifacts/matplotlib-gallery-04-00-fit.png)](../examples/artifacts/matplotlib-gallery-04-00-fit.png) | [![Datoviz camera fit](../examples/artifacts/datoviz-gallery-04-00-fit.png)](../examples/artifacts/datoviz-gallery-04-00-fit.png) |
-| Camera orbit | [![Matplotlib camera orbit](../examples/artifacts/matplotlib-gallery-04-01-orbit.png)](../examples/artifacts/matplotlib-gallery-04-01-orbit.png) | [![Datoviz camera orbit](../examples/artifacts/datoviz-gallery-04-01-orbit.png)](../examples/artifacts/datoviz-gallery-04-01-orbit.png) |
-| Camera pan | [![Matplotlib camera pan](../examples/artifacts/matplotlib-gallery-04-02-pan.png)](../examples/artifacts/matplotlib-gallery-04-02-pan.png) | [![Datoviz camera pan](../examples/artifacts/datoviz-gallery-04-02-pan.png)](../examples/artifacts/datoviz-gallery-04-02-pan.png) |
-| Camera zoom | [![Matplotlib camera zoom](../examples/artifacts/matplotlib-gallery-04-03-zoom.png)](../examples/artifacts/matplotlib-gallery-04-03-zoom.png) | [![Datoviz camera zoom](../examples/artifacts/datoviz-gallery-04-03-zoom.png)](../examples/artifacts/datoviz-gallery-04-03-zoom.png) |
+The absolute paths below are intentional: this is the local owner-review page, and they allow the
+review application to display and open the captures without depending on a Markdown base URL.
+
+### Priority 2D
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-01-priority-2d.png))
+
+![Matplotlib priority 2D](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-01-priority-2d.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-01-priority-2d.png))
+
+![Datoviz priority 2D](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-01-priority-2d.png)
+
+### Perspective 3D
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-02-perspective-3d.png))
+
+![Matplotlib perspective 3D](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-02-perspective-3d.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-02-perspective-3d.png))
+
+![Datoviz perspective 3D](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-02-perspective-3d.png)
+
+### Orthographic 3D
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-03-orthographic-3d.png))
+
+![Matplotlib orthographic 3D](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-03-orthographic-3d.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-03-orthographic-3d.png))
+
+![Datoviz orthographic 3D](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-03-orthographic-3d.png)
+
+### Camera fit
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-00-fit.png))
+
+![Matplotlib camera fit](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-00-fit.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-00-fit.png))
+
+![Datoviz camera fit](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-00-fit.png)
+
+### Camera orbit
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-01-orbit.png))
+
+![Matplotlib camera orbit](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-01-orbit.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-01-orbit.png))
+
+![Datoviz camera orbit](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-01-orbit.png)
+
+### Camera pan
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-02-pan.png))
+
+![Matplotlib camera pan](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-02-pan.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-02-pan.png))
+
+![Datoviz camera pan](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-02-pan.png)
+
+### Camera zoom
+
+Matplotlib ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-03-zoom.png))
+
+![Matplotlib camera zoom](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/matplotlib-gallery-04-03-zoom.png)
+
+Datoviz ([open full size](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-03-zoom.png))
+
+![Datoviz camera zoom](/Users/cyrille/GIT/Viz/vispy2/examples/artifacts/datoviz-gallery-04-03-zoom.png)
 
 ## Static acceptance
 

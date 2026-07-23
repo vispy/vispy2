@@ -1,0 +1,91 @@
+{
+  "artifacts": {
+    "datoviz-gallery-01-priority-2d.png": {
+      "bytes": 31547,
+      "sha256": "5498ebf4ddbc81510145348a0ac206ed01eebf5a5977842893963f34d37212dc"
+    },
+    "datoviz-gallery-02-perspective-3d.png": {
+      "bytes": 32071,
+      "sha256": "eb7997814244337af6bcb5e03cc56979218dea61cc376edcfd54fc8b8302a6c1"
+    },
+    "datoviz-gallery-03-orthographic-3d.png": {
+      "bytes": 46423,
+      "sha256": "a0cc19303846e13e62bc44efd83cb4c32b36c9212d7561e717c8d9779b2b2e15"
+    },
+    "datoviz-gallery-04-00-fit.png": {
+      "bytes": 14362,
+      "sha256": "82efc6d91b1ba66b1189902ca1d342a1055d8ca492e6addd1c74d092cf9fa036"
+    },
+    "datoviz-gallery-04-01-orbit.png": {
+      "bytes": 14407,
+      "sha256": "92b8be09fbfd4c511e4a5120a095bf5d2f7e272dd3dfa7737a360dfd1347f74d"
+    },
+    "datoviz-gallery-04-02-pan.png": {
+      "bytes": 14482,
+      "sha256": "fea966df9c13e1572b78b7a79059cf87e1572d360326d19c3627e00cf1f0c1a5"
+    },
+    "datoviz-gallery-04-03-zoom.png": {
+      "bytes": 15064,
+      "sha256": "cffb6fc35ebe3a856a466141d7d49279429149cd3ad8f4e11180f58532737aa6"
+    },
+    "matplotlib-gallery-01-priority-2d.png": {
+      "bytes": 19988,
+      "sha256": "960900259e1a3cd985457cbd78fa4e1081ab17839b9bc81199af637cd00c6a04"
+    },
+    "matplotlib-gallery-02-perspective-3d.png": {
+      "bytes": 19478,
+      "sha256": "a9ef5f0262a1c55536d25a2876428a9960324f94388daa6d9123453f76e523fa"
+    },
+    "matplotlib-gallery-03-orthographic-3d.png": {
+      "bytes": 17271,
+      "sha256": "1aed240e2e19eacc967711219c7689b593fb18f3431af4db3b9a573ecaed61ec"
+    },
+    "matplotlib-gallery-04-00-fit.png": {
+      "bytes": 10866,
+      "sha256": "9cf656570b34298a3b3bd7aaa66f05335ddbcbb53945dce647eee926800a5fb0"
+    },
+    "matplotlib-gallery-04-01-orbit.png": {
+      "bytes": 10848,
+      "sha256": "3702f027368ca7d894f6c59e000d9f54943efa6941c5dbeb090d0e566a1f1fd6"
+    },
+    "matplotlib-gallery-04-02-pan.png": {
+      "bytes": 10908,
+      "sha256": "4e365ef9b52a00d574a0c3feefefb4a9fc94e056ec984607213c7c0ae2ca6d67"
+    },
+    "matplotlib-gallery-04-03-zoom.png": {
+      "bytes": 11059,
+      "sha256": "3bc9ca67355a1ebd0d093279b5e3e3be5f666f0ec3557a9150acf1df711ad216"
+    }
+  },
+  "provenance": {
+    "datoviz_retries": 1,
+    "datoviz_timeout_seconds": 20.0,
+    "execution": "copied scripts outside both source trees; wheel-installed imports",
+    "gsp_import": "/private/tmp/m283-installed.ZoUlm1/gsp/__init__.py",
+    "gsp_source_revision": "d1136e0f73740fd0c11880d38c1caa4b4650757d",
+    "python": "/Users/cyrille/.local/share/uv/python/cpython-3.13.4-macos-aarch64-none/bin/python3.13",
+    "vispy2_import": "/private/tmp/m283-installed.ZoUlm1/vispy2/__init__.py",
+    "vispy2_source_revision": "1befe28d5135ce8f5d7f69a6ab6b2efe67e8a1f7"
+  },
+  "schema": 1,
+  "scripts": {
+    "gallery_01_priority_2d.py": {
+      "sha256": "5aa8741b8f39d43f89ed8282e8d7dfa7f26818b589aa0e74b6c8bbe729a519e8"
+    },
+    "gallery_02_perspective_3d.py": {
+      "sha256": "8644233f6e52610b17ce07ee62c0a19c3eb70f655af0c998d8b2f19865f021ea"
+    },
+    "gallery_03_orthographic_3d.py": {
+      "sha256": "0e5f2179e8d93dd649363c060877de3cea843d4715da92ce5a4eb82bd8774b7d"
+    },
+    "gallery_04_camera_sequence.py": {
+      "sha256": "04fd5112189f922d9eea041de672e375326e1ea9e8acc741f9aa50f87591152c"
+    },
+    "gallery_06_capabilities.py": {
+      "sha256": "8cec518bb7bb9e9a6cd67a3749af649b17fd2a1826b3e7af980642bc30811b19"
+    },
+    "gallery_07_queries.py": {
+      "sha256": "88ca7fc157e629209771216eae8111f611033aa0f2792f64bc9dda85b7c518f7"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 """PixelVisual 2D/3D installed-wheel example.
 
 Matplotlib is strict for 2D square width and adapts 3D pixels to projected square overlays.
-The Datoviz adapter lowers both cases through public ``dvz_pixel`` attributes; native capture
-qualification remains deferred to the dedicated Datoviz runtime mission.
+The Datoviz adapter lowers both cases through public ``dvz_pixel`` attributes; M283 galleries 1
+and 3 provide installed-wheel Datoviz captures.
 """
 
 from pathlib import Path

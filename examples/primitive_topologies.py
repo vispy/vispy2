@@ -1,7 +1,7 @@
 """Render all five bounded PrimitiveVisual topologies from an installed wheel.
 
 Matplotlib supports deterministic file output with explicit point/line/triangle adaptation.
-Datoviz public lowering is capability-tested, but native capture remains assigned to M284.
+M283 galleries 1 and 3 provide the installed-wheel Datoviz capture path.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def render_backend(backend: str, output_dir: str | Path) -> Path:
     if backend != "matplotlib":
         raise ValueError(
             "primitive_topologies.py supports Matplotlib file output only; "
-            "native Datoviz capture remains assigned to M284"
+            "use gallery_01 or gallery_03 for the qualified Datoviz journey"
         )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)

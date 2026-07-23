@@ -1,8 +1,8 @@
 """Installed-wheel perspective 3D scene with semantic billboard labels.
 
-This file-output example is Matplotlib-only. Datoviz public lowering and no-capture smoke coverage
-are exercised separately; native capture remains assigned to M284. Exact font selection, glyph
-raster parity, and depth occlusion are not claimed.
+This historical reference example is Matplotlib-only. M283 gallery 2 provides the installed-wheel
+Datoviz capture path. Exact font selection, glyph raster parity, and depth occlusion are not
+claimed.
 """
 
 from __future__ import annotations
@@ -98,7 +98,7 @@ def render_backend(backend: str, output_dir: str | Path) -> Path:
     if backend != "matplotlib":
         raise ValueError(
             "text_billboards_3d.py supports Matplotlib file output only; "
-            "native Datoviz capture remains assigned to M284"
+            "use gallery_02 for the qualified Datoviz journey"
         )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)

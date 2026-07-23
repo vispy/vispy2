@@ -1,7 +1,7 @@
 """Render installed-wheel 2D and 3D straight vector-field examples with Matplotlib.
 
-Datoviz lowering is covered by adapter tests, but M279 does not qualify native capture and this
-file-output example does not offer a Datoviz mode. Matplotlib deterministically preserves resolved
+This historical reference example does not offer a Datoviz mode; M283 galleries 1 and 2 provide
+the installed-wheel Datoviz capture path. Matplotlib deterministically preserves resolved
 endpoints, colors, and logical-pixel widths. Its 3D renderer is a projected overlay with adapted
 marker heads, not a native 3D-axes vector implementation.
 """
@@ -70,7 +70,7 @@ def render_backend(backend: str, output_dir: str | Path) -> tuple[Path, Path]:
     if backend != "matplotlib":
         raise ValueError(
             "vectors_2d_3d.py supports Matplotlib file output only; "
-            "native Datoviz capture remains assigned to M284"
+            "use gallery_01 or gallery_02 for the qualified Datoviz journey"
         )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)

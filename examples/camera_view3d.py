@@ -2,8 +2,8 @@
 
 Supported backends: Matplotlib and Datoviz v0.4 static/offscreen rendering.
 The caller explicitly owns the GSP session for the complete sequence. Live
-Datoviz input remains deferred pending M284 native lifecycle qualification and
-owner interaction review; this example does not advertise or enable it.
+Datoviz input remains experimental and requires M284 owner interaction review;
+this example does not advertise or enable it.
 """
 
 from __future__ import annotations

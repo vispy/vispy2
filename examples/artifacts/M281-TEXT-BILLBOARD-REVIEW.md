@@ -6,4 +6,7 @@ Matplotlib maps generic roles through its configured font-family aliases and con
 
 Matplotlib renders the labels as ordered screen-facing overlays by projecting DATA anchors into axes-fraction coordinates. Datoviz adapter coverage is limited to public lowering and a no-capture smoke path: it projects DATA anchors into retained panel-relative placement and recomputes placement after retained camera/projection updates. M281 produced no native Datoviz PNG and does not qualify native rendering or capture; M284 owns that work. Neither backend advertises `textvisual.billboard3d.depth_occlusion.v1`.
 
+Later evidence: M283 gallery 2 produced an installed-wheel Datoviz billboard PNG. This note remains
+the historical M281 review and does not claim font, shaping, or depth-occlusion parity.
+
 No public font files, glyph IDs, atlases, rich-text model, shaping guarantees, hidden backend text handles, or per-glyph query behavior were introduced.

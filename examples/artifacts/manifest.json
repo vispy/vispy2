@@ -93,7 +93,7 @@
     "gsp_source_revision": "4ff1614c031599ebe90cd01a8efeb423e5d062f9",
     "python": "CPython 3.13.4 macOS arm64",
     "vispy2_import": "isolated-wheel-site/vispy2/__init__.py",
-    "vispy2_source_revision": "482f4949236a0b64c17005c5efd3278b7c7da8e0",
+    "vispy2_source_revision": "d4c8d650acaa228ead48d2b131d3a28f331df9ee",
     "wheels": {
       "gsp-core": "010329652f440dd7aeaedf2009a34c7d25fde396a156fd9b34424c67b1fa1d65",
       "gsp-datoviz": "4291b2c10e364f9d6afcd4d86bdfd24c21d9edd8b8281e6decc773cb1cb3d553",

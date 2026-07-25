@@ -2,7 +2,7 @@
 
 M285 adds comparable pixel-exact geometry and corrects the Datoviz panel-title overclaim found
 during owner review. All fourteen artifacts were regenerated outside the Codex sandbox from exact
-committed wheels at GSP `4ff1614` and VisPy2 `482f494`; the manifest records source, script,
+committed wheels at GSP `4ff1614` and VisPy2 `d4c8d65`; the manifest records source, script,
 wheel, and artifact hashes.
 
 Status vocabulary: **strict** preserves the named GSP semantic contract; **adapted** preserves

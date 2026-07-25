@@ -25,6 +25,7 @@ from gsp.protocol import (
     ColorbarOrientation,
     ColorbarPlacement,
     Camera3D,
+    CanvasSize,
     CoordinateSpace,
     FontRole,
     ImageColormap,
@@ -96,6 +97,7 @@ class Figure:
 
     axes: list["Axes | Axes3D"] = field(default_factory=list)
     id: str = "figure:main"
+    canvas_size: CanvasSize | None = None
     color_scale_resources: list[ColorScale] = field(default_factory=list)
     texture2d_resources: list[Texture2D] = field(default_factory=list)
 
@@ -189,6 +191,7 @@ class Figure:
             color_scales=self.color_scales(),
             colorbar_guides=self.colorbar_guides(),
             textures=self.texture_resources(),
+            canvas_size=self.canvas_size,
         )
 
     def savefig(self, path: str | Path, **kwargs: Any) -> None:
@@ -1489,20 +1492,26 @@ class Axes3D:
 
 
 @overload
-def subplots() -> tuple[Figure, Axes]: ...
+def subplots(*, canvas_size: CanvasSize | None = None) -> tuple[Figure, Axes]: ...
 
 
 @overload
-def subplots(*, projection: Literal["2d"]) -> tuple[Figure, Axes]: ...
+def subplots(
+    *, projection: Literal["2d"], canvas_size: CanvasSize | None = None
+) -> tuple[Figure, Axes]: ...
 
 
 @overload
-def subplots(*, projection: Literal["3d"]) -> tuple[Figure, Axes3D]: ...
+def subplots(
+    *, projection: Literal["3d"], canvas_size: CanvasSize | None = None
+) -> tuple[Figure, Axes3D]: ...
 
 
-def subplots(*, projection: str = "2d") -> tuple[Figure, Axes | Axes3D]:
+def subplots(
+    *, projection: str = "2d", canvas_size: CanvasSize | None = None
+) -> tuple[Figure, Axes | Axes3D]:
     """Create a one-axes 2D or 3D GSP VisPy2 protocol figure."""
-    fig = Figure()
+    fig = Figure(canvas_size=canvas_size)
     if projection == "2d":
         ax: Axes | Axes3D = fig.add_axes(projection="2d")
     elif projection == "3d":

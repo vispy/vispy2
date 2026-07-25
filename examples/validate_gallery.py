@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -71,6 +72,14 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _png_size(path: Path) -> tuple[int, int]:
+    with path.open("rb") as stream:
+        header = stream.read(24)
+    if len(header) != 24 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+        raise RuntimeError(f"invalid PNG header: {path}")
+    return struct.unpack(">II", header[16:24])
 
 
 def _git_revision(path: Path) -> str:
@@ -146,6 +155,9 @@ def main() -> None:
     pngs = sorted(output_dir.glob("*-gallery-*.png"))
     if len(pngs) != 14:
         raise RuntimeError(f"expected 14 gallery PNGs, found {len(pngs)}")
+    wrong_sizes = {path.name: _png_size(path) for path in pngs if _png_size(path) != (800, 600)}
+    if wrong_sizes:
+        raise RuntimeError(f"gallery PNG dimensions must all be 800x600: {wrong_sizes}")
     manifest = {
         "schema": 1,
         "provenance": {
@@ -163,7 +175,13 @@ def main() -> None:
             for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS)
         },
         "artifacts": {
-            path.name: {"bytes": path.stat().st_size, "sha256": _sha256(path)} for path in pngs
+            path.name: {
+                "bytes": path.stat().st_size,
+                "width": _png_size(path)[0],
+                "height": _png_size(path)[1],
+                "sha256": _sha256(path),
+            }
+            for path in pngs
         },
     }
     (output_dir / "manifest.json").write_text(

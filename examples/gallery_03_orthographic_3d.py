@@ -6,10 +6,13 @@ import argparse
 from pathlib import Path
 
 import vispy2 as vp
+from gsp.protocol import CanvasSize
 
 
 def make_figure() -> vp.Figure:
-    figure, axes = vp.subplots(projection="3d")
+    figure, axes = vp.subplots(
+        projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600)
+    )
     axes.primitives(
         [
             [-1.2, -0.8, -0.2],
@@ -19,18 +22,13 @@ def make_figure() -> vp.Figure:
         ],
         topology="triangle_strip",
         indices=[0, 1, 2, 3],
-        color=[
-            [49, 104, 190, 255],
-            [100, 181, 246, 255],
-            [73, 140, 103, 255],
-            [238, 169, 72, 255],
-        ],
+        color=[49, 104, 190, 255],
         id="visual:indexed-strip",
     )
     axes.pixels(
-        [-1.2, 0.0, 1.2, -0.5],
-        [-0.8, 1.0, -0.8, -0.2],
-        [-0.2, 0.3, 0.7, 1.0],
+        [-1.0, -0.15, 1.0, 0.45],
+        [-0.55, 0.72, -0.48, -0.05],
+        [1.15, 1.18, 1.22, 1.28],
         size=[6.0, 10.0, 14.0, 18.0],
         color=[230, 57, 70, 255],
         id="visual:pixels",

@@ -10,10 +10,13 @@ import argparse
 from pathlib import Path
 
 import vispy2 as vp
+from gsp.protocol import CanvasSize
 
 
 def make_figure() -> vp.Figure:
-    figure, axes = vp.subplots(projection="3d")
+    figure, axes = vp.subplots(
+        projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600)
+    )
     axes.mesh(
         [[-1.4, 0.0, -0.5], [-0.2, 0.0, -0.5], [-0.8, 0.0, 0.7]],
         [[0, 1, 2]],

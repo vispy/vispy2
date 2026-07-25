@@ -13,6 +13,7 @@ from gsp import BackendUnavailable
 from gsp.backends import BackendSession
 from gsp.protocol import (
     AxisDimension,
+    CanvasSize,
     CoordinateSpace,
     ImageVisual,
     MarkerVisual,
@@ -56,6 +57,15 @@ def test_subplots_emits_backend_neutral_scene_records() -> None:
     assert scene.axis_guides[0].dimension is AxisDimension.X
     assert scene.axis_guides[0].tick_spec.kind is TickSpecKind.EXPLICIT
     assert scene.panel_text_guides[0].text == "scene"
+
+
+@pytest.mark.parametrize("projection", ["2d", "3d"])
+def test_subplots_preserves_canonical_canvas_size(projection: str) -> None:
+    canvas_size = CanvasSize.pixel_exact(800, 600)
+    figure, _ = vp.subplots(projection=projection, canvas_size=canvas_size)  # type: ignore[call-overload]
+
+    assert figure.canvas_size is canvas_size
+    assert figure.to_scene().canvas_size is canvas_size
 
 
 def test_visual_methods_cover_current_protocol_families() -> None:

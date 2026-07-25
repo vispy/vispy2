@@ -1,8 +1,8 @@
-# M284 human review
+# M285 corrected owner review
 
-Automated qualification passed at GSP `d2d25a2` and VisPy2 `66734a3`. This page is the project
-owner's review index; checking these boxes is the remaining S065 acceptance step. Matplotlib and
-Datoviz preserve the same semantic scene but are not expected to match pixels.
+M285 corrected this portable review pack after the owner's M284 findings. All fourteen captures
+were regenerated from exact committed wheels outside both source trees and are 800×600. Both
+backends preserve the same semantic scene and canvas, but are not expected to match pixels.
 
 ## Static captures
 
@@ -87,28 +87,32 @@ Datoviz ([open full size](../examples/artifacts/datoviz-gallery-04-03-zoom.png))
 - [ ] Pixel visuals have the intended positions and relative logical sizes.
 - [ ] Sphere visuals are distinct and correctly placed.
 - [ ] Vector visuals preserve direction and relative magnitude.
-- [ ] Generic primitive visuals preserve topology and placement.
+- [ ] Gallery 3's uniform primitive preserves topology without implying interpolation parity.
+- [ ] Gallery 3's pixel anchors are visibly distinct from primitive vertices.
 - [ ] Text is legible, separated, and correctly associated with the scene.
 - [ ] Mesh geometry and depth are credible on both backends.
 
-Known adaptations: Matplotlib uses a 640×480 publication canvas and adapted painter/projection
-paths; Datoviz uses an 800×600 native GPU capture. Fonts, metrics, guides, antialiasing, primitive
-interpolation, vector heads, sphere shading/depth, and billboard placement may differ. Matplotlib
-spheres are adapted circles, Matplotlib 3D vectors/pixels/text are adapted overlays, and neither
-backend claims strict cross-backend pixel parity or billboard occlusion parity.
+Known adaptations: both backends receive a pixel-exact 800×600 canvas. Matplotlib uses adapted
+painter/projection paths and suppresses its unintended native View3D frame. Matplotlib preserves
+semantic panel titles. The qualified Datoviz binding has no public `PanelTextGuide` renderer, so
+its missing title is explicitly diagnosed as unsupported. Fonts, metrics, antialiasing, vector
+heads, and billboard placement may differ. Datoviz raycast spheres use native shading and analytic
+surface depth, while Matplotlib spheres are flat projected circles with adapted depth ordering;
+this is not a sphere material contract. Matplotlib 3D vectors/pixels/text are adapted overlays,
+and neither backend claims strict pixel parity or billboard occlusion parity.
 
 ## Live Datoviz review
 
 The exact-wheel run is already recorded in the automated qualification evidence. For the portable
-owner interaction check, run this repository-relative command from the VisPy2 checkout, with `gsp`
-and `datoviz` as sibling checkouts:
+owner interaction check, copy this repository-relative command from the Mission Control
+`GSP_API` checkout. It changes into the sibling VisPy2 checkout itself:
 
 ```console
-PYTHONPATH=src:../datoviz \
+cd ../vispy2 &&
 GSP_DATOVIZ_SOURCE=../datoviz \
 GSP_DATOVIZ_ENABLE_EXPERIMENTAL_VIEW3D_NAV=1 \
-../gsp/.venv/bin/python \
-examples/gallery_05_datoviz_navigation.py
+PYTHONPATH=src:../datoviz \
+../gsp/.venv/bin/python examples/gallery_05_datoviz_navigation.py
 ```
 
 Controls: left-drag orbits, right-drag pans, the wheel zooms, and double-click resets the camera.

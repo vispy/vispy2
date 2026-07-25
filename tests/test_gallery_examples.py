@@ -7,6 +7,7 @@ from typing import Any, cast
 import numpy as np
 
 import vispy2 as vp
+from gsp.protocol import PixelVisual, PrimitiveVisual
 
 
 def test_gallery_3_uses_uniform_primitive_color_and_distinct_pixel_anchors() -> None:
@@ -17,6 +18,8 @@ def test_gallery_3_uses_uniform_primitive_color_and_distinct_pixel_anchors() -> 
     assert isinstance(figure, vp.Figure)
     scene = figure.to_scene()
     primitive, pixels = scene.visuals
+    assert isinstance(primitive, PrimitiveVisual)
+    assert isinstance(pixels, PixelVisual)
 
     assert np.unique(primitive.colors, axis=0).shape == (1, 4)
     assert not any(

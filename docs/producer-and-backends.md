@@ -125,7 +125,9 @@ Datoviz lowers spheres to its public raycast-impostor visual and advertises
 `spherevisual.analytic_surface_depth.v1` only when that binding surface is available. Matplotlib
 advertises only `spherevisual.v1`: it draws projected circles in far-to-near center-depth order,
 and perspective radius projection is a view-plane approximation rather than exact sphere
-silhouette or analytic surface depth.
+silhouette or analytic surface depth. Datoviz's raycast spheres therefore have native shading and
+analytic surface depth that intentionally differ from Matplotlib's flat projected-circle
+adaptation. This is a backend realization difference, not a new sphere material contract.
 
 The installed-wheel example `examples/spheres_3d.py` builds perspective and orthographic scenes.
 Its historical M278 evidence is Matplotlib-only. M283 gallery 2 subsequently qualified a Datoviz
@@ -176,6 +178,10 @@ semantics.
 The installed-wheel `examples/primitive_topologies.py` gallery includes all five topologies and
 both indexed and unindexed inputs as a Matplotlib reference. M283 galleries 1 and 3 subsequently
 qualified Datoviz primitive captures for the exact probed runtime.
+
+The corrected gallery 3 deliberately uses a uniform primitive color, so it makes no cross-backend
+per-vertex interpolation claim. Its pixel anchors are distinct from every primitive vertex and
+offset in depth, avoiding coplanar or equal-depth positional ties.
 
 ## Text billboards in View3D
 

@@ -18,10 +18,22 @@ discovery and queries.
 | 7 | Point hit and structured unsupported query | `python gallery_07_queries.py` |
 
 Replace `BACKEND` with `matplotlib` or `datoviz`. Run from `examples/` for exploration. For
-acceptance, use the installed-wheel harness:
+acceptance, first verify both candidate heads are clean, then build all four wheels from those
+heads. From the VisPy2 repository:
 
 ```console
+test -z "$(git -C ../gsp status --porcelain)"
+test -z "$(git status --porcelain)"
 wheel_dir=../wheels
+mkdir -p "$wheel_dir"
+../gsp/.venv/bin/python -m build --no-isolation --wheel \
+  --outdir "$wheel_dir" ../gsp/packages/gsp-core
+../gsp/.venv/bin/python -m build --no-isolation --wheel \
+  --outdir "$wheel_dir" ../gsp/packages/gsp-matplotlib
+../gsp/.venv/bin/python -m build --no-isolation --wheel \
+  --outdir "$wheel_dir" ../gsp/packages/gsp-datoviz
+../gsp/.venv/bin/python -m build --no-isolation --wheel \
+  --outdir "$wheel_dir" .
 python examples/validate_gallery.py \
   --python ../gsp/.venv/bin/python \
   --output-dir examples/artifacts \

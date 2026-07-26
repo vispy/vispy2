@@ -131,6 +131,11 @@ def _git_revision(path: Path) -> str:
     return result.stdout.strip()
 
 
+def _verify_git_revision(path: Path, expected: str) -> None:
+    if _git_revision(path) != expected:
+        raise RuntimeError(f"source HEAD changed during validation: {path}")
+
+
 def _runtime_description(probe: dict[str, object]) -> str:
     implementation = probe.get("implementation")
     version = probe.get("version")
@@ -489,12 +494,14 @@ def _publish_capture(capture_dir: Path, output_dir: Path) -> None:
         shutil.copy2(manifest, staged / manifest.name)
 
         output_dir.mkdir(parents=True, exist_ok=True)
+        destination_manifest = output_dir / manifest.name
+        destination_manifest.unlink(missing_ok=True)
         for stale in output_dir.glob("*-gallery-*.png"):
             if stale.is_file():
                 stale.unlink()
         for name in sorted(EXPECTED_CAPTURE_NAMES):
             os.replace(staged / name, output_dir / name)
-        os.replace(staged / manifest.name, output_dir / manifest.name)
+        os.replace(staged / manifest.name, destination_manifest)
 
 
 def main() -> None:
@@ -519,6 +526,14 @@ def main() -> None:
         "vispy2": args.vispy2_wheel,
     }
     wheel_evidence = _validate_wheels(wheels)
+    source_paths = {
+        "gsp": args.gsp_source.resolve(),
+        "vispy2": args.vispy2_source.resolve(),
+    }
+    source_revisions = {
+        project: _git_revision(path)
+        for project, path in source_paths.items()
+    }
     env = dict(os.environ)
 
     with tempfile.TemporaryDirectory(prefix="vispy2-m290-gallery-") as temporary:
@@ -598,8 +613,8 @@ def main() -> None:
                     for module, package in PROJECT_IMPORTS.items()
                 },
                 "project_wheels": wheel_evidence,
-                "gsp_source_revision": _git_revision(args.gsp_source),
-                "vispy2_source_revision": _git_revision(args.vispy2_source),
+                "gsp_source_revision": source_revisions["gsp"],
+                "vispy2_source_revision": source_revisions["vispy2"],
                 "execution": (
                     "copied scripts outside both source trees; four project wheels "
                     "unpacked into an isolated project site; third-party dependencies "
@@ -629,6 +644,8 @@ def main() -> None:
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+        for project, path in source_paths.items():
+            _verify_git_revision(path, source_revisions[project])
         _publish_capture(capture_dir, output_dir)
     print(f"validated {len(pngs)} captures; manifest={output_dir / 'manifest.json'}")
 

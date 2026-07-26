@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import runpy
 import struct
+import subprocess
 from typing import Any, Callable, cast
 import zipfile
 
@@ -197,6 +199,7 @@ def test_gallery_validator_requires_four_exact_named_unique_wheels(
 
 def test_stale_output_cannot_satisfy_failed_capture_or_publish_manifest(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     validator = _load("validate_gallery.py")
     validate_capture_set = cast(
@@ -238,6 +241,14 @@ def test_stale_output_cannot_satisfy_failed_capture_or_publish_manifest(
     unexpected.unlink()
     (capture_dir / "manifest.json").write_text('{"schema": 2}\n', encoding="utf-8")
 
+    replacements: list[str] = []
+    real_replace = os.replace
+
+    def recording_replace(source: str | Path, destination: str | Path) -> None:
+        replacements.append(Path(destination).name)
+        real_replace(source, destination)
+
+    monkeypatch.setattr(os, "replace", recording_replace)
     publish_capture(capture_dir, output_dir)
 
     assert not stale_gallery.exists()
@@ -246,3 +257,77 @@ def test_stale_output_cannot_satisfy_failed_capture_or_publish_manifest(
         expected_names
     )
     assert old_manifest.read_text(encoding="utf-8") == '{"schema": 2}\n'
+    assert replacements[-1] == "manifest.json"
+
+
+def test_failed_publish_invalidates_old_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator = _load("validate_gallery.py")
+    publish_capture = cast(
+        Callable[[Path, Path], None],
+        validator["_publish_capture"],
+    )
+    expected_names = cast(tuple[str, ...], validator["EXPECTED_CAPTURE_NAMES"])
+    capture_dir = tmp_path / "capture"
+    output_dir = tmp_path / "output"
+    capture_dir.mkdir()
+    output_dir.mkdir()
+    header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + struct.pack(
+        ">II",
+        800,
+        600,
+    )
+    for name in expected_names:
+        (capture_dir / name).write_bytes(header)
+    (capture_dir / "manifest.json").write_text('{"schema": 2}\n', encoding="utf-8")
+    (output_dir / "manifest.json").write_text('{"old": true}\n', encoding="utf-8")
+
+    def failed_replace(source: str | Path, destination: str | Path) -> None:
+        raise OSError("injected publication failure")
+
+    monkeypatch.setattr(os, "replace", failed_replace)
+    with pytest.raises(OSError, match="injected publication failure"):
+        publish_capture(capture_dir, output_dir)
+
+    assert not (output_dir / "manifest.json").exists()
+
+
+def test_source_revision_must_be_clean_and_stable(tmp_path: Path) -> None:
+    validator = _load("validate_gallery.py")
+    git_revision = cast(Callable[[Path], str], validator["_git_revision"])
+    verify_git_revision = cast(
+        Callable[[Path, str], None],
+        validator["_verify_git_revision"],
+    )
+    repository = tmp_path / "candidate"
+    repository.mkdir()
+
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "gallery-test@example.invalid"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Gallery Test"],
+        cwd=repository,
+        check=True,
+    )
+    source = repository / "source.txt"
+    source.write_text("first\n", encoding="utf-8")
+    subprocess.run(["git", "add", "source.txt"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-qm", "first"], cwd=repository, check=True)
+    first_revision = git_revision(repository)
+
+    source.write_text("dirty\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="must be clean"):
+        git_revision(repository)
+
+    source.write_text("first\n", encoding="utf-8")
+    source.write_text("second\n", encoding="utf-8")
+    subprocess.run(["git", "add", "source.txt"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-qm", "second"], cwd=repository, check=True)
+    with pytest.raises(RuntimeError, match="HEAD changed"):
+        verify_git_revision(repository, first_revision)

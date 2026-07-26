@@ -110,6 +110,8 @@ def _required_view3d_capabilities(figure: vp.Figure) -> set[str]:
         "VectorVisual": "vectorvisual.positions3d.data.view3d.v1",
     }
     required.update(mapping[name] for name in names if name in mapping)
+    if "PixelVisual" in names:
+        required.add("pixelvisual.v1")
     if "PrimitiveVisual" in names:
         required.update(
             {

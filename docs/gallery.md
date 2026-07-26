@@ -21,21 +21,32 @@ Replace `BACKEND` with `matplotlib` or `datoviz`. Run from `examples/` for explo
 acceptance, use the installed-wheel harness:
 
 ```console
+wheel_dir=../wheels
 python examples/validate_gallery.py \
-  --python /path/to/wheel-environment/bin/python \
-  --output-dir /tmp/vispy2-gallery \
-  --gsp-source /path/to/gsp \
-  --vispy2-source /path/to/vispy2
+  --python ../gsp/.venv/bin/python \
+  --output-dir examples/artifacts \
+  --gsp-source ../gsp \
+  --vispy2-source . \
+  --gsp-core-wheel "$wheel_dir/gsp_core-0.2.0a1-py3-none-any.whl" \
+  --gsp-matplotlib-wheel "$wheel_dir/gsp_matplotlib-0.2.0a1-py3-none-any.whl" \
+  --gsp-datoviz-wheel "$wheel_dir/gsp_datoviz-0.2.0a1-py3-none-any.whl" \
+  --vispy2-wheel "$wheel_dir/vispy2-0.2.0a1-py3-none-any.whl"
 ```
 
-This is a shell template; replace every `/path/to/...` placeholder. The harness copies scripts to
-a temporary directory outside both repositories, rejects source-tree imports, applies a
-20-second process-group timeout, retries each Datoviz capture once, requires fourteen pixel-exact
-800×600 PNGs, and writes dimensions, byte counts, and SHA-256 hashes to `manifest.json`.
-The schema-2 manifest records a portable runtime description and logical installed-wheel import
-paths; it rejects host-absolute paths before writing. For galleries 2–4, exact shared `plot_rect`
-equality proves that Datoviz's explicitly unsupported title neither resizes nor shifts the data
-viewport.
+This is a shell template; adjust the relative interpreter and wheel locations if needed. The harness copies scripts to
+a temporary directory outside both repositories and unpacks exactly the four named newly built
+project wheels into an isolated project site. The requested prequalified Python environment supplies
+only third-party dependencies; the probe rejects any of the four project imports outside that site
+and also proves Pillow is importable. The harness applies a 20-second process-group timeout, retries
+each Datoviz capture once, and renders into a fresh temporary capture directory. Only after all
+fourteen new pixel-exact 800×600 PNGs, layout evidence, queries, and the schema-2 manifest validate
+does it copy the result to `--output-dir`, so stale destination artifacts cannot satisfy a run.
+The manifest records the probed interpreter runtime, portable logical paths for all four project
+imports, clean candidate source revisions, and stable project-name-to-SHA-256 wheel evidence without
+wheel paths; it rejects host-absolute paths before publication. The build-and-run procedure, rather
+than wheel introspection, establishes that those exact wheel hashes came from the recorded clean
+candidate heads. For galleries 2–4, exact shared `plot_rect` equality proves that Datoviz's
+explicitly unsupported title neither resizes nor shifts the data viewport.
 
 ## Live navigation
 

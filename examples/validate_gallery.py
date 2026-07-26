@@ -2,7 +2,8 @@
 
 Run this script with a Python interpreter whose environment contains the four
 local wheels. The harness copies gallery scripts to a temporary directory,
-verifies that ``gsp`` and ``vispy2`` are not imported from either source tree,
+unpacks only the four named project wheels into an isolated project site,
+verifies all project imports and Pillow from the requested interpreter,
 captures galleries 1--4 with both backends, then exercises capability discovery
 and queries. Datoviz subprocesses have a hard timeout and one retry.
 """
@@ -14,7 +15,6 @@ import hashlib
 import json
 import os
 from pathlib import Path, PureWindowsPath
-import platform
 import shutil
 import signal
 import struct
@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any, Final, cast
+import zipfile
 
 from PIL import Image
 
@@ -34,6 +35,32 @@ CAPTURE_SCRIPTS: Final = (
 )
 CHECK_SCRIPTS: Final = ("gallery_06_capabilities.py", "gallery_07_queries.py")
 SHARED_SCRIPTS: Final = ("gallery_shared_layout.py",)
+WHEEL_PROJECTS: Final = (
+    "gsp-core",
+    "gsp-matplotlib",
+    "gsp-datoviz",
+    "vispy2",
+)
+PROJECT_IMPORTS: Final = {
+    "gsp": "gsp",
+    "gsp_matplotlib": "gsp_matplotlib",
+    "gsp_datoviz": "gsp_datoviz",
+    "vispy2": "vispy2",
+}
+CAPTURE_SUFFIXES: Final = (
+    "gallery-01-priority-2d",
+    "gallery-02-perspective-3d",
+    "gallery-03-orthographic-3d",
+    "gallery-04-00-fit",
+    "gallery-04-01-orbit",
+    "gallery-04-02-pan",
+    "gallery-04-03-zoom",
+)
+EXPECTED_CAPTURE_NAMES: Final = tuple(
+    f"{backend}-{suffix}.png"
+    for backend in ("matplotlib", "datoviz")
+    for suffix in CAPTURE_SUFFIXES
+)
 
 
 def _run(
@@ -87,6 +114,14 @@ def _png_size(path: Path) -> tuple[int, int]:
 
 
 def _git_revision(path: Path) -> str:
+    status = subprocess.run(
+        ["git", "-C", str(path), "status", "--porcelain"],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    if status.stdout:
+        raise RuntimeError(f"source checkout must be clean before validation: {path}")
     result = subprocess.run(
         ["git", "-C", str(path), "rev-parse", "HEAD"],
         check=True,
@@ -96,23 +131,113 @@ def _git_revision(path: Path) -> str:
     return result.stdout.strip()
 
 
-def _runtime_description() -> str:
-    system = "macOS" if platform.system() == "Darwin" else platform.system()
-    return (
-        f"{platform.python_implementation()} {platform.python_version()} "
-        f"{system} {platform.machine()}"
-    )
+def _runtime_description(probe: dict[str, object]) -> str:
+    implementation = probe.get("implementation")
+    version = probe.get("version")
+    system = probe.get("system")
+    machine = probe.get("machine")
+    if not all(
+        isinstance(value, str) and value
+        for value in (implementation, version, system, machine)
+    ):
+        raise RuntimeError("runtime probe fields must be non-empty strings")
+    display_system = "macOS" if system == "Darwin" else system
+    return f"{implementation} {version} {display_system} {machine}"
 
 
 def _logical_import_path(path: Path, package: str) -> str:
-    parts = path.parts
-    try:
-        package_index = parts.index(package)
-    except ValueError as exc:
+    expected_suffix = (package, "__init__.py")
+    if path.parts[-2:] != expected_suffix:
         raise RuntimeError(
-            f"installed import does not contain package directory {package!r}"
-        ) from exc
-    return str(Path("isolated-wheel-site", *parts[package_index:]))
+            f"installed import is not a verified {package}/__init__.py path"
+        )
+    return str(Path("isolated-wheel-site", *expected_suffix))
+
+
+def _wheel_project_name(path: Path) -> str:
+    metadata_names: list[str] = []
+    try:
+        with zipfile.ZipFile(path) as archive:
+            for name in archive.namelist():
+                if not name.endswith(".dist-info/METADATA"):
+                    continue
+                for line in archive.read(name).decode("utf-8").splitlines():
+                    if line.startswith("Name: "):
+                        metadata_names.append(line.removeprefix("Name: ").strip())
+                        break
+    except (OSError, UnicodeDecodeError, zipfile.BadZipFile) as exc:
+        raise RuntimeError(f"invalid wheel: {path}") from exc
+    if len(metadata_names) != 1 or not metadata_names[0]:
+        raise RuntimeError(f"wheel must contain exactly one project name: {path}")
+    return metadata_names[0]
+
+
+def _validate_wheels(wheels: dict[str, Path]) -> dict[str, dict[str, str]]:
+    if set(wheels) != set(WHEEL_PROJECTS):
+        raise RuntimeError("exactly four named project wheels are required")
+    resolved = [path.resolve() for path in wheels.values()]
+    if len(set(resolved)) != len(resolved):
+        raise RuntimeError("duplicate wheel inputs are not allowed")
+    evidence: dict[str, dict[str, str]] = {}
+    for expected_name in WHEEL_PROJECTS:
+        path = wheels[expected_name]
+        if not path.is_file():
+            raise RuntimeError(f"{expected_name} wheel does not exist: {path}")
+        if path.suffix != ".whl":
+            raise RuntimeError(f"{expected_name} input is not a .whl file: {path}")
+        actual_name = _wheel_project_name(path)
+        if actual_name != expected_name:
+            raise RuntimeError(
+                f"{expected_name} wheel contains unknown project {actual_name!r}"
+            )
+        evidence[expected_name] = {"sha256": _sha256(path)}
+    return evidence
+
+
+def _unpack_wheels(wheels: dict[str, Path], project_site: Path) -> None:
+    project_site.mkdir(parents=True)
+    for project in WHEEL_PROJECTS:
+        with zipfile.ZipFile(wheels[project]) as archive:
+            for member in archive.infolist():
+                destination = (project_site / member.filename).resolve()
+                if not destination.is_relative_to(project_site.resolve()):
+                    raise RuntimeError(f"unsafe wheel member: {member.filename}")
+            archive.extractall(project_site)
+
+
+def _parse_probe(stdout: str, project_site: Path) -> dict[str, object]:
+    try:
+        value = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("interpreter probe did not return JSON") from exc
+    if not isinstance(value, dict):
+        raise RuntimeError("interpreter probe must return an object")
+    if set(value) != {
+        "implementation",
+        "version",
+        "system",
+        "machine",
+        "pillow",
+        "imports",
+    }:
+        raise RuntimeError("interpreter probe has invalid fields")
+    _runtime_description(value)
+    imports = value.get("imports")
+    if not isinstance(imports, dict) or set(imports) != set(PROJECT_IMPORTS):
+        raise RuntimeError("interpreter probe has invalid project imports")
+    site = project_site.resolve()
+    for module, package in PROJECT_IMPORTS.items():
+        raw_path = imports[module]
+        if not isinstance(raw_path, str) or not raw_path:
+            raise RuntimeError(f"interpreter probe import {module} must be a path string")
+        path = Path(raw_path).resolve()
+        if not path.is_relative_to(site):
+            raise RuntimeError(f"{module} was not imported from the isolated wheel site")
+        _logical_import_path(path, package)
+    pillow = value.get("pillow")
+    if not isinstance(pillow, str) or not pillow:
+        raise RuntimeError("interpreter probe did not prove Pillow importability")
+    return value
 
 
 def _assert_no_absolute_paths(value: object, *, context: str = "manifest") -> None:
@@ -326,24 +451,85 @@ def _camera_geometry_evidence(
     return result
 
 
+def _validate_capture_set(capture_dir: Path) -> list[Path]:
+    actual_names = {path.name for path in capture_dir.glob("*.png") if path.is_file()}
+    expected_names = set(EXPECTED_CAPTURE_NAMES)
+    if actual_names != expected_names:
+        missing = sorted(expected_names - actual_names)
+        unexpected = sorted(actual_names - expected_names)
+        raise RuntimeError(
+            "fresh capture has incorrect PNG set: "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+    pngs = [capture_dir / name for name in sorted(EXPECTED_CAPTURE_NAMES)]
+    wrong_sizes = {
+        path.name: _png_size(path)
+        for path in pngs
+        if _png_size(path) != (800, 600)
+    }
+    if wrong_sizes:
+        raise RuntimeError(f"gallery PNG dimensions must all be 800x600: {wrong_sizes}")
+    return pngs
+
+
+def _publish_capture(capture_dir: Path, output_dir: Path) -> None:
+    pngs = _validate_capture_set(capture_dir)
+    manifest = capture_dir / "manifest.json"
+    if not manifest.is_file():
+        raise RuntimeError("validated capture has no manifest")
+
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=".vispy2-gallery-publish-",
+        dir=output_dir.parent,
+    ) as temporary:
+        staged = Path(temporary)
+        for path in pngs:
+            shutil.copy2(path, staged / path.name)
+        shutil.copy2(manifest, staged / manifest.name)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for stale in output_dir.glob("*-gallery-*.png"):
+            if stale.is_file():
+                stale.unlink()
+        for name in sorted(EXPECTED_CAPTURE_NAMES):
+            os.replace(staged / name, output_dir / name)
+        os.replace(staged / manifest.name, output_dir / manifest.name)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--python", type=Path, default=Path(sys.executable))
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--gsp-source", type=Path, required=True)
     parser.add_argument("--vispy2-source", type=Path, required=True)
+    parser.add_argument("--gsp-core-wheel", type=Path, required=True)
+    parser.add_argument("--gsp-matplotlib-wheel", type=Path, required=True)
+    parser.add_argument("--gsp-datoviz-wheel", type=Path, required=True)
+    parser.add_argument("--vispy2-wheel", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=20.0)
     args = parser.parse_args()
 
     script_dir = Path(__file__).resolve().parent
     output_dir = args.output_dir.resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
+    wheels = {
+        "gsp-core": args.gsp_core_wheel,
+        "gsp-matplotlib": args.gsp_matplotlib_wheel,
+        "gsp-datoviz": args.gsp_datoviz_wheel,
+        "vispy2": args.vispy2_wheel,
+    }
+    wheel_evidence = _validate_wheels(wheels)
     env = dict(os.environ)
-    env.setdefault("MPLCONFIGDIR", str(output_dir / ".matplotlib"))
 
-    with tempfile.TemporaryDirectory(prefix="vispy2-m288-gallery-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="vispy2-m290-gallery-") as temporary:
         run_dir = Path(temporary)
+        project_site = run_dir / "project-site"
+        capture_dir = run_dir / "captures"
         evidence_dir = run_dir / "evidence"
+        capture_dir.mkdir()
+        _unpack_wheels(wheels, project_site)
+        env["PYTHONPATH"] = str(project_site)
+        env["MPLCONFIGDIR"] = str(run_dir / ".matplotlib")
         for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS, *SHARED_SCRIPTS):
             shutil.copy2(script_dir / name, run_dir / name)
 
@@ -351,7 +537,17 @@ def main() -> None:
             [
                 str(args.python),
                 "-c",
-                "import gsp, vispy2; print(gsp.__file__); print(vispy2.__file__)",
+                (
+                    "import json, platform, gsp, gsp_matplotlib, gsp_datoviz, vispy2; "
+                    "from PIL import Image; "
+                    "print(json.dumps({'implementation': platform.python_implementation(), "
+                    "'version': platform.python_version(), 'system': platform.system(), "
+                    "'machine': platform.machine(), 'pillow': Image.__name__, "
+                    "'imports': {'gsp': gsp.__file__, "
+                    "'gsp_matplotlib': gsp_matplotlib.__file__, "
+                    "'gsp_datoviz': gsp_datoviz.__file__, "
+                    "'vispy2': vispy2.__file__}}))"
+                ),
             ],
             cwd=run_dir,
             env=env,
@@ -359,10 +555,8 @@ def main() -> None:
             text=True,
             capture_output=True,
         )
-        import_paths = tuple(Path(line).resolve() for line in probe.stdout.splitlines())
-        source_roots = (args.gsp_source.resolve(), args.vispy2_source.resolve())
-        if any(path.is_relative_to(root) for path in import_paths for root in source_roots):
-            raise RuntimeError(f"source-tree import detected: {import_paths}")
+        probe_value = _parse_probe(probe.stdout, project_site)
+        import_values = cast(dict[str, str], probe_value["imports"])
 
         for backend in ("matplotlib", "datoviz"):
             for script in CAPTURE_SCRIPTS:
@@ -371,7 +565,7 @@ def main() -> None:
                     script,
                     backend,
                     "--output-dir",
-                    str(output_dir),
+                    str(capture_dir),
                 ]
                 if script != "gallery_01_priority_2d.py":
                     command.extend(["--evidence-dir", str(evidence_dir)])
@@ -390,53 +584,52 @@ def main() -> None:
                 timeout=args.timeout,
             )
 
-        pngs = sorted(output_dir.glob("*-gallery-*.png"))
-        if len(pngs) != 14:
-            raise RuntimeError(f"expected 14 gallery PNGs, found {len(pngs)}")
-        wrong_sizes = {
-            path.name: _png_size(path)
-            for path in pngs
-            if _png_size(path) != (800, 600)
-        }
-        if wrong_sizes:
-            raise RuntimeError(f"gallery PNG dimensions must all be 800x600: {wrong_sizes}")
+        pngs = _validate_capture_set(capture_dir)
         evidence = _load_evidence(evidence_dir)
         _assert_shared_geometry(evidence)
-        camera_geometry = _camera_geometry_evidence(output_dir, evidence)
+        camera_geometry = _camera_geometry_evidence(capture_dir, evidence)
 
-    manifest = {
-        "schema": 2,
-        "provenance": {
-            "python": _runtime_description(),
-            "gsp_import": _logical_import_path(import_paths[0], "gsp"),
-            "vispy2_import": _logical_import_path(import_paths[1], "vispy2"),
-            "gsp_source_revision": _git_revision(args.gsp_source),
-            "vispy2_source_revision": _git_revision(args.vispy2_source),
-            "execution": "copied scripts outside both source trees; wheel-installed imports",
-            "datoviz_timeout_seconds": args.timeout,
-            "datoviz_retries": 1,
-        },
-        "scripts": {
-            name: {"sha256": _sha256(script_dir / name)}
-            for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS, *SHARED_SCRIPTS)
-        },
-        "layout_projection_evidence": evidence,
-        "camera_geometry_evidence": camera_geometry,
-        "artifacts": {
-            path.name: {
-                "bytes": path.stat().st_size,
-                "width": _png_size(path)[0],
-                "height": _png_size(path)[1],
-                "sha256": _sha256(path),
-            }
-            for path in pngs
-        },
-    }
-    _assert_manifest_schema(manifest)
-    (output_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+        manifest = {
+            "schema": 2,
+            "provenance": {
+                "python": _runtime_description(probe_value),
+                "imports": {
+                    module: _logical_import_path(Path(import_values[module]), package)
+                    for module, package in PROJECT_IMPORTS.items()
+                },
+                "project_wheels": wheel_evidence,
+                "gsp_source_revision": _git_revision(args.gsp_source),
+                "vispy2_source_revision": _git_revision(args.vispy2_source),
+                "execution": (
+                    "copied scripts outside both source trees; four project wheels "
+                    "unpacked into an isolated project site; third-party dependencies "
+                    "provided by the requested Python environment"
+                ),
+                "datoviz_timeout_seconds": args.timeout,
+                "datoviz_retries": 1,
+            },
+            "scripts": {
+                name: {"sha256": _sha256(script_dir / name)}
+                for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS, *SHARED_SCRIPTS)
+            },
+            "layout_projection_evidence": evidence,
+            "camera_geometry_evidence": camera_geometry,
+            "artifacts": {
+                path.name: {
+                    "bytes": path.stat().st_size,
+                    "width": _png_size(path)[0],
+                    "height": _png_size(path)[1],
+                    "sha256": _sha256(path),
+                }
+                for path in pngs
+            },
+        }
+        _assert_manifest_schema(manifest)
+        (capture_dir / "manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _publish_capture(capture_dir, output_dir)
     print(f"validated {len(pngs)} captures; manifest={output_dir / 'manifest.json'}")
 
 

@@ -56,6 +56,7 @@ from gsp.protocol import (
     Projection3D,
     QueryRequest,
     QueryResult,
+    ResolvedLayoutSnapshot,
     ScalarColorDomain,
     ScalarColorEncoding,
     ScalarColorSlot,
@@ -198,6 +199,40 @@ class Figure:
         """Save through an ephemeral Matplotlib provider session."""
         with require_session("matplotlib", extra="matplotlib", require={"output.file"}) as session:
             session.render(self.to_scene(), target=path, **kwargs)
+
+    def render(
+        self,
+        session: BackendSession,
+        *,
+        layout_snapshot: ResolvedLayoutSnapshot | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Render through a caller-owned session, optionally reusing resolved layout."""
+        return session.render(
+            self.to_scene(),
+            layout_snapshot=layout_snapshot,
+            **kwargs,
+        )
+
+    def resolve_layout(
+        self,
+        session: BackendSession,
+        **kwargs: Any,
+    ) -> ResolvedLayoutSnapshot:
+        """Render once and return only the backend-neutral resolved layout snapshot."""
+        result = self.render(session, **kwargs)
+        snapshot = getattr(result, "layout_snapshot", None)
+        if not isinstance(snapshot, ResolvedLayoutSnapshot):
+            authoritative_snapshot = getattr(
+                result, "authoritative_layout_snapshot", None
+            )
+            if callable(authoritative_snapshot):
+                snapshot = authoritative_snapshot()
+        if not isinstance(snapshot, ResolvedLayoutSnapshot):
+            raise RuntimeError(
+                f"{session.backend_name!r} did not return a resolved layout snapshot"
+            )
+        return snapshot
 
     def display(self, session: BackendSession, **kwargs: Any) -> Any:
         """Display through a caller-owned session without retaining backend state."""

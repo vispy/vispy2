@@ -12,7 +12,6 @@ from pathlib import Path
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
-
 def make_figure() -> vp.Figure:
     figure, axes = vp.subplots(
         projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600)
@@ -60,28 +59,29 @@ def make_figure() -> vp.Figure:
     return figure
 
 
-def render(backend: str, output_dir: str | Path) -> Path:
+def render(
+    backend: str,
+    output_dir: str | Path,
+    *,
+    evidence_dir: str | Path | None = None,
+) -> Path:
+    from gallery_shared_layout import render_with_shared_layout
+
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     path = output / f"{backend}-gallery-02-perspective-3d.png"
-    required = {
-        "output.file",
-        "visual.mesh",
-        "visual.sphere",
-        "visual.vector",
-        "visual.text",
-    }
-    with vp.open_session(backend, require=required) as session:
-        for capability in (
-            "view3d.static.perspective.v1",
-            "meshvisual.positions3d.data.view3d.v1",
-            "spherevisual.v1",
-            "vectorvisual.positions3d.data.view3d.v1",
-            "textvisual.billboard3d.v1",
-        ):
-            if not session.capabilities.supports_view3d_capability(capability):
-                raise RuntimeError(f"{backend} does not advertise {capability}")
-        session.render(make_figure().to_scene(), target=path)
+    evidence_path = (
+        Path(evidence_dir) / f"{path.stem}.json"
+        if evidence_dir is not None
+        else None
+    )
+    render_with_shared_layout(
+        make_figure(),
+        backend,
+        path,
+        anchor_points=((-1.4, 0.0, -0.5), (1.1, 0.15, 0.25)),
+        evidence_path=evidence_path,
+    )
     return path
 
 
@@ -89,8 +89,9 @@ def main() -> Path:
     parser = argparse.ArgumentParser()
     parser.add_argument("backend", choices=("matplotlib", "datoviz"))
     parser.add_argument("--output-dir", type=Path, default=Path.cwd())
+    parser.add_argument("--evidence-dir", type=Path)
     args = parser.parse_args()
-    return render(args.backend, args.output_dir)
+    return render(args.backend, args.output_dir, evidence_dir=args.evidence_dir)
 
 
 if __name__ == "__main__":

@@ -32,6 +32,10 @@ This is a shell template; replace every `/path/to/...` placeholder. The harness 
 a temporary directory outside both repositories, rejects source-tree imports, applies a
 20-second process-group timeout, retries each Datoviz capture once, requires fourteen pixel-exact
 800×600 PNGs, and writes dimensions, byte counts, and SHA-256 hashes to `manifest.json`.
+The schema-2 manifest records a portable runtime description and logical installed-wheel import
+paths; it rejects host-absolute paths before writing. For galleries 2–4, exact shared `plot_rect`
+equality proves that Datoviz's explicitly unsupported title neither resizes nor shifts the data
+viewport.
 
 ## Live navigation
 

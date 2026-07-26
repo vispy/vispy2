@@ -35,7 +35,11 @@ def render_with_shared_layout(
     required = _required_capabilities(figure)
     with vp.open_session(backend, require=required) as session:
         _validate_view3d_capabilities(figure, backend, session.capabilities)
-        result = figure.render(session, layout_snapshot=layout, target=target)
+        result = session.render(
+            figure.to_scene(),
+            layout_snapshot=layout,
+            target=target,
+        )
         if evidence_path is not None:
             evidence_path.parent.mkdir(parents=True, exist_ok=True)
             evidence_path.write_text(
@@ -48,6 +52,7 @@ def render_with_shared_layout(
                         anchor_points=tuple(anchor_points),
                         title_status=session.capabilities.guide_layout_capability.panel_text_title,
                         layout_diagnostics=session.capabilities.layout_capability.diagnostics,
+                        render_diagnostics=session.diagnostics,
                     ),
                     indent=2,
                     sort_keys=True,
@@ -78,6 +83,16 @@ def _validate_view3d_capabilities(
     scene = figure.to_scene()
     if scene.view3d is None:
         raise RuntimeError("shared gallery layout requires a View3D")
+    required = _required_view3d_capabilities(figure)
+    for capability in sorted(required):
+        if not capabilities.supports_view3d_capability(capability):
+            raise RuntimeError(f"{backend} does not advertise {capability}")
+
+
+def _required_view3d_capabilities(figure: vp.Figure) -> set[str]:
+    scene = figure.to_scene()
+    if scene.view3d is None:
+        raise RuntimeError("shared gallery layout requires a View3D")
     required = {
         (
             "view3d.static.perspective.v1"
@@ -102,9 +117,7 @@ def _validate_view3d_capabilities(
                 "primitivevisual.triangle_strip",
             }
         )
-    for capability in sorted(required):
-        if not capabilities.supports_view3d_capability(capability):
-            raise RuntimeError(f"{backend} does not advertise {capability}")
+    return required
 
 
 def _render_evidence(
@@ -116,6 +129,7 @@ def _render_evidence(
     anchor_points: tuple[tuple[float, float, float], ...],
     title_status: str,
     layout_diagnostics: tuple[str, ...],
+    render_diagnostics: tuple[str, ...],
 ) -> dict[str, Any]:
     scene = figure.to_scene()
     if scene.view3d is None:
@@ -167,6 +181,7 @@ def _render_evidence(
         ),
         "title_status": title_status,
         "layout_diagnostics": list(layout_diagnostics),
+        "render_diagnostics": list(render_diagnostics),
     }
 
 

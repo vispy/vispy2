@@ -13,14 +13,15 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
+import platform
 import shutil
 import signal
 import struct
 import subprocess
 import sys
 import tempfile
-from typing import Final
+from typing import Any, Final, cast
 
 from PIL import Image
 
@@ -95,6 +96,50 @@ def _git_revision(path: Path) -> str:
     return result.stdout.strip()
 
 
+def _runtime_description() -> str:
+    system = "macOS" if platform.system() == "Darwin" else platform.system()
+    return (
+        f"{platform.python_implementation()} {platform.python_version()} "
+        f"{system} {platform.machine()}"
+    )
+
+
+def _logical_import_path(path: Path, package: str) -> str:
+    parts = path.parts
+    try:
+        package_index = parts.index(package)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"installed import does not contain package directory {package!r}"
+        ) from exc
+    return str(Path("isolated-wheel-site", *parts[package_index:]))
+
+
+def _assert_no_absolute_paths(value: object, *, context: str = "manifest") -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _assert_no_absolute_paths(item, context=f"{context}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _assert_no_absolute_paths(item, context=f"{context}[{index}]")
+    elif isinstance(value, str) and (
+        Path(value).is_absolute() or PureWindowsPath(value).is_absolute()
+    ):
+        raise RuntimeError(f"{context} contains an absolute path")
+
+
+def _assert_manifest_schema(manifest: dict[str, object]) -> None:
+    if manifest.get("schema") != 2:
+        raise RuntimeError("gallery manifest must use schema 2")
+    _assert_no_absolute_paths(manifest)
+
+
+def _number(value: object, *, context: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RuntimeError(f"{context} must be numeric")
+    return float(value)
+
+
 def _load_evidence(evidence_dir: Path) -> dict[str, dict[str, object]]:
     evidence: dict[str, dict[str, object]] = {}
     for path in sorted(evidence_dir.glob("*.json")):
@@ -149,15 +194,26 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
             for left_value, right_value in zip(
                 left["logical_pixel"], right["logical_pixel"], strict=True
             ):
-                if abs(float(left_value) - float(right_value)) > 1.0:
+                if abs(
+                    _number(left_value, context=f"{suffix} left anchor")
+                    - _number(right_value, context=f"{suffix} right anchor")
+                ) > 1.0:
                     raise RuntimeError(f"{suffix} projected anchors differ by over one pixel")
 
         aspect = matplotlib["effective_perspective_aspect"]
         if aspect is not None:
             plot_rect = matplotlib["plot_rect"]
             assert isinstance(plot_rect, list)
-            plot_ratio = float(plot_rect[2]) / float(plot_rect[3])
-            if abs(float(aspect) - plot_ratio) > 1e-12:
+            plot_ratio = _number(
+                plot_rect[2], context=f"{suffix} plot width"
+            ) / _number(plot_rect[3], context=f"{suffix} plot height")
+            if (
+                abs(
+                    _number(aspect, context=f"{suffix} aspect ratio")
+                    - plot_ratio
+                )
+                > 1e-12
+            ):
                 raise RuntimeError(f"{suffix} perspective aspect does not use plot ratio")
             if aspect != datoviz["effective_perspective_aspect"]:
                 raise RuntimeError(f"{suffix} perspective aspect mismatch")
@@ -174,23 +230,54 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
         backend = value["backend"]
         title_status = value["title_status"]
         diagnostics = value["layout_diagnostics"]
+        render_diagnostics = value["render_diagnostics"]
+        if not isinstance(diagnostics, list) or not all(
+            isinstance(item, str) for item in diagnostics
+        ):
+            raise RuntimeError("layout diagnostics evidence is invalid")
+        if not isinstance(render_diagnostics, list) or not all(
+            isinstance(item, str) for item in render_diagnostics
+        ):
+            raise RuntimeError("render diagnostics evidence is invalid")
         if backend == "datoviz":
             if title_status != "unsupported":
                 raise RuntimeError("Datoviz title limitation is not recorded as unsupported")
             if "panel_text_title_unsupported_no_public_renderer_path" not in diagnostics:
                 raise RuntimeError("Datoviz title diagnostic is missing")
+            if render_diagnostics != [
+                "panel_text_title_unsupported_no_public_renderer_path"
+            ]:
+                raise RuntimeError(
+                    "Datoviz accepted render did not record exactly one title diagnostic"
+                )
         elif title_status == "unsupported":
             raise RuntimeError("Matplotlib unexpectedly reports titles as unsupported")
+        elif render_diagnostics:
+            raise RuntimeError("Matplotlib unexpectedly recorded a render diagnostic")
 
 
 def _geometry_bounds(path: Path, plot_rect: list[object]) -> list[int]:
     image = Image.open(path).convert("RGBA")
-    x0 = max(0, int(float(plot_rect[0])))
-    y0 = max(0, int(float(plot_rect[1])))
-    x1 = min(image.width, int(float(plot_rect[0]) + float(plot_rect[2]) + 1.0))
-    y1 = min(image.height, int(float(plot_rect[1]) + float(plot_rect[3]) + 1.0))
-    background = image.getpixel((0, 0))
-    pixels = image.load()
+    x0 = max(0, int(_number(plot_rect[0], context="plot x")))
+    y0 = max(0, int(_number(plot_rect[1], context="plot y")))
+    x1 = min(
+        image.width,
+        int(
+            _number(plot_rect[0], context="plot x")
+            + _number(plot_rect[2], context="plot width")
+            + 1.0
+        ),
+    )
+    y1 = min(
+        image.height,
+        int(
+            _number(plot_rect[1], context="plot y")
+            + _number(plot_rect[3], context="plot height")
+            + 1.0
+        ),
+    )
+    background = cast(tuple[int, int, int, int], image.getpixel((0, 0)))
+    pixels = cast(Any, image.load())
     selected = [
         (x, y)
         for y in range(y0, y1)
@@ -320,9 +407,9 @@ def main() -> None:
     manifest = {
         "schema": 2,
         "provenance": {
-            "python": str(args.python.resolve()),
-            "gsp_import": str(import_paths[0]),
-            "vispy2_import": str(import_paths[1]),
+            "python": _runtime_description(),
+            "gsp_import": _logical_import_path(import_paths[0], "gsp"),
+            "vispy2_import": _logical_import_path(import_paths[1], "vispy2"),
             "gsp_source_revision": _git_revision(args.gsp_source),
             "vispy2_source_revision": _git_revision(args.vispy2_source),
             "execution": "copied scripts outside both source trees; wheel-installed imports",
@@ -345,6 +432,7 @@ def main() -> None:
             for path in pngs
         },
     }
+    _assert_manifest_schema(manifest)
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",

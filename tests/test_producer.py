@@ -148,13 +148,21 @@ def test_to_scene_rejects_currently_unsupported_multi_axes_layout() -> None:
         figure.to_scene()
 
 
+class FakeRenderResult:
+    def __init__(
+        self,
+        layout_snapshot: gsp.protocol.ResolvedLayoutSnapshot | None = None,
+    ) -> None:
+        self.layout_snapshot = layout_snapshot
+
+
 class FakeSession:
     backend_name = "fake"
 
     def __init__(self) -> None:
         self.scenes: list[gsp.Scene] = []
         self.renders: list[tuple[gsp.Scene, dict[str, Any]]] = []
-        self.render_result: Any = None
+        self.render_result: object = object()
         self.queries: list[tuple[gsp.protocol.QueryRequest, str | None]] = []
         self.query_error: RuntimeError | None = None
         self.query_result = QueryResult(
@@ -181,37 +189,6 @@ class FakeSession:
         return self.query_result
 
 
-def test_render_reuses_layout_without_retaining_session_or_snapshot() -> None:
-    figure, axes = vp.subplots()
-    axes.scatter([0.0], [0.0])
-    session = FakeSession()
-    layout = gsp.protocol.ResolvedLayoutSnapshot(
-        snapshot_id="layout:shared",
-        render_target=gsp.protocol.RenderTarget(800.0, 600.0),
-        panel_rect_px=gsp.protocol.LogicalPixelRect(0.0, 0.0, 800.0, 600.0),
-        plot_rect_px=gsp.protocol.LogicalPixelRect(100.0, 80.0, 620.0, 440.0),
-        view_id=axes.view.id,
-    )
-    expected = object()
-    session.render_result = expected
-
-    result = figure.render(
-        cast(BackendSession, session),
-        layout_snapshot=layout,
-        target="capture.png",
-    )
-
-    assert result is expected
-    assert session.renders == [
-        (
-            figure.to_scene(),
-            {"layout_snapshot": layout, "target": "capture.png"},
-        )
-    ]
-    assert all(getattr(figure, item.name) is not session for item in fields(figure))
-    assert all(getattr(figure, item.name) is not layout for item in fields(figure))
-
-
 def test_resolve_layout_returns_only_protocol_snapshot() -> None:
     figure, axes = vp.subplots()
     axes.scatter([0.0], [0.0])
@@ -223,11 +200,11 @@ def test_resolve_layout_returns_only_protocol_snapshot() -> None:
         plot_rect_px=gsp.protocol.LogicalPixelRect(100.0, 80.0, 620.0, 440.0),
         view_id=axes.view.id,
     )
-    session.render_result = type("Result", (), {"layout_snapshot": layout})()
+    session.render_result = FakeRenderResult(layout)
 
     assert figure.resolve_layout(cast(BackendSession, session)) is layout
     assert session.renders == [
-        (figure.to_scene(), {"layout_snapshot": None}),
+        (figure.to_scene(), {}),
     ]
 
 

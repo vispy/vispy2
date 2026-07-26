@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import runpy
+import signal
 import struct
 import subprocess
 from typing import Any, Callable, cast
@@ -19,6 +20,173 @@ EXAMPLES = Path(__file__).parents[1] / "examples"
 
 def _load(name: str) -> dict[str, Any]:
     return runpy.run_path(str(EXAMPLES / name))
+
+
+class _FakeProcess:
+    def __init__(self, wait_results: list[int | subprocess.TimeoutExpired]) -> None:
+        self.pid = 1234
+        self.wait_results = wait_results
+        self.wait_timeouts: list[float | None] = []
+        self.terminate_calls = 0
+        self.kill_calls = 0
+
+    def wait(self, timeout: float | None = None) -> int:
+        self.wait_timeouts.append(timeout)
+        result = self.wait_results.pop(0)
+        if isinstance(result, subprocess.TimeoutExpired):
+            raise result
+        return result
+
+    def terminate(self) -> None:
+        self.terminate_calls += 1
+
+    def kill(self) -> None:
+        self.kill_calls += 1
+
+
+def test_gallery_runner_uses_process_group_by_default(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator = _load("validate_gallery.py")
+    run = validator["_run"]
+    process = _FakeProcess([0])
+    popen_calls: list[dict[str, object]] = []
+
+    def fake_popen(command: list[str], **kwargs: object) -> _FakeProcess:
+        popen_calls.append(kwargs)
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    run(["python", "check.py"], cwd=tmp_path, env={}, timeout=1.0)
+
+    assert [call["start_new_session"] for call in popen_calls] == [True]
+
+
+def test_macos_datoviz_runner_uses_direct_child(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator = _load("validate_gallery.py")
+    run = validator["_run"]
+    isolation_for_datoviz = validator["_datoviz_process_isolation"]
+    process_isolation = validator["ProcessIsolation"]
+    process = _FakeProcess([0])
+    popen_calls: list[dict[str, object]] = []
+
+    def fake_popen(command: list[str], **kwargs: object) -> _FakeProcess:
+        popen_calls.append(kwargs)
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    isolation = isolation_for_datoviz(platform="darwin")
+    run(
+        ["python", "gallery.py", "datoviz"],
+        cwd=tmp_path,
+        env={},
+        timeout=1.0,
+        isolation=isolation,
+    )
+
+    assert isolation is process_isolation.DIRECT_CHILD
+    assert isolation_for_datoviz(platform="linux") is process_isolation.PROCESS_GROUP
+    assert [call["start_new_session"] for call in popen_calls] == [False]
+
+
+def test_process_group_timeout_sends_term_then_kill_to_group(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator = _load("validate_gallery.py")
+    run = validator["_run"]
+    process = _FakeProcess(
+        [
+            subprocess.TimeoutExpired("gallery", 1.0),
+            subprocess.TimeoutExpired("gallery", 2.0),
+            0,
+        ]
+    )
+    signals: list[tuple[int, signal.Signals]] = []
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: process)
+    monkeypatch.setattr(os, "killpg", lambda pid, sig: signals.append((pid, sig)))
+
+    with pytest.raises(RuntimeError, match="timed out"):
+        run(["python", "gallery.py"], cwd=tmp_path, env={}, timeout=1.0)
+
+    assert signals == [(process.pid, signal.SIGTERM), (process.pid, signal.SIGKILL)]
+    assert process.terminate_calls == 0
+    assert process.kill_calls == 0
+    assert process.wait_timeouts == [1.0, 2.0, 2.0]
+
+
+def test_direct_child_timeout_terminates_then_kills_only_child(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator = _load("validate_gallery.py")
+    run = validator["_run"]
+    process_isolation = validator["ProcessIsolation"]
+    process = _FakeProcess(
+        [
+            subprocess.TimeoutExpired("gallery", 1.0),
+            subprocess.TimeoutExpired("gallery", 2.0),
+            0,
+        ]
+    )
+
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: process)
+    monkeypatch.setattr(
+        os,
+        "killpg",
+        lambda *args: pytest.fail("direct-child cleanup must never call killpg"),
+    )
+
+    with pytest.raises(RuntimeError, match="timed out"):
+        run(
+            ["python", "gallery.py", "datoviz"],
+            cwd=tmp_path,
+            env={},
+            timeout=1.0,
+            isolation=process_isolation.DIRECT_CHILD,
+        )
+
+    assert process.terminate_calls == 1
+    assert process.kill_calls == 1
+    assert process.wait_timeouts == [1.0, 2.0, 2.0]
+
+
+def test_nonzero_child_exit_fails_without_retry_and_timeout_retry_is_exact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator = _load("validate_gallery.py")
+    run = validator["_run"]
+    processes = [_FakeProcess([-11])]
+
+    def fake_popen(*args: object, **kwargs: object) -> _FakeProcess:
+        return processes.pop(0)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    with pytest.raises(RuntimeError, match="exit -11"):
+        run(["python", "gallery.py"], cwd=tmp_path, env={}, timeout=1.0, retries=1)
+    assert not processes
+
+    timed_out = subprocess.TimeoutExpired("gallery", 1.0)
+    processes.extend([_FakeProcess([timed_out, 0]), _FakeProcess([timed_out, 0])])
+    popen_count = 0
+
+    def counting_popen(*args: object, **kwargs: object) -> _FakeProcess:
+        nonlocal popen_count
+        popen_count += 1
+        return processes.pop(0)
+
+    monkeypatch.setattr(subprocess, "Popen", counting_popen)
+    monkeypatch.setattr(os, "killpg", lambda *args: None)
+    with pytest.raises(RuntimeError, match="timed out"):
+        run(["python", "gallery.py"], cwd=tmp_path, env={}, timeout=1.0, retries=1)
+    assert popen_count == 2
+    assert not processes
 
 
 def test_galleries_2_to_4_have_exact_required_view3d_capabilities() -> None:

@@ -11,6 +11,7 @@ and queries. Datoviz subprocesses have a hard timeout and one retry.
 from __future__ import annotations
 
 import argparse
+from enum import Enum
 import hashlib
 import json
 import os
@@ -61,6 +62,43 @@ EXPECTED_CAPTURE_NAMES: Final = tuple(
     for backend in ("matplotlib", "datoviz")
     for suffix in CAPTURE_SUFFIXES
 )
+TERMINATION_TIMEOUT_SECONDS: Final = 2.0
+
+
+class ProcessIsolation(Enum):
+    PROCESS_GROUP = "process_group"
+    DIRECT_CHILD = "direct_child"
+
+
+def _datoviz_process_isolation(*, platform: str) -> ProcessIsolation:
+    if platform == "darwin":
+        return ProcessIsolation.DIRECT_CHILD
+    return ProcessIsolation.PROCESS_GROUP
+
+
+def _terminate_process(
+    process: subprocess.Popen[str],
+    *,
+    isolation: ProcessIsolation,
+) -> None:
+    if isolation is ProcessIsolation.PROCESS_GROUP:
+        os.killpg(process.pid, signal.SIGTERM)
+    else:
+        process.terminate()
+    try:
+        process.wait(timeout=TERMINATION_TIMEOUT_SECONDS)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+
+    if isolation is ProcessIsolation.PROCESS_GROUP:
+        os.killpg(process.pid, signal.SIGKILL)
+    else:
+        process.kill()
+    try:
+        process.wait(timeout=TERMINATION_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("subprocess did not exit after forced termination") from None
 
 
 def _run(
@@ -70,6 +108,7 @@ def _run(
     env: dict[str, str],
     timeout: float,
     retries: int = 0,
+    isolation: ProcessIsolation = ProcessIsolation.PROCESS_GROUP,
 ) -> None:
     for attempt in range(retries + 1):
         process = subprocess.Popen(
@@ -77,17 +116,12 @@ def _run(
             cwd=cwd,
             env=env,
             text=True,
-            start_new_session=True,
+            start_new_session=isolation is ProcessIsolation.PROCESS_GROUP,
         )
         try:
             return_code = process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=2.0)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
+            _terminate_process(process, isolation=isolation)
             if attempt < retries:
                 print(f"timeout; retrying: {' '.join(command)}", file=sys.stderr)
                 continue
@@ -590,6 +624,11 @@ def main() -> None:
                     env=env,
                     timeout=args.timeout,
                     retries=1 if backend == "datoviz" else 0,
+                    isolation=(
+                        _datoviz_process_isolation(platform=sys.platform)
+                        if backend == "datoviz"
+                        else ProcessIsolation.PROCESS_GROUP
+                    ),
                 )
         for script in CHECK_SCRIPTS:
             _run(

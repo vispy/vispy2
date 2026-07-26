@@ -49,8 +49,13 @@ This is a shell template; adjust the relative interpreter and wheel locations if
 a temporary directory outside both repositories and unpacks exactly the four named newly built
 project wheels into an isolated project site. The requested prequalified Python environment supplies
 only third-party dependencies; the probe rejects any of the four project imports outside that site
-and also proves Pillow is importable. The harness applies a 20-second process-group timeout, retries
-each Datoviz capture once, and renders into a fresh temporary capture directory. Only after all
+and also proves Pillow is importable. The harness applies a 20-second timeout, retries each Datoviz
+capture once, and renders into a fresh temporary capture directory. Subprocesses normally run in
+isolated process groups so timeout cleanup can terminate the entire group. On macOS only, native
+Datoviz captures run as direct children because creating a new session can corrupt otherwise
+successful native teardown; their bounded timeout cleanup terminates and, if necessary, kills only
+the direct child. This exception changes only harness process lifecycle and does not claim any
+third-party dependency or Datoviz rebuild. Only after all
 fourteen new pixel-exact 800×600 PNGs, layout evidence, queries, and the schema-2 manifest validate
 does it copy the result to `--output-dir`, so stale destination artifacts cannot satisfy a run.
 The manifest records the probed interpreter runtime, portable logical paths for all four project

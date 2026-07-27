@@ -7,39 +7,39 @@
       "width": 800
     },
     "datoviz-gallery-02-perspective-3d.png": {
-      "bytes": 32071,
+      "bytes": 27586,
       "height": 600,
-      "sha256": "eb7997814244337af6bcb5e03cc56979218dea61cc376edcfd54fc8b8302a6c1",
+      "sha256": "79e591da0d540c4911d693da2b91bf8865feb41489287d20ecc00e5334cbb453",
       "width": 800
     },
     "datoviz-gallery-03-orthographic-3d.png": {
-      "bytes": 15124,
+      "bytes": 14496,
       "height": 600,
-      "sha256": "8c3a360b2f301a71dbb21093470d3a2d868a02b54e03bfe0d76d041fe9e6d78a",
+      "sha256": "01dce5e8e6e1960cb809758a95492d6c7af19333e8ab4d6702d6ff3338a1c3a5",
       "width": 800
     },
     "datoviz-gallery-04-00-fit.png": {
-      "bytes": 14362,
+      "bytes": 13904,
       "height": 600,
-      "sha256": "82efc6d91b1ba66b1189902ca1d342a1055d8ca492e6addd1c74d092cf9fa036",
+      "sha256": "445423707b4be26163db6c703e29659d4a1e5b4befe2e133022bfc450051c877",
       "width": 800
     },
     "datoviz-gallery-04-01-orbit.png": {
-      "bytes": 14407,
+      "bytes": 13931,
       "height": 600,
-      "sha256": "92b8be09fbfd4c511e4a5120a095bf5d2f7e272dd3dfa7737a360dfd1347f74d",
+      "sha256": "30c19f8e924fa27d2072671a52b3983b5d29a622bd79f17bede56186853a5e56",
       "width": 800
     },
     "datoviz-gallery-04-02-pan.png": {
-      "bytes": 14482,
+      "bytes": 14001,
       "height": 600,
-      "sha256": "fea966df9c13e1572b78b7a79059cf87e1572d360326d19c3627e00cf1f0c1a5",
+      "sha256": "15547666b14a264f994b628726f4dfe9363b66ad5e16bfb8266f016807ec3203",
       "width": 800
     },
     "datoviz-gallery-04-03-zoom.png": {
-      "bytes": 15064,
+      "bytes": 14448,
       "height": 600,
-      "sha256": "cffb6fc35ebe3a856a466141d7d49279429149cd3ad8f4e11180f58532737aa6",
+      "sha256": "8821b89bf2598af7da1311f012cc8dde25ab37ab404dc49cbe03c4a870b2877d",
       "width": 800
     },
     "matplotlib-gallery-01-priority-2d.png": {
@@ -85,41 +85,964 @@
       "width": 800
     }
   },
-  "provenance": {
-    "datoviz_retries": 1,
-    "datoviz_timeout_seconds": 20.0,
-    "execution": "copied scripts outside both source trees; wheel-installed imports",
-    "gsp_import": "isolated-wheel-site/gsp/__init__.py",
-    "gsp_source_revision": "4ff1614c031599ebe90cd01a8efeb423e5d062f9",
-    "python": "CPython 3.13.4 macOS arm64",
-    "vispy2_import": "isolated-wheel-site/vispy2/__init__.py",
-    "vispy2_source_revision": "d4c8d650acaa228ead48d2b131d3a28f331df9ee",
-    "wheels": {
-      "gsp-core": "010329652f440dd7aeaedf2009a34c7d25fde396a156fd9b34424c67b1fa1d65",
-      "gsp-datoviz": "4291b2c10e364f9d6afcd4d86bdfd24c21d9edd8b8281e6decc773cb1cb3d553",
-      "gsp-matplotlib": "39e5329f75d2548fac394e91a982acfdf6e3fc64c901e2035f129a85918ecf06",
-      "vispy2": "30c50457df1d68bde89aaa2eee53109800b14cdaac0db121c6742f51b95b03fc"
+  "camera_geometry_evidence": {
+    "00-fit": {
+      "bounds": {
+        "datoviz": [
+          260,
+          225,
+          497,
+          389
+        ],
+        "matplotlib": [
+          259,
+          224,
+          498,
+          390
+        ]
+      },
+      "datoviz_to_matplotlib_height_ratio": 0.9880239520958084,
+      "datoviz_to_matplotlib_width_ratio": 0.9916666666666667,
+      "tolerance": 0.02
+    },
+    "01-orbit": {
+      "bounds": {
+        "datoviz": [
+          289,
+          230,
+          466,
+          416
+        ],
+        "matplotlib": [
+          288,
+          230,
+          466,
+          417
+        ]
+      },
+      "datoviz_to_matplotlib_height_ratio": 0.9946808510638298,
+      "datoviz_to_matplotlib_width_ratio": 0.994413407821229,
+      "tolerance": 0.02
+    },
+    "02-pan": {
+      "bounds": {
+        "datoviz": [
+          271,
+          220,
+          450,
+          406
+        ],
+        "matplotlib": [
+          270,
+          219,
+          450,
+          407
+        ]
+      },
+      "datoviz_to_matplotlib_height_ratio": 0.9894179894179894,
+      "datoviz_to_matplotlib_width_ratio": 0.994475138121547,
+      "tolerance": 0.02
+    },
+    "03-zoom": {
+      "bounds": {
+        "datoviz": [
+          243,
+          196,
+          457,
+          436
+        ],
+        "matplotlib": [
+          243,
+          195,
+          458,
+          437
+        ]
+      },
+      "datoviz_to_matplotlib_height_ratio": 0.9917695473251029,
+      "datoviz_to_matplotlib_width_ratio": 0.9953703703703703,
+      "tolerance": 0.02
     }
   },
-  "schema": 1,
+  "layout_projection_evidence": {
+    "datoviz-gallery-02-perspective-3d": {
+      "authored_perspective_aspect": null,
+      "backend": "datoviz",
+      "backend_projection_snapshot_id": "view3d-projection:5dd123c8caa1f4b6",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.4,
+            0.0,
+            -0.5
+          ],
+          "logical_pixel": [
+            295.96199194952726,
+            351.974083440858
+          ],
+          "ndc": [
+            -0.36786454209829905,
+            -0.2120090192244937,
+            0.40099521968032725
+          ]
+        },
+        {
+          "data": [
+            1.1,
+            0.15,
+            0.25
+          ],
+          "logical_pixel": [
+            517.972301124402,
+            325.1020493514835
+          ],
+          "ndc": [
+            0.34829774556258697,
+            -0.09567986732243954,
+            -0.15450807466684058
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:5dd123c8caa1f4b6",
+      "render_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path"
+      ],
+      "title_status": "unsupported"
+    },
+    "datoviz-gallery-03-orthographic-3d": {
+      "authored_perspective_aspect": null,
+      "backend": "datoviz",
+      "backend_projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": null,
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.2,
+            -0.8,
+            -0.2
+          ],
+          "logical_pixel": [
+            151.66667484910752,
+            418.26063127297294
+          ],
+          "ndc": [
+            -0.8333333069383628,
+            -0.4989637717444716,
+            0.07899589099989157
+          ]
+        },
+        {
+          "data": [
+            0.45,
+            -0.05,
+            1.28
+          ],
+          "logical_pixel": [
+            464.2874385241516,
+            221.53158629523185
+          ],
+          "ndc": [
+            0.17512076943274701,
+            0.352677115605057,
+            -0.3356801573366124
+          ]
+        }
+      ],
+      "projection_kind": "orthographic",
+      "projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "render_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path"
+      ],
+      "title_status": "unsupported"
+    },
+    "datoviz-gallery-04-00-fit": {
+      "authored_perspective_aspect": null,
+      "backend": "datoviz",
+      "backend_projection_snapshot_id": "view3d-projection:b51ff68db843daf8",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            410.0,
+            285.20805984194055
+          ],
+          "ndc": [
+            0.0,
+            0.07702138596562551,
+            -0.8722229501260647
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            410.0,
+            224.98495416667606
+          ],
+          "ndc": [
+            0.0,
+            0.33772747113993046,
+            -0.9126415108254083
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:b51ff68db843daf8",
+      "render_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path"
+      ],
+      "title_status": "unsupported"
+    },
+    "datoviz-gallery-04-01-orbit": {
+      "authored_perspective_aspect": null,
+      "backend": "datoviz",
+      "backend_projection_snapshot_id": "view3d-projection:7c4aa8cf74f4582e",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            466.79219518464856,
+            279.2306865638116
+          ],
+          "ndc": [
+            0.18320062962789846,
+            0.10289746076272031,
+            -0.8750934392522234
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            410.0,
+            230.06177806086208
+          ],
+          "ndc": [
+            0.0,
+            0.31574987852440656,
+            -0.9138554707785626
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:7c4aa8cf74f4582e",
+      "render_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path"
+      ],
+      "title_status": "unsupported"
+    },
+    "datoviz-gallery-04-02-pan": {
+      "authored_perspective_aspect": null,
+      "backend": "datoviz",
+      "backend_projection_snapshot_id": "view3d-projection:4819bf7f539b33d1",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            450.7429931961152,
+            272.09770790224127
+          ],
+          "ndc": [
+            0.1314290103100491,
+            0.13377615626735392,
+            -0.8750934392522234
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            386.7459462976396,
+            219.72664308203525
+          ],
+          "ndc": [
+            -0.07501307645922711,
+            0.36049072258859194,
+            -0.9138554707785626
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:4819bf7f539b33d1",
+      "render_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path"
+      ],
+      "title_status": "unsupported"
+    },
+    "datoviz-gallery-04-03-zoom": {
+      "authored_perspective_aspect": null,
+      "backend": "datoviz",
+      "backend_projection_snapshot_id": "view3d-projection:a140e1218e6a1247",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            458.1493362681986,
+            266.48022722555027
+          ],
+          "ndc": [
+            0.15532043957483413,
+            0.1580942544348475,
+            -0.8943373651175136
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            380.0768683797313,
+            195.84450567580222
+          ],
+          "ndc": [
+            -0.09652623103312474,
+            0.46387659880605103,
+            -0.9330993966438528
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:a140e1218e6a1247",
+      "render_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path"
+      ],
+      "title_status": "unsupported"
+    },
+    "matplotlib-gallery-02-perspective-3d": {
+      "authored_perspective_aspect": null,
+      "backend": "matplotlib",
+      "backend_projection_snapshot_id": "view3d-projection:5dd123c8caa1f4b6",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.4,
+            0.0,
+            -0.5
+          ],
+          "logical_pixel": [
+            295.96199194952726,
+            351.974083440858
+          ],
+          "ndc": [
+            -0.36786454209829905,
+            -0.2120090192244937,
+            0.40099521968032725
+          ]
+        },
+        {
+          "data": [
+            1.1,
+            0.15,
+            0.25
+          ],
+          "logical_pixel": [
+            517.972301124402,
+            325.1020493514835
+          ],
+          "ndc": [
+            0.34829774556258697,
+            -0.09567986732243954,
+            -0.15450807466684058
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:5dd123c8caa1f4b6",
+      "render_diagnostics": [],
+      "title_status": "native"
+    },
+    "matplotlib-gallery-03-orthographic-3d": {
+      "authored_perspective_aspect": null,
+      "backend": "matplotlib",
+      "backend_projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": null,
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.2,
+            -0.8,
+            -0.2
+          ],
+          "logical_pixel": [
+            151.66667484910752,
+            418.26063127297294
+          ],
+          "ndc": [
+            -0.8333333069383628,
+            -0.4989637717444716,
+            0.07899589099989157
+          ]
+        },
+        {
+          "data": [
+            0.45,
+            -0.05,
+            1.28
+          ],
+          "logical_pixel": [
+            464.2874385241516,
+            221.53158629523185
+          ],
+          "ndc": [
+            0.17512076943274701,
+            0.352677115605057,
+            -0.3356801573366124
+          ]
+        }
+      ],
+      "projection_kind": "orthographic",
+      "projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "render_diagnostics": [],
+      "title_status": "native"
+    },
+    "matplotlib-gallery-04-00-fit": {
+      "authored_perspective_aspect": null,
+      "backend": "matplotlib",
+      "backend_projection_snapshot_id": "view3d-projection:b51ff68db843daf8",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            410.0,
+            285.20805984194055
+          ],
+          "ndc": [
+            0.0,
+            0.07702138596562551,
+            -0.8722229501260647
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            410.0,
+            224.98495416667606
+          ],
+          "ndc": [
+            0.0,
+            0.33772747113993046,
+            -0.9126415108254083
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:b51ff68db843daf8",
+      "render_diagnostics": [],
+      "title_status": "native"
+    },
+    "matplotlib-gallery-04-01-orbit": {
+      "authored_perspective_aspect": null,
+      "backend": "matplotlib",
+      "backend_projection_snapshot_id": "view3d-projection:7c4aa8cf74f4582e",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            466.79219518464856,
+            279.2306865638116
+          ],
+          "ndc": [
+            0.18320062962789846,
+            0.10289746076272031,
+            -0.8750934392522234
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            410.0,
+            230.06177806086208
+          ],
+          "ndc": [
+            0.0,
+            0.31574987852440656,
+            -0.9138554707785626
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:7c4aa8cf74f4582e",
+      "render_diagnostics": [],
+      "title_status": "native"
+    },
+    "matplotlib-gallery-04-02-pan": {
+      "authored_perspective_aspect": null,
+      "backend": "matplotlib",
+      "backend_projection_snapshot_id": "view3d-projection:4819bf7f539b33d1",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            450.7429931961152,
+            272.09770790224127
+          ],
+          "ndc": [
+            0.1314290103100491,
+            0.13377615626735392,
+            -0.8750934392522234
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            386.7459462976396,
+            219.72664308203525
+          ],
+          "ndc": [
+            -0.07501307645922711,
+            0.36049072258859194,
+            -0.9138554707785626
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:4819bf7f539b33d1",
+      "render_diagnostics": [],
+      "title_status": "native"
+    },
+    "matplotlib-gallery-04-03-zoom": {
+      "authored_perspective_aspect": null,
+      "backend": "matplotlib",
+      "backend_projection_snapshot_id": "view3d-projection:a140e1218e6a1247",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "effective_perspective_aspect": 1.341991341991342,
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "layout_snapshot_id": "layout:matplotlib",
+      "panel_rect": [
+        0.0,
+        0.0,
+        800.0,
+        600.0
+      ],
+      "plot_rect": [
+        100.0,
+        72.0,
+        620.0,
+        462.0
+      ],
+      "projected_anchors": [
+        {
+          "data": [
+            -1.0,
+            -1.0,
+            0.0
+          ],
+          "logical_pixel": [
+            458.1493362681986,
+            266.48022722555027
+          ],
+          "ndc": [
+            0.15532043957483413,
+            0.1580942544348475,
+            -0.8943373651175136
+          ]
+        },
+        {
+          "data": [
+            0.0,
+            0.0,
+            1.5
+          ],
+          "logical_pixel": [
+            380.0768683797313,
+            195.84450567580222
+          ],
+          "ndc": [
+            -0.09652623103312474,
+            0.46387659880605103,
+            -0.9330993966438528
+          ]
+        }
+      ],
+      "projection_kind": "perspective",
+      "projection_snapshot_id": "view3d-projection:a140e1218e6a1247",
+      "render_diagnostics": [],
+      "title_status": "native"
+    }
+  },
+  "provenance": {
+    "datoviz_retries": 1,
+    "datoviz_timeout_seconds": 30.0,
+    "execution": "copied scripts outside both source trees; four project wheels unpacked into an isolated project site; third-party dependencies provided by the requested Python environment",
+    "gsp_source_revision": "fd20c94264bf8893eed6c27e35966ff0397f14cb",
+    "imports": {
+      "gsp": "isolated-wheel-site/gsp/__init__.py",
+      "gsp_datoviz": "isolated-wheel-site/gsp_datoviz/__init__.py",
+      "gsp_matplotlib": "isolated-wheel-site/gsp_matplotlib/__init__.py",
+      "vispy2": "isolated-wheel-site/vispy2/__init__.py"
+    },
+    "project_wheels": {
+      "gsp-core": {
+        "sha256": "95b34b86cdbabda4bcd2cf5d6fb0f0910f731707e29201b1f1c56cba96aa74f0"
+      },
+      "gsp-datoviz": {
+        "sha256": "db21fb96c9e66f7730ca4a0b9b0c9f17fd193e15b152f52f9c62d1d78e0b45e8"
+      },
+      "gsp-matplotlib": {
+        "sha256": "989ea49d929f93662cfa53bdb107c83fcc384d3cc48bbd1a0665b2d5e7b0e63a"
+      },
+      "vispy2": {
+        "sha256": "214eb532c4ea6119cbfa7d1db59b295d949c46aba4572a504c50413e7a930e3b"
+      }
+    },
+    "python": "CPython 3.13.4 macOS arm64",
+    "vispy2_source_revision": "7d2eb41fdc0639b8321edfee810df1614cec2695"
+  },
+  "schema": 2,
   "scripts": {
     "gallery_01_priority_2d.py": {
       "sha256": "466112fdf4366da246a32ed0b903984b64a7a6ca5412c0a320dff3600a9af295"
     },
     "gallery_02_perspective_3d.py": {
-      "sha256": "59176f834f3fa5c2fa32fc86a1f8e7f3a0f29eb865138654e10861b6219f4ad3"
+      "sha256": "cf54e39a5810a88f31dc26f4f343bb1edca0e05615c662cc5ea566e3a87d3f8d"
     },
     "gallery_03_orthographic_3d.py": {
-      "sha256": "8126b4d99c11a73df20f0f94dc50ede81c07335bafdc3444bd50d792ad2bce7b"
+      "sha256": "5f06e4afd01f15ffcc04938f2d8b65dae81d27412666c0132a8a01db027b8c25"
     },
     "gallery_04_camera_sequence.py": {
-      "sha256": "4c9208012ea2df16d83192898e16271ab46ca429cb6dad2f47e233be8b5a1165"
+      "sha256": "b38d8dd2450ce339a31b8265f680fb0563314b44e24159caecd647d131a2b609"
     },
     "gallery_06_capabilities.py": {
       "sha256": "8cec518bb7bb9e9a6cd67a3749af649b17fd2a1826b3e7af980642bc30811b19"
     },
     "gallery_07_queries.py": {
       "sha256": "88ca7fc157e629209771216eae8111f611033aa0f2792f64bc9dda85b7c518f7"
+    },
+    "gallery_shared_layout.py": {
+      "sha256": "978ecf3001ca4325aec0169ee3a093ff60007e50da7f805cd14ff8914d9db783"
     }
   }
 }

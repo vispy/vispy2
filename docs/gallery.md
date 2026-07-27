@@ -1,6 +1,6 @@
 # Installed-wheel gallery
 
-For M285 owner acceptance, use the [human-review index](M284-human-review.md), which links all
+For M292 owner acceptance, use the [human-review index](M284-human-review.md), which links all
 fourteen exact-head captures and provides the live navigation checklist.
 
 The seven M283 journeys are deliberately small and backend-neutral. Galleries 1--4 create seven
@@ -49,8 +49,9 @@ This is a shell template; adjust the relative interpreter and wheel locations if
 a temporary directory outside both repositories and unpacks exactly the four named newly built
 project wheels into an isolated project site. The requested prequalified Python environment supplies
 only third-party dependencies; the probe rejects any of the four project imports outside that site
-and also proves Pillow is importable. The harness applies a 20-second timeout, retries each Datoviz
-capture once, and renders into a fresh temporary capture directory. Subprocesses normally run in
+and also proves Pillow is importable. The qualified M292 run applied a 30-second timeout; the
+harness retries each Datoviz capture once and renders into a fresh temporary capture directory.
+Subprocesses normally run in
 isolated process groups so timeout cleanup can terminate the entire group. On macOS only, native
 Datoviz captures run as direct children because creating a new session can corrupt otherwise
 successful native teardown; their bounded timeout cleanup terminates and, if necessary, kills only
@@ -84,12 +85,14 @@ Use `Ctrl-C` if the native window cannot be closed. Do not automate this gallery
 
 ## Artifact interpretation
 
-All fourteen checked-in artifacts were regenerated during M285 with wheel-installed GSP and
+All fourteen checked-in artifacts were requalified during M292 with wheel-installed GSP and
 VisPy2 imports while the scripts ran outside both source trees. They are exactly 800×600 and the
-manifest records exact committed source revisions plus script, wheel, and artifact hashes. The
-Codex worker's two bounded native attempts encountered the known macOS service denial; the final
-unsandboxed run completed all fourteen captures without retry. See
-`examples/artifacts/M285-DATOVIZ-SANDBOX-STOP.md` for the environment distinction.
+schema-2 manifest records exact committed source revisions plus script, wheel, and artifact hashes.
+The native run completed all fourteen captures without a crash or retry. The four camera-state
+Datoviz-to-Matplotlib width and height ratios are 0.988–0.995, within the 2% contract. Gallery 5
+also started successfully from the isolated four-wheel site, handled one bounded `Ctrl-C`, exited
+zero, and left no process. See
+`examples/artifacts/M292-EXACT-WHEEL-QUALIFICATION.md` for the final evidence.
 
 The backends are not expected to match pixels, but both now receive the same canonical
 pixel-exact 800×600 canvas. Matplotlib View3D captures suppress the unintended native 2D frame.

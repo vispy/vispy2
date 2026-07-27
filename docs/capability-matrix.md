@@ -1,9 +1,9 @@
-# M285 corrected capability matrix
+# M292 qualified capability matrix
 
-M285 adds comparable pixel-exact geometry and corrects the Datoviz panel-title overclaim found
-during owner review. All fourteen artifacts were regenerated outside the Codex sandbox from exact
-committed wheels at GSP `4ff1614` and VisPy2 `d4c8d65`; the manifest records source, script,
-wheel, and artifact hashes.
+M292 requalifies comparable pixel-exact geometry after the Datoviz binding safety repairs and
+corrects plot-local raster measurement for canvases whose outer background differs. All fourteen
+artifacts were regenerated from exact committed wheels at GSP `fd20c94` and VisPy2 `7d2eb41`;
+the schema-2 manifest records source, script, wheel, and artifact hashes.
 
 Status vocabulary: **strict** preserves the named GSP semantic contract; **adapted** preserves
 bounded semantics with documented raster/layout/depth differences; **experimental** is opt-in and

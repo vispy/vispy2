@@ -1,8 +1,10 @@
-# M285 corrected owner review
+# M292 requalified owner review
 
-M285 corrected this portable review pack after the owner's M284 findings. All fourteen captures
-were regenerated from exact committed wheels outside both source trees and are 800×600. Both
-backends preserve the same semantic scene and canvas, but are not expected to match pixels.
+M292 requalified this portable review pack after the owner's M284 findings and the Datoviz binding
+safety repairs. All fourteen captures were regenerated from exact committed wheels outside both
+source trees and are 800×600. Camera raster geometry now differs by at most 1.2% in either
+dimension. Both backends preserve the same semantic scene and canvas, but are not expected to match
+pixels.
 
 ## Static captures
 

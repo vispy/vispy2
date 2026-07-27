@@ -83,16 +83,16 @@ Datoviz ([open full size](../examples/artifacts/datoviz-gallery-04-03-zoom.png))
 
 ## Static acceptance
 
-- [ ] 2D composition is legible and complete on both backends.
-- [ ] 3D perspective and orthographic composition is legible and complete on both backends.
-- [ ] Fit, orbit, pan, and zoom states are distinct, coherent, and unclipped.
-- [ ] Pixel visuals have the intended positions and relative logical sizes.
-- [ ] Sphere visuals are distinct and correctly placed.
-- [ ] Vector visuals preserve direction and relative magnitude.
-- [ ] Gallery 3's uniform primitive preserves topology without implying interpolation parity.
-- [ ] Gallery 3's pixel anchors are visibly distinct from primitive vertices.
-- [ ] Text is legible, separated, and correctly associated with the scene.
-- [ ] Mesh geometry and depth are credible on both backends.
+- [x] 2D composition is legible and complete on both backends.
+- [x] 3D perspective and orthographic composition is legible and complete on both backends.
+- [x] Fit, orbit, pan, and zoom states are distinct, coherent, and unclipped.
+- [x] Pixel visuals have the intended positions and relative logical sizes.
+- [x] Sphere visuals are distinct and correctly placed.
+- [x] Vector visuals preserve direction and relative magnitude.
+- [x] Gallery 3's uniform primitive preserves topology without implying interpolation parity.
+- [x] Gallery 3's pixel anchors are visibly distinct from primitive vertices.
+- [x] Text is legible, separated, and correctly associated with the scene.
+- [x] Mesh geometry and depth are credible on both backends.
 
 Known adaptations: both backends receive a pixel-exact 800×600 canvas. Matplotlib uses adapted
 painter/projection paths and suppresses its unintended native View3D frame. Matplotlib preserves
@@ -121,8 +121,8 @@ Controls: left-drag orbits, right-drag pans, the wheel zooms, and double-click r
 Close the native window to end the blocking loop and release the context-managed session. If the
 window cannot be closed, focus the terminal and use `Ctrl-C`; verify that the process exits.
 
-- [ ] Live orbit, pan, zoom, and reset controls respond naturally.
-- [ ] Closing the window cleans up the process and native resources.
+- [x] Live orbit, pan, zoom, and reset controls respond naturally.
+- [x] Closing the window cleans up the process and native resources.
 
 ## Query and capability review
 
@@ -130,10 +130,15 @@ The installed-wheel checks produced a point `HIT` with caller identity preserved
 `UNSUPPORTED` result for the deliberately unsupported sphere/3D request. Review the exact-head
 [capability matrix](capability-matrix.md) for the bounded contracts and adaptations.
 
-- [ ] Point `HIT` behavior is sufficient for the first experimental release.
-- [ ] Structured `UNSUPPORTED` behavior is clear and honest for unsupported queries.
+- [x] Point `HIT` behavior is sufficient for the first experimental release.
+- [x] Structured `UNSUPPORTED` behavior is clear and honest for unsupported queries.
 
 Owner decision:
 
-- [ ] Accept S065 experimental feature coverage.
+- [x] Accept S065 experimental feature coverage.
 - [ ] Request bounded corrections before accepting S065.
+
+Accepted by the owner on 2026-07-28. The live camera controls and cleanup work as intended. The
+uniform unlit Gallery 5 mesh is accepted as functionally correct but visually unattractive; a
+non-blocking follow-up should switch the presentation example to the already specified
+cross-backend flat-Lambert path rather than expanding the material model.

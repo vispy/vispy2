@@ -11,9 +11,11 @@ and queries. Datoviz subprocesses have a hard timeout and one retry.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from enum import Enum
 import hashlib
 import json
+import math
 import os
 from pathlib import Path, PureWindowsPath
 import shutil
@@ -422,25 +424,23 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
 
 def _geometry_bounds(path: Path, plot_rect: list[object]) -> list[int]:
     image = Image.open(path).convert("RGBA")
-    x0 = max(0, int(_number(plot_rect[0], context="plot x")))
-    y0 = max(0, int(_number(plot_rect[1], context="plot y")))
+    plot_x = _number(plot_rect[0], context="plot x")
+    plot_y = _number(plot_rect[1], context="plot y")
+    plot_width = _number(plot_rect[2], context="plot width")
+    plot_height = _number(plot_rect[3], context="plot height")
+    x0 = max(0, math.floor(plot_x))
+    y0 = max(0, math.floor(plot_y))
     x1 = min(
         image.width,
-        int(
-            _number(plot_rect[0], context="plot x")
-            + _number(plot_rect[2], context="plot width")
-            + 1.0
-        ),
+        math.ceil(plot_x + plot_width),
     )
     y1 = min(
         image.height,
-        int(
-            _number(plot_rect[1], context="plot y")
-            + _number(plot_rect[3], context="plot height")
-            + 1.0
-        ),
+        math.ceil(plot_y + plot_height),
     )
-    background = cast(tuple[int, int, int, int], image.getpixel((0, 0)))
+    if x1 <= x0 or y1 <= y0:
+        raise RuntimeError(f"empty plot rectangle for {path.name}")
+    background = _plot_background(image, x0=x0, y0=y0, x1=x1, y1=y1)
     pixels = cast(Any, image.load())
     selected = [
         (x, y)
@@ -453,6 +453,34 @@ def _geometry_bounds(path: Path, plot_rect: list[object]) -> list[int]:
     xs = [coordinate[0] for coordinate in selected]
     ys = [coordinate[1] for coordinate in selected]
     return [min(xs), min(ys), max(xs), max(ys)]
+
+
+def _plot_background(
+    image: Image.Image,
+    *,
+    x0: int,
+    y0: int,
+    x1: int,
+    y1: int,
+) -> tuple[int, int, int, int]:
+    """Return the dominant inset-perimeter color of one resolved plot rectangle."""
+    inset = 1 if x1 - x0 > 2 and y1 - y0 > 2 else 0
+    left = x0 + inset
+    right = x1 - 1 - inset
+    top = y0 + inset
+    bottom = y1 - 1 - inset
+    samples = [
+        *(image.getpixel((x, top)) for x in range(left, right + 1)),
+        *(image.getpixel((x, bottom)) for x in range(left, right + 1)),
+        *(image.getpixel((left, y)) for y in range(top + 1, bottom)),
+        *(image.getpixel((right, y)) for y in range(top + 1, bottom)),
+    ]
+    if not samples:
+        raise RuntimeError("plot rectangle has no background samples")
+    background, count = Counter(samples).most_common(1)[0]
+    if count * 2 <= len(samples):
+        raise RuntimeError("plot rectangle has no dominant perimeter background")
+    return cast(tuple[int, int, int, int], background)
 
 
 def _camera_geometry_evidence(

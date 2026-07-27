@@ -11,6 +11,7 @@ from typing import Any, Callable, cast
 import zipfile
 
 import pytest
+from PIL import Image, ImageDraw
 
 import vispy2 as vp
 
@@ -363,6 +364,62 @@ def test_gallery_validator_requires_four_exact_named_unique_wheels(
     wrong_suffix = {**wheels, "vispy2": not_wheel}
     with pytest.raises(RuntimeError, match=r"not a \.whl"):
         validate_wheels(wrong_suffix)
+
+
+def test_geometry_bounds_uses_plot_background_not_canvas_background(
+    tmp_path: Path,
+) -> None:
+    validator = _load("validate_gallery.py")
+    geometry_bounds = cast(
+        Callable[[Path, list[object]], list[int]],
+        validator["_geometry_bounds"],
+    )
+    path = tmp_path / "local-plot-background.png"
+    image = Image.new("RGBA", (100, 80), (15, 16, 22, 255))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((10, 10, 89, 69), fill=(255, 255, 255, 255))
+    draw.rectangle((35, 25, 64, 49), fill=(70, 130, 220, 255))
+    image.save(path)
+
+    assert geometry_bounds(path, [10.0, 10.0, 80.0, 60.0]) == [35, 25, 64, 49]
+
+
+def test_camera_geometry_gate_accepts_background_difference_but_rejects_scale(
+    tmp_path: Path,
+) -> None:
+    validator = _load("validate_gallery.py")
+    camera_geometry_evidence = cast(
+        Callable[[Path, dict[str, dict[str, object]]], dict[str, dict[str, object]]],
+        validator["_camera_geometry_evidence"],
+    )
+    states = ("00-fit", "01-orbit", "02-pan", "03-zoom")
+    evidence: dict[str, dict[str, object]] = {}
+
+    def write_capture(backend: str, state: str, *, right: int = 64) -> None:
+        canvas = (255, 255, 255, 255) if backend == "matplotlib" else (15, 16, 22, 255)
+        image = Image.new("RGBA", (100, 80), canvas)
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((10, 10, 89, 69), fill=(255, 255, 255, 255))
+        draw.rectangle((35, 25, right, 49), fill=(70, 130, 220, 255))
+        image.save(tmp_path / f"{backend}-gallery-04-{state}.png")
+
+    for state in states:
+        for backend in ("matplotlib", "datoviz"):
+            evidence[f"{backend}-gallery-04-{state}"] = {
+                "plot_rect": [10.0, 10.0, 80.0, 60.0]
+            }
+            write_capture(backend, state)
+
+    result = camera_geometry_evidence(tmp_path, evidence)
+    assert all(
+        item["datoviz_to_matplotlib_width_ratio"] == 1.0
+        and item["datoviz_to_matplotlib_height_ratio"] == 1.0
+        for item in result.values()
+    )
+
+    write_capture("datoviz", "03-zoom", right=68)
+    with pytest.raises(RuntimeError, match="ratios exceed 2% tolerance"):
+        camera_geometry_evidence(tmp_path, evidence)
 
 
 def test_stale_output_cannot_satisfy_failed_capture_or_publish_manifest(

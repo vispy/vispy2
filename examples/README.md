@@ -6,7 +6,8 @@ The M283 installed-wheel gallery is the current cross-backend feature tour:
 2. `gallery_02_perspective_3d.py` — mesh, spheres, vectors, and billboard text.
 3. `gallery_03_orthographic_3d.py` — indexed primitive geometry and pixels.
 4. `gallery_04_camera_sequence.py` — fit, orbit, pan, and zoom captures.
-5. `gallery_05_datoviz_navigation.py` — manual experimental Datoviz input.
+5. `gallery_05_datoviz_navigation.py` — manual experimental Datoviz input with flat diffuse
+   shading, generated face normals, and one ambient-plus-directional light.
 6. `gallery_06_capabilities.py` — discovery and explicit selection.
 7. `gallery_07_queries.py` — point hit and structured unsupported query.
 

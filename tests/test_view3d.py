@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import assert_type
+from typing import Any, assert_type
 
 import numpy as np
 import pytest
@@ -10,6 +10,7 @@ import gsp
 from gsp.protocol import (
     Camera3D,
     CoordinateSpace,
+    DirectionalLight3D,
     OrthographicProjection3D,
     PerspectiveProjection3D,
     project_view3d_data_point,
@@ -143,6 +144,133 @@ def test_camera_projection_and_navigation_each_increment_revision() -> None:
         fov_y_degrees=45.0,
         near_far=(0.1, 1000.0),
     )
+
+
+def test_set_lighting_emits_exact_protocol_state_and_one_revision() -> None:
+    figure, axes = vp.subplots(projection="3d")
+
+    view = axes.set_lighting(
+        ambient_light_intensity=0.2,
+        direction_to_light=np.asarray([1.0, -2.0, 3.0], dtype=np.float32),
+        directional_light_intensity=0.75,
+    )
+
+    assert_type(view, gsp.protocol.View3D)
+    assert view.revision == 1
+    assert view.ambient_light_intensity == 0.2
+    assert view.directional_light == DirectionalLight3D(
+        direction_to_light=(1.0, -2.0, 3.0),
+        intensity=0.75,
+    )
+    scene = figure.to_scene()
+    assert scene.view3d is view
+    assert scene.view3d.ambient_light_intensity == 0.2
+    assert scene.view3d.directional_light == view.directional_light
+
+
+def test_set_lighting_none_clears_directional_light_once() -> None:
+    _, axes = vp.subplots(projection="3d")
+    axes.set_lighting(
+        ambient_light_intensity=0.1,
+        direction_to_light=(0.0, 0.0, 1.0),
+    )
+
+    cleared = axes.set_lighting(
+        ambient_light_intensity=0.3,
+        direction_to_light=None,
+    )
+
+    assert cleared.revision == 2
+    assert cleared.ambient_light_intensity == 0.3
+    assert cleared.directional_light is None
+
+
+@pytest.mark.parametrize("ambient", [-0.1, 1.1, float("nan"), float("inf")])
+def test_set_lighting_delegates_invalid_ambient_to_gsp(ambient: float) -> None:
+    _, axes = vp.subplots(projection="3d")
+    with pytest.raises(ValueError, match="ambient_light_invalid"):
+        axes.set_lighting(
+            ambient_light_intensity=ambient,
+            direction_to_light=None,
+        )
+
+
+@pytest.mark.parametrize("intensity", [-0.1, 1.1, float("nan"), float("inf")])
+def test_set_lighting_delegates_invalid_directional_intensity_to_gsp(
+    intensity: float,
+) -> None:
+    _, axes = vp.subplots(projection="3d")
+    with pytest.raises(ValueError, match="directional_light_intensity_invalid"):
+        axes.set_lighting(
+            ambient_light_intensity=0.2,
+            direction_to_light=(0.0, 0.0, 1.0),
+            directional_light_intensity=intensity,
+        )
+
+
+@pytest.mark.parametrize(
+    ("direction", "message"),
+    [
+        ((0.0, 0.0), "exactly three"),
+        (np.zeros((1, 3), dtype=np.float64), "exactly three"),
+        (np.zeros((3, 1), dtype=np.float64), "exactly three"),
+        ((0.0, 0.0, 0.0), "directional_light_direction_invalid"),
+        ((float("nan"), 0.0, 1.0), "directional_light_direction_invalid"),
+        ((0.0, float("inf"), 1.0), "directional_light_direction_invalid"),
+    ],
+)
+def test_set_lighting_rejects_invalid_direction(
+    direction: Any,
+    message: str,
+) -> None:
+    _, axes = vp.subplots(projection="3d")
+    with pytest.raises(ValueError, match=message):
+        axes.set_lighting(
+            ambient_light_intensity=0.2,
+            direction_to_light=direction,
+        )
+
+
+def test_navigation_fit_and_reset_retain_lighting_state() -> None:
+    _, axes = vp.subplots(projection="3d")
+    _cube(axes)
+    lit = axes.set_lighting(
+        ambient_light_intensity=0.15,
+        direction_to_light=(1.0, -1.0, 2.0),
+        directional_light_intensity=0.85,
+    )
+    expected_lighting = (lit.ambient_light_intensity, lit.directional_light)
+
+    views = [
+        axes.orbit(yaw_radians=0.2, pitch_radians=-0.1),
+        axes.pan(right=0.1, up=-0.2),
+        axes.zoom(1.2),
+        axes.fit_camera(),
+    ]
+    fitted_camera = axes.get_camera()
+    axes.set_perspective(fov_y_degrees=60.0, near=0.5, far=50.0)
+    reset = axes.reset_camera()
+    views.append(reset)
+
+    assert all(
+        (view.ambient_light_intensity, view.directional_light) == expected_lighting
+        for view in views
+    )
+    assert reset.id == lit.id
+    assert reset.panel_id == lit.panel_id
+    assert reset.depth_mode == lit.depth_mode
+    assert reset.kind == lit.kind
+    assert reset.camera != fitted_camera
+    assert reset.camera == Camera3D(
+        eye=(3.0, 3.0, 3.0),
+        target=(0.0, 0.0, 0.0),
+        up=(0.0, 0.0, 1.0),
+    )
+    assert reset.projection == PerspectiveProjection3D(
+        fov_y_degrees=45.0,
+        near_far=(0.1, 1000.0),
+    )
+    assert reset.revision == lit.revision + 6
 
 
 def test_perspective_fit_uses_bounding_sphere_and_limiting_fov() -> None:

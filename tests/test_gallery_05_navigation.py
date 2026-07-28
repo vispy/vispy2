@@ -5,7 +5,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import numpy as np
 import pytest
+from gsp.protocol import (
+    DirectionalLight3D,
+    MeshNormalGeneration,
+    MeshNormalMode,
+    MeshShading,
+)
 
 
 def _gallery_module() -> ModuleType:
@@ -67,3 +74,81 @@ def test_live_gallery_rejects_renderer_without_exit_query() -> None:
 
     with pytest.raises(RuntimeError, match="dvz_app_should_exit"):
         module._run_interactive_frames(renderer)
+
+
+def test_live_gallery_emits_strict_flat_lambert_scene() -> None:
+    module = _gallery_module()
+
+    scene = module.make_figure().to_scene()
+
+    assert len(scene.visuals) == 1
+    mesh = scene.visuals[0]
+    assert mesh.shading is MeshShading.FLAT_LAMBERT
+    assert mesh.normal_mode is MeshNormalMode.FACE
+    assert mesh.normal_generation is MeshNormalGeneration.FACE_FLAT
+    assert mesh.normals is None
+    assert scene.view3d is not None
+    assert scene.view3d.ambient_light_intensity == 0.18
+    assert scene.view3d.directional_light == DirectionalLight3D(
+        direction_to_light=(-1.0, -1.0, -1.0),
+        intensity=0.82,
+    )
+    assert scene.view3d.revision == 3
+
+
+def test_live_gallery_matplotlib_raster_has_two_large_face_tones(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("gsp_matplotlib")
+    image_reader: Any = pytest.importorskip("matplotlib.image")
+    module = _gallery_module()
+    target = tmp_path / "gallery-05-lit.png"
+
+    with module.vp.open_session(
+        "matplotlib", require={"output.file", "visual.mesh"}
+    ) as session:
+        session.render(module.make_figure().to_scene(), target=target)
+
+    pixels = np.rint(image_reader.imread(target)[..., :3] * 255.0).astype(np.uint8)
+    flat_pixels = pixels.reshape(-1, 3)
+    for color in ((65, 120, 203), (13, 23, 40)):
+        count = np.count_nonzero(np.all(flat_pixels == color, axis=1))
+        assert count >= 10_000, (color, count)
+
+
+class _Capabilities:
+    metadata: dict[str, object] = {}
+
+    def __init__(self, *, missing: str | None = None) -> None:
+        self.missing = missing
+
+    def supports_view3d_capability(self, capability: str) -> bool:
+        return capability != self.missing
+
+    def supports_navigation_capability(self, capability: str) -> bool:
+        return capability != self.missing
+
+
+def test_live_gallery_fails_closed_on_missing_flat_lambert_capability() -> None:
+    module = _gallery_module()
+    missing = "meshvisual.material.flat_lambert.v1"
+
+    with pytest.raises(RuntimeError, match=missing):
+        module._validate_capabilities(_Capabilities(missing=missing))
+
+
+def test_live_gallery_requires_exact_semantic_capabilities() -> None:
+    module = _gallery_module()
+
+    assert module.REQUIRED_SESSION_CAPABILITIES == {
+        "display.interactive",
+        "visual.mesh",
+        "meshvisual.positions3d.data.view3d.v1",
+        "meshvisual.material.flat_lambert.v1",
+        "meshvisual.normal_generation.face_flat.v1",
+        "meshvisual.normals.face3d.v1",
+        "view3d.light.ambient.v1",
+        "view3d.light.directional.v1",
+        "view3d.navigation.orbit_pan_zoom.v1",
+        "view3d.static.perspective.v1",
+    }

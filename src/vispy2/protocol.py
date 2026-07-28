@@ -27,6 +27,7 @@ from gsp.protocol import (
     Camera3D,
     CanvasSize,
     CoordinateSpace,
+    DirectionalLight3D,
     FontRole,
     ImageColormap,
     ImageInterpolation,
@@ -1145,6 +1146,30 @@ class Axes3D:
         """Return the current semantic projection."""
         return self.view.projection
 
+    def set_lighting(
+        self,
+        *,
+        ambient_light_intensity: float,
+        direction_to_light: npt.ArrayLike | None,
+        directional_light_intensity: float = 1.0,
+    ) -> View3D:
+        """Set the accepted ambient and optional directional View3D lighting."""
+        directional_light = (
+            None
+            if direction_to_light is None
+            else DirectionalLight3D(
+                direction_to_light=_protocol_float3(direction_to_light),
+                intensity=float(directional_light_intensity),
+            )
+        )
+        self.view = replace(
+            self.view,
+            ambient_light_intensity=float(ambient_light_intensity),
+            directional_light=directional_light,
+            revision=self.view.revision + 1,
+        )
+        return self.view
+
     def orbit(self, *, yaw_radians: float, pitch_radians: float) -> View3D:
         """Orbit with the accepted GSP reducer."""
         self.view = orbit_view3d(
@@ -1187,7 +1212,9 @@ class Axes3D:
     def reset_camera(self) -> View3D:
         """Restore the camera and projection from axes construction."""
         self.view = replace(
-            self._home_view,
+            self.view,
+            camera=self._home_view.camera,
+            projection=self._home_view.projection,
             revision=self.view.revision + 1,
         )
         return self.view
@@ -1658,6 +1685,14 @@ def _float3(value: npt.ArrayLike, *, field_name: str) -> tuple[float, float, flo
         raise ValueError(f"{field_name} must contain exactly three values")
     if not np.all(np.isfinite(array)):
         raise ValueError(f"{field_name} values must be finite")
+    return (float(array[0]), float(array[1]), float(array[2]))
+
+
+def _protocol_float3(value: npt.ArrayLike) -> tuple[float, float, float]:
+    """Resolve an exact float3 while leaving semantic validation to GSP."""
+    array = np.asarray(value, dtype=np.float64)
+    if array.shape != (3,):
+        raise ValueError("direction_to_light must contain exactly three values")
     return (float(array[0]), float(array[1]), float(array[2]))
 
 

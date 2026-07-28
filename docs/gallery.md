@@ -13,7 +13,7 @@ discovery and queries.
 | 2 | Perspective mesh, spheres, vectors, billboards | `python gallery_02_perspective_3d.py BACKEND --output-dir artifacts` |
 | 3 | Orthographic primitive and pixels | `python gallery_03_orthographic_3d.py BACKEND --output-dir artifacts` |
 | 4 | Fit, orbit, pan, zoom sequence | `python gallery_04_camera_sequence.py BACKEND --output-dir artifacts` |
-| 5 | Experimental live Datoviz navigation | `python gallery_05_datoviz_navigation.py` |
+| 5 | Experimental live Datoviz navigation with flat diffuse lighting | `python gallery_05_datoviz_navigation.py` |
 | 6 | Discovery and ordered selection | `python gallery_06_capabilities.py` |
 | 7 | Point hit and structured unsupported query | `python gallery_07_queries.py` |
 
@@ -66,10 +66,13 @@ than wheel introspection, establishes that those exact wheel hashes came from th
 candidate heads. For galleries 2–4, exact shared `plot_rect` equality proves that Datoviz's
 explicitly unsupported title neither resizes nor shifts the data viewport.
 
-## Live navigation
+## Live flat-Lambert navigation
 
-Gallery 5 is manual. From the Mission Control `GSP_API` checkout, enable it only for isolated
-review with this copyable repository-relative command:
+Gallery 5 is manual. Its tetrahedron uses strict flat diffuse Lambert shading with generated face
+normals so its faces remain visibly distinct while the camera moves. The intentionally narrow
+backend-neutral lighting model is one scalar ambient term plus one white directional light.
+From the Mission Control `GSP_API` checkout, enable it only for isolated review with this copyable
+repository-relative command:
 
 ```console
 cd ../vispy2 &&

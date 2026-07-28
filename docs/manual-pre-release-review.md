@@ -31,7 +31,7 @@ Use these severities consistently:
 | **PREFERENCE** | Naming, aesthetics, or ergonomics worth discussing but not objectively incorrect |
 
 Do not demand pixel identity between backends. Do demand the same semantic scene, coherent geometry,
-truthful capabilities, deterministic Matplotlib output, and fail-closed Datoviz behavior.
+truthful capabilities, a usable live Matplotlib reference, and fail-closed Datoviz behavior.
 
 For each finding, record:
 
@@ -44,9 +44,9 @@ capability fails, data are placed incorrectly, or unsupported behavior silently 
 
 ## 1. Prepare two terminals
 
-Terminal A is for IPython and Matplotlib. Terminal B is for ordinary one-case-per-process Datoviz
-runs. Start both terminals in the VisPy2 repository. The examples below assume GSP and Datoviz are
-sibling checkouts named `gsp` and `datoviz`.
+Terminal A is for IPython and live Matplotlib windows. Terminal B is for ordinary
+one-case-per-process live Datoviz windows. Start both terminals in the VisPy2 repository. The
+examples below assume GSP and Datoviz are sibling checkouts named `gsp` and `datoviz`.
 
 Run this setup in both terminals:
 
@@ -58,6 +58,9 @@ export GSP_DATOVIZ_SOURCE="$(cd ../datoviz && pwd)"
 export PYTHONPATH="src:../gsp/packages/gsp-core/src:../gsp/packages/gsp-matplotlib/src:../gsp/packages/gsp-datoviz/src:../datoviz"
 echo "review output: $VISPY2_REVIEW_OUTPUT"
 ```
+
+The output directory is used only by the optional automated wheel qualification near the end. You
+do not need to open or review its PNG files.
 
 Use the same output directory in both terminals. If you opened Terminal B after Terminal A, copy
 the printed directory and set it explicitly:
@@ -116,8 +119,19 @@ In Terminal B, start a fresh ordinary process for each native Datoviz exercise:
 "$VISPY2_REVIEW_PYTHON"
 ```
 
-Paste one complete Python block, wait for its final output, then press `Ctrl-D`. Do not reuse that
-native process for another case.
+Paste one complete Python block, inspect and close its live window, then press `Ctrl-D`. Do not
+reuse that native process for another case.
+
+For live review, make sure neither terminal has `MPLBACKEND=Agg` or `GSP_TEST=True` set:
+
+```console
+unset MPLBACKEND
+unset GSP_TEST
+```
+
+Every Matplotlib `figure.show()` call blocks until you close its window. Every Datoviz block calls
+`session.run()` and likewise returns only after you close the native window. Keep the window open
+for as long as you need; close it to continue linearly.
 
 **Checkpoint**
 
@@ -187,21 +201,15 @@ Notes:
 
 ## 3. Build and inspect a complete 2D semantic figure
 
-Goal: exercise the priority 2D visual vocabulary and guides through public VisPy2 methods. This
-first rendering uses Matplotlib because `Figure.savefig()` is deliberately a Matplotlib one-shot
-convenience.
+Goal: exercise the priority 2D visual vocabulary and guides through public VisPy2 methods in a live
+Matplotlib window.
 
 Paste into Terminal A:
 
 ```python
-import os
-from pathlib import Path
-
-import numpy as np
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 figure, axes = vp.subplots(canvas_size=CanvasSize.pixel_exact(800, 600))
 
 axes.scatter(
@@ -281,12 +289,11 @@ print("visual types:", [type(visual).__name__ for visual in scene.visuals])
 print("visual ids:", [visual.id for visual in scene.visuals])
 print("view:", scene.view2d)
 
-target = output / "manual-matplotlib-priority-2d.png"
-figure.savefig(target)
-print(target)
+print("Close the Matplotlib window to continue.")
+figure.show()
 ```
 
-Open the printed PNG. Expected:
+Inspect the live window. Expected:
 
 - all eight visual groups are present and separated;
 - square/triangle/disc markers differ;
@@ -295,7 +302,7 @@ Open the printed PNG. Expected:
 - path and segment widths are legible;
 - the primitive forms one triangle;
 - labels, title, grid, ticks, and axes are coherent;
-- the file is exactly 800×600 logical pixels in the qualified environment.
+- the live canvas is 800×600 logical pixels in the qualified environment.
 
 Review:
 
@@ -306,25 +313,15 @@ Review:
 - [ ] IDs and scene ordering are understandable.
 - [ ] Invalid or ambiguous API choices found: ______________________________
 
-Optional existing-file shortcut:
-
-```console
-"$VISPY2_REVIEW_PYTHON" examples/gallery_01_priority_2d.py matplotlib --output-dir "$VISPY2_REVIEW_OUTPUT"
-```
-
 ## 4. Review scalar images, color mapping, and a colorbar
 
 Paste into Terminal A:
 
 ```python
-import os
-from pathlib import Path
-
 import numpy as np
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 values = np.linspace(-1.0, 1.0, 20 * 30, dtype=np.float32).reshape(20, 30)
 values += 0.35 * np.sin(np.linspace(0.0, 4.0 * np.pi, 30, dtype=np.float32))[None, :]
 
@@ -357,9 +354,8 @@ axes.set_title("Manual review: scalar image")
 scene = figure.to_scene()
 print("color scales:", scene.color_scales)
 print("colorbars:", scene.colorbar_guides)
-target = output / "manual-matplotlib-scalar-image.png"
-figure.savefig(target)
-print(target)
+print("Close the Matplotlib window to continue.")
+figure.show()
 ```
 
 Expected:
@@ -386,14 +382,10 @@ ambient-plus-one-directional-light contract.
 Paste into Terminal A:
 
 ```python
-import os
-from pathlib import Path
-
 import numpy as np
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 figure, axes = vp.subplots(
     projection="3d",
     canvas_size=CanvasSize.pixel_exact(800, 600),
@@ -481,9 +473,8 @@ print("camera:", scene.view3d.camera)
 print("projection:", scene.view3d.projection)
 print("lighting:", scene.view3d.ambient_light_intensity, scene.view3d.directional_light)
 
-target = output / "manual-matplotlib-priority-3d.png"
-figure.savefig(target)
-print(target)
+print("Close the Matplotlib window to continue.")
+figure.show()
 ```
 
 Expected Matplotlib behavior:
@@ -510,25 +501,15 @@ Review:
 - [ ] Adapted Matplotlib depth/order limitations are acceptable.
 - [ ] API concern or missing first-release visual: _________________________
 
-Optional existing-file shortcut:
-
-```console
-"$VISPY2_REVIEW_PYTHON" examples/gallery_02_perspective_3d.py matplotlib --output-dir "$VISPY2_REVIEW_OUTPUT"
-```
-
 ## 6. Review orthographic projection and camera transitions
 
 Paste this independent block into Terminal A:
 
 ```python
-import os
-from pathlib import Path
-
 import numpy as np
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 figure, axes = vp.subplots(
     projection="3d",
     canvas_size=CanvasSize.pixel_exact(800, 600),
@@ -559,19 +540,24 @@ axes.fit_camera(margin=1.2)
 
 states = {}
 states["fit"] = axes.view
-figure.savefig(output / "manual-camera-00-fit.png")
+print("fit:", states["fit"].camera)
+figure.show()
 
 states["orbit"] = axes.orbit(yaw_radians=0.35, pitch_radians=-0.15)
-figure.savefig(output / "manual-camera-01-orbit.png")
+print("orbit:", states["orbit"].camera)
+figure.show()
 
 states["pan"] = axes.pan(right=0.18, up=-0.08)
-figure.savefig(output / "manual-camera-02-pan.png")
+print("pan:", states["pan"].camera)
+figure.show()
 
 states["zoom"] = axes.zoom(1.25)
-figure.savefig(output / "manual-camera-03-zoom.png")
+print("zoom:", states["zoom"].camera)
+figure.show()
 
 states["reset"] = axes.reset_camera()
-figure.savefig(output / "manual-camera-04-reset.png")
+print("reset:", states["reset"].camera)
+figure.show()
 
 for name, view in states.items():
     print(name, "revision=", view.revision, "camera=", view.camera)
@@ -580,7 +566,7 @@ for name, view in states.items():
 
 Expected:
 
-- all five files are distinct;
+- five live windows appear sequentially and are visually distinct;
 - orbit changes viewing direction, pan changes target, and zoom changes scale;
 - reset restores the construction camera/projection rather than erasing lighting;
 - revision increases monotonically;
@@ -594,13 +580,6 @@ Review:
 - [ ] Lighting survives all transitions.
 - [ ] Camera API improvement request: ______________________________________
 
-Optional existing-file shortcuts:
-
-```console
-"$VISPY2_REVIEW_PYTHON" examples/gallery_03_orthographic_3d.py matplotlib --output-dir "$VISPY2_REVIEW_OUTPUT"
-"$VISPY2_REVIEW_PYTHON" examples/gallery_04_camera_sequence.py matplotlib --output-dir "$VISPY2_REVIEW_OUTPUT"
-```
-
 ## 7. Review backend discovery and truthful capabilities
 
 Paste into Terminal A:
@@ -608,7 +587,7 @@ Paste into Terminal A:
 ```python
 import gsp
 
-ordinary_required = {"output.file", "visual.mesh"}
+ordinary_required = {"visual.mesh"}
 versioned_required = {
     "meshvisual.positions3d.data.view3d.v1",
     "view3d.static.perspective.v1",
@@ -662,27 +641,22 @@ Optional shortcut:
 Paste into Terminal A:
 
 ```python
-import os
-from pathlib import Path
-
 import vispy2 as vp
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 figure, axes = vp.subplots()
 axes.scatter([0.0, 1.0], [1.0, 0.0], size=[18.0, 28.0])
 axes.set_title("Caller-owned session")
 
 with vp.open_session(
     "matplotlib",
-    require={"output.file", "visual.points"},
+    require={"visual.points"},
 ) as session:
     print("opened:", session.backend_name)
-    result = session.render(
-        figure.to_scene(),
-        target=output / "manual-explicit-session.png",
-    )
-    print("render result:", type(result).__name__)
+    result = figure.display(session, block=False)
+    print("display result:", type(result).__name__)
     print("session diagnostics:", session.diagnostics)
+    print("Close the Matplotlib window to leave the session.")
+    session.run()
 
 print("session context exited")
 ```
@@ -692,8 +666,8 @@ Expected:
 - VisPy2 owns semantic state;
 - the caller owns the session lifetime;
 - the adapter owns native resources and releases them on context exit;
-- `Figure.savefig()` remains a convenience, while explicit sessions support capabilities, queries,
-  non-blocking display, and Datoviz.
+- `Figure.show()` is the simple blocking Matplotlib path, while explicit sessions support
+  capabilities, queries, controlled display lifetime, and Datoviz.
 
 Review:
 
@@ -730,8 +704,10 @@ with vp.open_session(
 ) as session:
     point_figure.display(session, block=False)
     point_result = point_figure.query(session, point_request)
+    print("point:", point_result.status, point_result.hits)
+    print("Close the live point-query window to continue.")
+    session.run()
 
-print("point:", point_result.status, point_result.hits)
 assert point_result.status is QueryStatus.HIT
 
 sphere_figure, sphere_axes = vp.subplots(projection="3d")
@@ -754,8 +730,10 @@ with vp.open_session(
 ) as session:
     sphere_figure.display(session, block=False)
     sphere_result = sphere_figure.query(session, sphere_request)
+    print("sphere:", sphere_result.status, sphere_result.diagnostic)
+    print("Close the live sphere window to continue.")
+    session.run()
 
-print("sphere:", sphere_result.status, sphere_result.diagnostic)
 assert sphere_result.status is QueryStatus.UNSUPPORTED
 ```
 
@@ -787,16 +765,12 @@ Leave IPython running in Terminal A. In Terminal B, start a new ordinary Python 
 "$VISPY2_REVIEW_PYTHON"
 ```
 
-Paste this complete block, wait for the final path, then press `Ctrl-D`:
+Paste this complete block, inspect and close the live window, then press `Ctrl-D`:
 
 ```python
-import os
-from pathlib import Path
-
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 figure, axes = vp.subplots(canvas_size=CanvasSize.pixel_exact(800, 600))
 axes.scatter(
     [-1.0, -0.4, 0.2],
@@ -817,6 +791,18 @@ axes.pixels(
     size=[5.0, 10.0, 15.0],
     color=[44, 160, 44, 255],
 )
+axes.segments(
+    [[-0.15, 1.15], [0.25, 1.15]],
+    [[0.05, 0.75], [0.45, 0.75]],
+    width=[2.0, 5.0],
+    color=[23, 190, 207, 255],
+)
+axes.path(
+    [[-0.15, 0.3], [0.1, 0.5], [0.35, 0.1], [0.6, 0.35]],
+    color=[127, 127, 127, 255],
+    width=3.0,
+    join="round",
+)
 axes.vectors(
     [0.75, 1.2],
     [0.8, 0.8],
@@ -824,6 +810,11 @@ axes.vectors(
     [0.35, 0.4],
     width=2.5,
     color=[148, 103, 189, 255],
+)
+axes.primitives(
+    [[0.65, -0.75], [1.05, -0.15], [1.45, -0.75]],
+    topology="triangle_list",
+    color=[255, 127, 14, 255],
 )
 axes.text(
     [0.75],
@@ -837,25 +828,27 @@ axes.set_ylim(-1.1, 1.4)
 axes.grid(True)
 axes.set_title("Manual Datoviz 2D")
 
-target = output / "manual-dataviz-priority-2d.png"
 with vp.open_session(
     "datoviz",
     require={
-        "output.file",
         "visual.points",
         "visual.markers",
+        "visual.paths",
         "visual.pixels",
+        "visual.primitive",
+        "visual.segments",
         "visual.vector",
         "visual.text",
     },
 ) as session:
-    session.render(figure.to_scene(), target=target)
-print(target)
+    figure.display(session, block=False)
+    print("Inspect the live Datoviz window; close it to continue.")
+    session.run()
 ```
 
 Expected:
 
-- a fresh 800×600 PNG is written;
+- a live 800×600 Datoviz window opens and remains until you close it;
 - positions, relative sizes, vector direction, and text association match the semantic input;
 - rasterization, font metrics, vector caps, and guides may differ from Matplotlib;
 - the qualified Datoviz binding has no public panel-title renderer, so a missing title is an
@@ -864,17 +857,17 @@ Expected:
 
 Review:
 
-- [ ] Output is fresh and complete.
+- [ ] The live scene is complete.
 - [ ] Data placement matches Matplotlib.
 - [ ] Differences are documented adaptations rather than semantic loss.
 - [ ] Process exits without crash or hang.
 - [ ] Datoviz 2D finding: _________________________________________________
 
-Optional shortcut in Terminal B:
-
-```console
-"$VISPY2_REVIEW_PYTHON" examples/gallery_01_priority_2d.py datoviz --output-dir "$VISPY2_REVIEW_OUTPUT"
-```
+Current high-level image boundary: section 4 is Matplotlib-only. VisPy2 `imshow()` currently emits
+a DATA-space `ImageVisual`, while the qualified Datoviz v0.4 image lowering accepts only NDC-space
+image extents. Therefore there is no honest live Datoviz window for the same public high-level
+scalar-image example yet. Record whether this is acceptable as **DEFERRED** for the experimental
+release or a release-blocking API/backend coverage gap; do not substitute an old PNG.
 
 ## 11. Run one isolated native Datoviz 3D and lighting case
 
@@ -884,12 +877,9 @@ Start another fresh ordinary Python process in Terminal B:
 "$VISPY2_REVIEW_PYTHON"
 ```
 
-Paste this block, wait for the path, then press `Ctrl-D`:
+Paste this block, inspect and close the live window, then press `Ctrl-D`:
 
 ```python
-import os
-from pathlib import Path
-
 import numpy as np
 import vispy2 as vp
 from gsp.protocol import (
@@ -903,14 +893,13 @@ from gsp.protocol import (
     VIEW3D_STATIC_PERSPECTIVE_CAPABILITY,
 )
 
-output = Path(os.environ["VISPY2_REVIEW_OUTPUT"])
 figure, axes = vp.subplots(
     projection="3d",
     canvas_size=CanvasSize.pixel_exact(800, 600),
 )
 axes.mesh(
     np.asarray(
-        [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.5], [0.0, 0.0, 1.5]],
+        [[-1.4, -0.8, -0.4], [0.0, -0.8, -0.4], [-0.7, 0.6, 0.0], [-0.7, -0.1, 1.1]],
         dtype=np.float32,
     ),
     np.asarray([[0, 1, 2], [0, 3, 1], [1, 3, 2], [2, 3, 0]], dtype=np.uint32),
@@ -924,8 +913,53 @@ axes.set_lighting(
     direction_to_light=(-1.0, -1.0, -1.0),
     directional_light_intensity=0.82,
 )
-axes.fit_camera()
-axes.orbit(yaw_radians=0.35, pitch_radians=-0.20)
+axes.spheres(
+    [0.45, 1.25],
+    [-0.2, 0.3],
+    [0.0, 0.35],
+    radius=[0.35, 0.22],
+    color=[[230, 57, 70, 255], [42, 157, 143, 255]],
+)
+axes.vectors(
+    [-1.15, 0.4, 1.25],
+    [0.75, 0.8, 0.3],
+    [0.1, 0.0, 0.35],
+    [0.0, 0.35, 0.25],
+    [0.35, 0.25, -0.2],
+    [0.55, 0.45, 0.35],
+    width=3.0,
+    color=[244, 162, 97, 255],
+)
+axes.primitives(
+    [[0.4, -0.9, 0.1], [0.95, -0.45, 0.4], [1.45, -0.9, 0.7]],
+    topology="triangle_list",
+    color=[102, 51, 153, 255],
+)
+axes.pixels(
+    [-1.15, -0.8, -0.45],
+    [0.9, 1.0, 0.9],
+    [1.2, 1.25, 1.3],
+    size=[7.0, 12.0, 17.0],
+    color=[255, 215, 0, 255],
+)
+axes.text(
+    [-0.7, 0.85],
+    [-0.2, 0.2],
+    [1.45, 1.15],
+    ["lit mesh", "3D scene"],
+    font_size_px=16.0,
+    color=[25, 25, 25, 255],
+    anchor_x="center",
+    anchor_y="bottom",
+)
+axes.set_camera(
+    eye=(4.0, -7.0, 3.8),
+    target=(0.0, 0.0, 0.3),
+    up=(0.0, 0.0, 1.0),
+)
+axes.set_perspective(fov_y_degrees=42.0, near=0.1, far=100.0)
+axes.fit_camera(margin=1.2)
+axes.orbit(yaw_radians=0.25, pitch_radians=-0.12)
 
 required_view3d = {
     MESH3D_DATA_VIEW3D_CAPABILITY,
@@ -936,21 +970,30 @@ required_view3d = {
     VIEW3D_LIGHT_DIRECTIONAL_CAPABILITY,
     VIEW3D_STATIC_PERSPECTIVE_CAPABILITY,
 }
-target = output / "manual-dataviz-flat-lambert.png"
 with vp.open_session(
     "datoviz",
-    require={"output.file", "visual.mesh", *required_view3d},
+    require={
+        "visual.mesh",
+        "visual.pixels",
+        "visual.primitive",
+        "visual.sphere",
+        "visual.text",
+        "visual.vector",
+        *required_view3d,
+    },
 ) as session:
     for capability in sorted(required_view3d):
         if not session.capabilities.supports_view3d_capability(capability):
             raise RuntimeError(f"Datoviz does not advertise {capability}")
-    session.render(figure.to_scene(), target=target)
-print(target)
+    figure.display(session, block=False)
+    print("Inspect the live Datoviz window; close it to continue.")
+    session.run()
 ```
 
 Expected:
 
-- the tetrahedron has at least two large, visibly distinct blue face tones;
+- the tetrahedral mesh has at least two large, visibly distinct blue face tones;
+- spheres, vectors, primitive geometry, pixels, and billboard text are also visible;
 - the initial view clearly communicates 3D shape;
 - no unlit fallback occurs;
 - every exact capability is checked before native rendering;
@@ -964,34 +1007,21 @@ Review:
 - [ ] Process exits without crash or hang.
 - [ ] Datoviz 3D finding: _________________________________________________
 
-## 12. Regenerate the current static gallery
+## 12. Consolidate the live-window comparison
 
-Treat older M284/M292 review packs and checked-in comparison images as historical evidence only.
-They predate the current VisPy2 head and flat-Lambert presentation work. The fresh outputs produced
-in this section—not an old artifact directory—are the visual evidence for this review.
+Do not review checked-in images or generated PNGs. Use only the live windows opened in sections
+3–6 and 10–11, plus the interactive window in section 14. If you want a direct comparison, keep a
+Matplotlib window open in Terminal A while you launch its Datoviz counterpart in Terminal B.
 
-Run galleries 1–4 from Terminal B. Each Datoviz command is its own process:
+Compare the live realizations in this order:
 
-```console
-for backend in matplotlib datoviz; do
-  "$VISPY2_REVIEW_PYTHON" examples/gallery_01_priority_2d.py "$backend" --output-dir "$VISPY2_REVIEW_OUTPUT"
-  "$VISPY2_REVIEW_PYTHON" examples/gallery_02_perspective_3d.py "$backend" --output-dir "$VISPY2_REVIEW_OUTPUT"
-  "$VISPY2_REVIEW_PYTHON" examples/gallery_03_orthographic_3d.py "$backend" --output-dir "$VISPY2_REVIEW_OUTPUT"
-  "$VISPY2_REVIEW_PYTHON" examples/gallery_04_camera_sequence.py "$backend" --output-dir "$VISPY2_REVIEW_OUTPUT"
-done
-```
-
-Inspect these pairs side by side:
-
-| Journey | Matplotlib | Datoviz | Human check |
+| Journey | Matplotlib window | Datoviz window | Human check |
 |---|---|---|---|
-| Priority 2D | `matplotlib-gallery-01-priority-2d.png` | `datoviz-gallery-01-priority-2d.png` | all families, placement, relative sizes |
-| Perspective 3D | `matplotlib-gallery-02-perspective-3d.png` | `datoviz-gallery-02-perspective-3d.png` | mesh, spheres, vectors, text, depth |
-| Orthographic 3D | `matplotlib-gallery-03-orthographic-3d.png` | `datoviz-gallery-03-orthographic-3d.png` | triangle strip, pixel anchors, occlusion |
-| Camera fit | `matplotlib-gallery-04-00-fit.png` | `datoviz-gallery-04-00-fit.png` | same semantic framing |
-| Camera orbit | `matplotlib-gallery-04-01-orbit.png` | `datoviz-gallery-04-01-orbit.png` | coherent rotation |
-| Camera pan | `matplotlib-gallery-04-02-pan.png` | `datoviz-gallery-04-02-pan.png` | coherent translation |
-| Camera zoom | `matplotlib-gallery-04-03-zoom.png` | `datoviz-gallery-04-03-zoom.png` | coherent scale change |
+| Priority 2D | section 3 | section 10 | all families, placement, relative sizes |
+| Scalar image/colorbar | section 4 | unavailable through current public VisPy2 DATA-image path | decide whether the documented coverage gap blocks the experiment |
+| Perspective 3D | section 5 | section 11 | mesh shape, lighting, depth, framing |
+| Orthographic 3D | section 6 | rerun section 11 after replacing `set_perspective(...)` with `set_orthographic(near=0.0, far=100.0)` and replacing the imported/required perspective capability with `VIEW3D_STATIC_ORTHOGRAPHIC_CAPABILITY` | projection, framing, occlusion |
+| Camera fit/orbit/pan/zoom/reset | section 6 sequential windows | section 14 interactive window | coherent camera meaning and scale |
 
 Known intentional differences:
 
@@ -1002,10 +1032,10 @@ Known intentional differences:
 - Matplotlib 3D vectors, pixels, primitives, and billboards include documented projection/painter
   adaptations.
 - fonts, glyph metrics, antialiasing, vector heads, and raster details are backend-specific.
-- gallery 3 deliberately uses a uniform primitive color and avoids claiming interpolation parity.
+- uniform primitive colors avoid claiming interpolation parity.
 - titles and axes must not change the shared data viewport or make Datoviz geometry larger.
 
-Static gallery acceptance:
+Live-window acceptance:
 
 - [ ] Both canvases are 800×600.
 - [ ] All data anchors and directions agree.
@@ -1013,12 +1043,14 @@ Static gallery acceptance:
 - [ ] Camera states are distinct, coherent, and unclipped.
 - [ ] Missing Datoviz title is diagnosed rather than silently claimed.
 - [ ] Sphere and font differences match the documented adaptations.
-- [ ] No stale output was mistaken for a fresh capture.
+- [ ] Every judgment above came from a live window, not a PNG.
 
 ## 13. Optional exact-wheel qualification
 
-The source review above is best for iteration. Before a release decision, repeat the gallery from
-fresh wheels so imports cannot leak from either checkout.
+This is an automated integrity check, not a visual-review step. It generates PNGs internally
+because the validator measures geometry and provenance, but you do not need to open or inspect
+them. Skip this section during the human visual review if Mission Control already ran it at the
+recorded commit.
 
 From Terminal B:
 
@@ -1051,7 +1083,7 @@ Expected:
 
 - [ ] Exact-wheel qualification completed.
 - [ ] Manifest commits match section 1.
-- [ ] All fourteen captures were freshly produced.
+- [ ] The validator reported fourteen fresh captures; no manual PNG inspection was used.
 - [ ] Any retry, timeout, or lifecycle diagnostic recorded: __________________
 
 ## 14. Review live Datoviz camera behavior
@@ -1176,7 +1208,7 @@ Public API:
 
 Matplotlib:
 
-- [ ] Deterministic output is suitable as the reference/publication path.
+- [ ] The live Matplotlib reference is legible and behaves predictably.
 - [ ] Guides, titles, scalar images, and colorbars are credible.
 - [ ] 3D adaptations are acceptable and documented.
 - [ ] No silent semantic loss was observed.

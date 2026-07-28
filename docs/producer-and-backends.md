@@ -131,7 +131,8 @@ adaptation. This is a backend realization difference, not a new sphere material 
 
 The installed-wheel example `examples/spheres_3d.py` builds perspective and orthographic scenes.
 Its historical M278 evidence is Matplotlib-only. M283 gallery 2 subsequently qualified a Datoviz
-sphere capture in the exact installed-wheel runtime; M284 still owns repeated lifecycle stress.
+sphere capture in the exact installed-wheel runtime. Later M284 evidence completed repeated static
+and live lifecycle stress for that recorded runtime.
 
 ## Vector visuals
 
@@ -194,17 +195,22 @@ above lower values, without claiming depth occlusion.
 Matplotlib projects each DATA anchor into an axes-fraction overlay and maps generic roles through
 its configured font-family aliases. Datoviz public lowering uses retained UTF-8 text, style, and
 placement objects; because its public style takes a concrete font pointer rather than a generic
-role, the adapter leaves that pointer unset and uses the backend default font. M281 coverage was
-limited to lowering and a no-capture smoke path. M283 gallery 2 subsequently qualified one
-integrated Datoviz billboard capture; glyph parity and lifecycle stress remain outside that claim.
+role, the adapter leaves that pointer unset and uses the backend default font. Historical M281
+coverage was limited to lowering and a no-capture smoke path. M283 gallery 2 subsequently
+qualified one integrated Datoviz billboard capture, and M284 completed repeated lifecycle stress
+for its recorded runtime. Glyph parity remains outside those claims.
 
 Exact fonts, glyph coverage, metrics, shaping, and rasterization vary by backend. Font files,
 glyph IDs or atlases, rich text, per-glyph query, raster parity, and strict depth occlusion are not
 part of this API. The historical Matplotlib-only `examples/text_billboards_3d.py` uses independent
 sans, serif, and monospace labels. M283 gallery 2 is the cross-backend billboard journey.
 
-# Pixel visuals
+## Pixel visuals
 
 `Axes.pixels(x, y, color=..., size=...)` creates 2D DATA-space screen-aligned squares. `Axes3D.pixels(x, y, z, ...)` creates screen-facing squares anchored at projected 3D DATA positions, and `vispy2.pixels(...)` is the module-level 2D convenience. `size` is a strictly positive logical-pixel width, scalar or per item.
 
-Matplotlib preserves deterministic square shape and logical width in 2D; its 3D path is an explicit projected-square overlay adaptation without strict GPU depth occlusion. The Datoviz adapter uses the public v0.4 `dvz_pixel` visual and its `pixel_size_px` attribute, with exact lowering covered by binding tests and M283 galleries 1 and 3 providing installed-wheel captures. Repeated native lifecycle stress remains assigned to M284.
+Matplotlib preserves deterministic square shape and logical width in 2D; its 3D path is an
+explicit projected-square overlay adaptation without strict GPU depth occlusion. The Datoviz
+adapter uses the public v0.4 `dvz_pixel` visual and its `pixel_size_px` attribute, with exact
+lowering covered by binding tests and M283 galleries 1 and 3 providing installed-wheel captures.
+M284 subsequently completed repeated native lifecycle stress for its recorded runtime.

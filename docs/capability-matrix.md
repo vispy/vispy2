@@ -7,8 +7,10 @@ the schema-2 manifest records source, script, wheel, and artifact hashes.
 
 Status vocabulary: **strict** preserves the named GSP semantic contract; **adapted** preserves
 bounded semantics with documented raster/layout/depth differences; **experimental** is opt-in and
-still requires human review; **unsupported** returns a capability error or structured query
-result. “Probe” means gallery 6 checks installed provider metadata and diagnostics.
+remains outside the default execution path; **unsupported** returns a capability error or
+structured query result. “Probe” means gallery 6 checks installed provider metadata and
+diagnostics. The recorded experimental live-navigation path has completed owner review, but that
+acceptance does not make it a default or universal backend claim.
 
 | Journey / visual | Protocol contract | VisPy2 API | Matplotlib | Datoviz v0.4 | Status | Test | Artifact | Diagnostic / boundary |
 |---|---|---|---|---|---|---|---|---|

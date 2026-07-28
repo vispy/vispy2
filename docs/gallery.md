@@ -1,7 +1,7 @@
 # Installed-wheel gallery
 
-For M292 owner acceptance, use the [human-review index](M284-human-review.md), which links all
-fourteen exact-head captures and provides the live navigation checklist.
+The [accepted M292 human-review record](M284-human-review.md) links all fourteen qualified
+captures and records the completed live-navigation review.
 
 The seven M283 journeys are deliberately small and backend-neutral. Galleries 1--4 create seven
 PNG states for each backend; gallery 5 is manual and interactive; galleries 6--7 validate

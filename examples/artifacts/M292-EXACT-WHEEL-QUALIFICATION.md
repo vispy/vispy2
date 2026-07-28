@@ -40,5 +40,7 @@ primitive color, consistent red-square/triangle depth ordering, and the document
 policy. Datoviz's natively shaded raycast spheres versus Matplotlib's flat projected circles remain
 an intentional adapted rendering difference, not a material-parity claim.
 
-An independent evidence review returned unconditional **ACCEPT**. M284 and S065 remain open only
-for the owner's visual and interactive acceptance.
+An independent evidence review returned unconditional **ACCEPT**. At the time of this exact-wheel
+run, M284 and S065 remained open only for the owner's visual and interactive acceptance. The owner
+subsequently accepted S065 on 2026-07-28; that later decision is recorded in
+[`../../docs/M284-human-review.md`](../../docs/M284-human-review.md).

@@ -86,3 +86,8 @@ The original stop was correct for the evidence available to that worker, but the
 unsandboxed evidence classifies the hang as a sandbox/macOS service-access limitation. No GSP,
 VisPy2, Datoviz, or capability-status change is justified. Automated M284 qualification is
 complete; S065 remains open for project-owner visual and interactive acceptance.
+
+Subsequent disposition: the owner completed that visual and interactive review and accepted S065
+on 2026-07-28. See
+[`../../docs/M284-human-review.md`](../../docs/M284-human-review.md). This note otherwise remains
+an immutable description of the earlier exact-runtime evidence.

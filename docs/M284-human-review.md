@@ -139,6 +139,6 @@ Owner decision:
 - [ ] Request bounded corrections before accepting S065.
 
 Accepted by the owner on 2026-07-28. The live camera controls and cleanup work as intended. The
-uniform unlit Gallery 5 mesh is accepted as functionally correct but visually unattractive; a
-non-blocking follow-up should switch the presentation example to the already specified
-cross-backend flat-Lambert path rather than expanding the material model.
+uniform unlit Gallery 5 mesh was accepted as functionally correct but visually unattractive.
+The requested presentation follow-up subsequently landed: Gallery 5 now uses the bounded
+cross-backend flat-Lambert path without expanding the material model.

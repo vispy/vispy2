@@ -47,8 +47,8 @@ Use an explicit caller-owned session for Datoviz, non-blocking execution, or int
 control. See [Producer and backend boundary](docs/producer-and-backends.md).
 
 For an end-to-end introduction, see the [user guide](docs/user-guide.md), the
-[installed-wheel gallery](docs/gallery.md), and the exact
-[capability matrix](docs/capability-matrix.md).
+[public API reference](docs/api-reference.md), the [installed-wheel gallery](docs/gallery.md),
+and the exact [capability matrix](docs/capability-matrix.md).
 
 The optional extras name the intended published package combinations. While these repositories are
 still local and unpublished, install the corresponding built `gsp-core`, adapter, and `vispy2`

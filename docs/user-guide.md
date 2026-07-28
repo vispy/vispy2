@@ -1,8 +1,8 @@
 # VisPy2 user guide
 
 VisPy2 is the high-level plotting producer for GSP. It owns semantic figure, axes, visual, guide,
-and camera state. GSP sessions own backend selection, native resources, display loops, output,
-and queries.
+camera, and lighting state. GSP sessions own backend selection, native resources, display loops,
+output, and queries.
 
 ## Onboarding
 
@@ -18,29 +18,120 @@ print(vp.__version__)
 print([(item.name, item.available) for item in gsp.discover_backends(probe=True)])
 ```
 
-## 2D plotting
-
-Create one figure and one axes, add semantic visuals, then use Matplotlib's one-shot file
-convenience or an explicit session:
+`vp.subplots()` creates exactly one semantic axes. VisPy2 does not select a backend while you
+construct the figure:
 
 ```python
 import vispy2 as vp
 
 figure, axes = vp.subplots()
-axes.scatter([0.0, 1.0], [1.0, 0.0], size=[12.0, 20.0])
-axes.vectors([0.0], [0.0], [0.6], [0.4])
-axes.text([0.5], [0.8], ["two-dimensional"])
-axes.set_xlim(-0.2, 1.2)
-axes.set_ylim(-0.2, 1.2)
+axes.scatter([0.0, 1.0], [1.0, 0.0])
+scene = figure.to_scene()
+```
+
+The resulting `gsp.Scene` is an immutable snapshot. Changing the axes later changes the next
+snapshot, not the earlier one.
+
+## 2D plotting
+
+All ordinary 2D positions are in DATA coordinates. RGBA colors use integer channels from 0 to 255;
+sizes, widths, and font sizes use logical canvas pixels.
+
+```python
+import vispy2 as vp
+
+figure, axes = vp.subplots()
+axes.plot([0.0, 0.5, 1.0], [0.2, 0.9, 0.4], width=2.0)
+axes.scatter([0.0, 1.0], [0.2, 0.4], size=[12.0, 20.0])
+axes.markers([0.5], [0.9], shape="diamond", size=18.0)
+axes.vectors([0.2], [0.3], [0.4], [0.25])
+axes.text([0.5], [0.75], ["two-dimensional"], anchor_x="center")
+axes.set_xlim(-0.1, 1.1)
+axes.set_ylim(0.0, 1.0)
+axes.set_xlabel("distance")
+axes.set_ylabel("response")
+axes.set_title("Semantic 2D scene")
+axes.grid(axis="both")
 figure.savefig("plot.png")
 ```
 
-The priority 2D methods are `scatter`, `markers`, `pixels`, `vectors`, `primitives`, and `text`.
-Positions are DATA-space unless documented otherwise. Sizes and widths are logical canvas pixels.
-Colors are RGBA8. The bounded primitive escape hatch accepts point-list, line-list, line-strip,
-triangle-list, and triangle-strip topologies; it does not expose shaders or pipelines.
+The visual families are:
 
-## 3D plotting and camera
+| Method | Meaning |
+|---|---|
+| `scatter` | screen-sized points with uniform, per-item, or scalar-mapped color |
+| `markers` | shaped and optionally stroked screen-sized markers |
+| `pixels` | screen-aligned square pixels |
+| `segments` | independent DATA-space line segments |
+| `path`, `plot` | one or more open DATA-space polylines |
+| `vectors`, `quiver` | straight displacement vectors with bounded cap styles |
+| `primitives` | point-, line-, or triangle-list/strip geometry |
+| `text` | explicit DATA-anchored labels |
+| `mesh` | indexed triangle mesh, including the bounded texture path |
+| `imshow` | scalar or RGBA image with a DATA-space extent |
+
+`quiver` is a thin alias for `vectors`; it does not emulate Matplotlib's keyword surface.
+`primitives` is intentionally bounded and exposes no shader, pipeline, material, native handle,
+depth, culling, or instancing API. Two-dimensional visuals accept an optional affine transform;
+use `vp.affine2d(matrix)` or pass a compatible matrix directly.
+
+## Scalar color and images
+
+Create one semantic color scale and share it between visuals and a colorbar:
+
+```python
+import numpy as np
+import vispy2 as vp
+
+figure, axes = vp.subplots()
+values = np.array([[-1.0, -0.4, 0.2], [0.1, 0.7, 1.0]], dtype=np.float32)
+scale = axes.color_scale(
+    cmap="viridis",
+    clim=(-1.0, 1.0),
+    id="scale:temperature",
+    description="temperature",
+)
+image = axes.imshow(
+    values,
+    extent=(0.0, 3.0, 0.0, 2.0),
+    origin="lower",
+    interpolation="nearest",
+    color_scale=scale,
+)
+axes.colorbar(
+    scale,
+    label="temperature",
+    linked_visual_ids=[image.id],
+)
+```
+
+Scalar `scatter` and `markers` colors can use the same `ColorScale`. A scale ID must identify one
+consistent scale within the figure. Scalar mapping requires `clim`; RGBA input bypasses scalar
+mapping.
+
+The current Matplotlib provider is the qualified publication path for DATA-space images and
+colorbars. The qualified Datoviz v0.4 image binding accepts only NDC image extents, so VisPy2 does
+not silently lower its public DATA-space `imshow` contract through that path.
+
+## Guides and view state
+
+Use `set_xlim`, `set_ylim`, or `set_view2d` for semantic ranges. Labels, explicit ticks, grids, and
+titles are guide state rather than extra data visuals:
+
+```python
+figure, axes = vp.subplots()
+axes.plot([0.0, 1.0], [0.0, 1.0])
+axes.set_view2d(xlim=(0.0, 1.0), ylim=(0.0, 1.0), clip=True)
+axes.set_xticks([0.0, 0.5, 1.0], ["low", "middle", "high"])
+axes.set_yticks([0.0, 1.0])
+axes.grid(True, axis="y")
+axes.set_title("Guides remain semantic")
+```
+
+Providers may differ in fonts, metrics, antialiasing, and guide layout. Unsupported guide paths
+must be diagnosed rather than silently advertised.
+
+## 3D plotting, camera, and lighting
 
 Request `projection="3d"` and add DATA-space visuals:
 
@@ -53,20 +144,68 @@ axes.mesh(
     [[0, 1, 2]],
     color=[70, 130, 220, 255],
 )
-axes.spheres([0.0], [0.0], [0.8], radius=0.25)
+axes.spheres([0.0], [0.0], [0.8], radius=0.25, color=[230, 57, 70, 255])
+axes.vectors([0.0], [0.0], [0.0], [0.4], [0.2], [0.6])
+axes.text([0.0], [0.0], [1.1], ["DATA-space anchor"])
 axes.fit_camera(margin=1.2)
 figure.savefig("scene.png")
 ```
 
-`set_camera`, `set_perspective`, `set_orthographic`, `fit_camera`, `orbit`, `pan`, `zoom`, and
-`reset_camera` update canonical semantic View3D state. They do not retain backend objects.
-Programmatic camera captures work with both qualified backends. If actions follow a tight fit,
-set a safe near/far interval after fitting, as gallery 4 demonstrates.
+Supported 3D families are mesh, sphere, vector, primitive, pixel, and screen-facing billboard
+text. Matplotlib projects several families into deterministic 2D artists. Datoviz uses retained
+DATA-space paths where its probed capabilities prove them.
 
-Supported priority 3D visuals are mesh, sphere, vector, primitive, pixel, and billboard text.
-Matplotlib projects several families into deterministic 2D artists. Datoviz uses retained
-DATA-space paths where its probed capabilities prove them. Check both the ordinary visual
-capability and every required versioned View3D capability before rendering.
+`set_camera`, `set_perspective`, `set_orthographic`, `fit_camera`, `orbit`, `pan`, `zoom`, and
+`reset_camera` update canonical semantic `View3D` state. They retain no backend objects.
+Programmatic camera states work with both qualified backends. `fit_camera` includes sphere radii,
+vector endpoints, and other finite DATA-space bounds.
+
+Flat-Lambert lighting is an explicit, narrow semantic path:
+
+```python
+figure, axes = vp.subplots(projection="3d")
+axes.mesh(
+    [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.8]],
+    [[0, 1, 2]],
+    color=[70, 130, 220, 255],
+    shading="flat_lambert",
+    normal_mode="face",
+    normal_generation="face_flat",
+)
+axes.set_lighting(
+    ambient_light_intensity=0.2,
+    direction_to_light=(-1.0, -1.0, -1.0),
+    directional_light_intensity=0.8,
+)
+axes.fit_camera()
+```
+
+This contract has one scalar ambient term and one optional white directional light. Check every
+required versioned mesh, normal, lighting, and View3D capability before using a strict backend
+path. Textures and explicit lighting are mutually exclusive in the current mesh contract.
+
+## Output and session ownership
+
+`Figure.savefig()` and blocking `Figure.show()` are Matplotlib one-shot conveniences. They create
+and close a session internally:
+
+```python
+figure, axes = vp.subplots()
+axes.scatter([0.0], [0.0])
+figure.savefig("point.png")
+```
+
+Use an explicit caller-owned session for Datoviz, backend selection, non-blocking display, layout
+queries, or interactive lifecycle control:
+
+```python
+with vp.open_session("datoviz", require={"visual.points"}) as session:
+    figure.display(session, block=False)
+    session.run()
+```
+
+The context manager owns cleanup. `Figure`, `Axes`, and `Scene` never retain the session or native
+renderer. Calling `figure.show(block=False)` without an explicit session is an error.
 
 ## Queries
 
@@ -92,11 +231,13 @@ print(result.status, result.hits)
 
 `Figure.query` neither creates nor closes a session. Redisplay after changing figure state.
 Point identity is the qualified public path. Unsupported families return structured
-`UNSUPPORTED`; comprehensive 3D picking, occlusion picking, and per-glyph query are future work.
+`UNSUPPORTED`; lifecycle errors remain exceptions. Comprehensive 3D picking, occlusion picking,
+sphere/vector item picking, and per-glyph query are outside the current release scope.
 
 ## Capabilities and limitations
 
-Use ordinary requirements when opening a session and versioned checks for View3D semantics:
+Ordinary capabilities describe provider surfaces such as `visual.mesh` and `output.file`.
+Versioned capabilities prove stricter semantic paths:
 
 ```python
 with vp.open_session("datoviz", require={"output.file", "visual.mesh"}) as session:
@@ -106,11 +247,19 @@ with vp.open_session("datoviz", require={"output.file", "visual.mesh"}) as sessi
 ```
 
 The block is executable when `vp`, the provider, and the Datoviz runtime are available.
-Matplotlib is the deterministic reference/publication path, but its projected spheres, vectors,
-primitives, pixels, and billboards are documented adaptations. Datoviz is the flagship GPU path,
-but capability availability depends on the installed v0.4 binding. Native titles, guides, fonts,
-text metrics, antialiasing, and raster sizes differ. Live Datoviz View3D navigation is
-experimental and requires opt-in plus human review.
+Matplotlib is the deterministic reference/publication path, with documented 3D projection,
+depth, sphere, font, and raster adaptations. Datoviz is the flagship GPU path, but capabilities
+depend on the installed binding.
 
-See the [gallery](gallery.md), [capability matrix](capability-matrix.md), and
-[producer/backend boundary](producer-and-backends.md) for exact evidence.
+Current product boundaries:
+
+- `Figure.to_scene()` requires exactly one 2D or 3D axes;
+- VisPy2 produces semantic snapshots and imports no concrete adapter;
+- DATA-space `imshow` is not currently available through the qualified Datoviz image path;
+- live Datoviz View3D navigation is experimental, opt-in, and caller-owned;
+- fonts, text metrics, antialiasing, raster sizes, and some guide behavior vary by backend;
+- unsupported behavior must fail through capabilities, diagnostics, or structured query results.
+
+See the [API reference](api-reference.md), [gallery](gallery.md),
+[capability matrix](capability-matrix.md), and
+[producer/backend boundary](producer-and-backends.md) for exact contracts and evidence.

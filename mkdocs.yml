@@ -1,0 +1,58 @@
+site_name: VisPy2
+site_description: High-level scientific plotting for GSP
+repo_name: vispy/vispy2
+repo_url: https://github.com/vispy/vispy2
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  font: false
+  features:
+    - navigation.footer
+    - navigation.top
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+
+plugins:
+  - search
+
+validation:
+  links:
+    not_found: info
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - User guide: user-guide.md
+  - Public API: api-reference.md
+  - Producer and backends: producer-and-backends.md
+  - Gallery: gallery.md
+  - Capability matrix: capability-matrix.md
+  - Manual pre-release review: manual-pre-release-review.md
+  - Accepted human-review record: M284-human-review.md

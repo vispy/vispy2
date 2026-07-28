@@ -50,6 +50,10 @@ For an end-to-end introduction, see the [user guide](docs/user-guide.md), the
 [public API reference](docs/api-reference.md), the [installed-wheel gallery](docs/gallery.md),
 and the exact [capability matrix](docs/capability-matrix.md).
 
+Local wheel commands are in [Installation](docs/installation.md). Contributors should read
+[Developing VisPy2](DEVELOPMENT.md), and user-visible changes are recorded in the
+[changelog](CHANGELOG.md).
+
 The optional extras name the intended published package combinations. While these repositories are
 still local and unpublished, install the corresponding built `gsp-core`, adapter, and `vispy2`
 wheels together. Datoviz development additionally requires an explicit `GSP_DATOVIZ_SOURCE` until

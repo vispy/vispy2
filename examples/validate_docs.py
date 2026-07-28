@@ -12,7 +12,11 @@ LINK = re.compile(r"(?<!!)\[[^]]+\]\((?P<target>[^)]+)\)")
 
 
 def _documents(root: Path) -> tuple[Path, ...]:
-    documents = {*root.rglob("README.md"), *(root / "docs").rglob("*.md")}
+    documents = {
+        *root.glob("*.md"),
+        *root.rglob("README.md"),
+        *(root / "docs").rglob("*.md"),
+    }
     return tuple(sorted(documents))
 
 

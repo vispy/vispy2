@@ -63,6 +63,36 @@ FLAT_LAMBERT_CAPABILITIES = {
 }
 
 
+def run_datoviz_until_close(renderer: object) -> None:
+    """Pump bounded frames so GSP can unsubscribe before Datoviz reaps the view.
+
+    ``dvz_app_run(app, 0)`` performs per-view close cleanup before returning.
+    That invalidates the input router while the GSP adapter still owns a
+    callback subscription. Polling one frame at a time lets Python observe the
+    close request first; the session context can then unsubscribe and destroy
+    the app in the correct order.
+    """
+    show = getattr(renderer, "show", None)
+    dvz = getattr(renderer, "dvz", None)
+    should_exit = getattr(dvz, "dvz_app_should_exit", None)
+    if not callable(show) or not callable(should_exit):
+        raise RuntimeError(
+            "safe Datoviz live review requires bounded frame pumping and "
+            "dvz_app_should_exit()"
+        )
+    if os.environ.get("GSP_TEST") == "True":
+        show(frame_count=1)
+        return
+    app = getattr(renderer, "app", None)
+    if app is None:
+        show(frame_count=1)
+        app = getattr(renderer, "app", None)
+    if app is None:
+        raise RuntimeError("Datoviz did not create an app for live review")
+    while not should_exit(app):
+        show(frame_count=1)
+
+
 def _camera_figure(case: str) -> vp.Figure:
     figure, axes = make_camera_figure()
     if case in {"camera-orbit", "camera-pan", "camera-zoom", "camera-reset"}:
@@ -106,11 +136,14 @@ def _show_child(case: str, backend: str) -> None:
         if scene.view3d is not None:
             _validate_view3d_capabilities(figure, backend, session.capabilities)
         if layout is None:
-            figure.display(session, block=False)
+            renderer = figure.display(session, block=False)
         else:
-            figure.display(session, block=False, layout_snapshot=layout)
+            renderer = figure.display(session, block=False, layout_snapshot=layout)
         print(f"{backend}: window open for {case}; close it when finished.", flush=True)
-        session.run()
+        if backend == "datoviz":
+            run_datoviz_until_close(renderer)
+        else:
+            session.run()
     print(f"{backend}: window closed cleanly.", flush=True)
 
 

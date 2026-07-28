@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import sys
 from types import ModuleType
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -55,3 +56,18 @@ def test_manual_live_comparison_rejects_unknown_case() -> None:
 
     with pytest.raises(ValueError, match="unknown comparison case"):
         module.make_figure("unknown")
+
+
+def test_bounded_datoviz_loop_stops_before_native_reap(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _load_example()
+    monkeypatch.delenv("GSP_TEST", raising=False)
+    renderer = Mock()
+    renderer.app = object()
+    renderer.dvz.dvz_app_should_exit.side_effect = (False, False, True)
+
+    module.run_datoviz_until_close(renderer)
+
+    assert renderer.show.call_args_list == [
+        call(frame_count=1),
+        call(frame_count=1),
+    ]

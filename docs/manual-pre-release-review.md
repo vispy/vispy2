@@ -53,8 +53,8 @@ Run this setup in both terminals:
 ```console
 cd /path/to/vispy2
 export VISPY2_REVIEW_OUTPUT="$(mktemp -d "${TMPDIR:-/tmp}/vispy2-review.XXXXXX")"
-export VISPY2_REVIEW_PYTHON="../gsp/.venv/bin/python"
-export GSP_DATOVIZ_SOURCE="../datoviz"
+export VISPY2_REVIEW_PYTHON="$(cd ../gsp && pwd)/.venv/bin/python"
+export GSP_DATOVIZ_SOURCE="$(cd ../datoviz && pwd)"
 export PYTHONPATH="src:../gsp/packages/gsp-core/src:../gsp/packages/gsp-matplotlib/src:../gsp/packages/gsp-datoviz/src:../datoviz"
 echo "review output: $VISPY2_REVIEW_OUTPUT"
 ```

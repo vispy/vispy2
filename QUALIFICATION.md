@@ -1,4 +1,36 @@
-# Local bootstrap qualification
+# Qualification history
+
+Qualification records are immutable snapshots. The newest source/documentation gate appears first;
+the original producer-only bootstrap remains below with its exact artifact hashes.
+
+## Current committed-head source and documentation gate
+
+Date: 2026-07-28
+
+The committed VisPy2 head `0f6c78e3032ab6fbe47389a3faae308e5d8c0845` was exported to a
+temporary directory rather than tested from the working tree. The sibling committed GSP head was
+`fd20c94264bf8893eed6c27e35966ff0397f14cb`. CPython 3.13.4 imported VisPy2 from the exported
+`src` directory, excluding concurrent uncommitted working-tree changes.
+
+| Gate | Result |
+|---|---|
+| VisPy2 pytest | 116 passed |
+| strict mypy | 3 source files, no issues |
+| Ruff | source, tests, and examples passed |
+| documentation validation | 32 Python blocks compiled; 59 local links resolved across both exported repositories |
+| wheel build | `vispy2-0.2.0a1-py3-none-any.whl` built successfully with `uv build --wheel` |
+| wheel SHA-256 | `c0c473b18c0fc34e6b9a83d7192d819b43e958761319e761f0ba641d7292fc8f` |
+
+This is a committed-head source, documentation, and build gate. It does not supersede M292's
+four-wheel import isolation, cross-backend artifacts, native lifecycle evidence, or owner review;
+those exact historical claims remain in
+[`examples/artifacts/M292-EXACT-WHEEL-QUALIFICATION.md`](examples/artifacts/M292-EXACT-WHEEL-QUALIFICATION.md).
+
+The default shell `python` is an unrelated Python 3.12 environment and is not a valid VisPy2
+qualification interpreter. The apparent ndarray typing failure observed there was not reproducible
+under the required Python 3.13 environment.
+
+## Original local bootstrap
 
 Date: 2026-07-22
 

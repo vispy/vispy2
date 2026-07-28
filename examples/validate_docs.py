@@ -9,6 +9,7 @@ import re
 
 FENCE = re.compile(r"```(?P<language>[^\n]*)\n(?P<body>.*?)```", re.DOTALL)
 LINK = re.compile(r"(?<!!)\[[^]]+\]\((?P<target>[^)]+)\)")
+EXCLUDED_PARTS = frozenset({"build", "dist", "node_modules", "site", "site-packages"})
 
 
 def _documents(root: Path) -> tuple[Path, ...]:
@@ -17,7 +18,16 @@ def _documents(root: Path) -> tuple[Path, ...]:
         *root.rglob("README.md"),
         *(root / "docs").rglob("*.md"),
     }
-    return tuple(sorted(documents))
+    return tuple(
+        sorted(
+            document
+            for document in documents
+            if not any(
+                part.startswith(".") or part in EXCLUDED_PARTS
+                for part in document.relative_to(root).parts
+            )
+        )
+    )
 
 
 def validate(root: Path) -> tuple[int, int]:

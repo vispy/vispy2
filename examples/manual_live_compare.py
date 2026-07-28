@@ -9,6 +9,7 @@ silently change the shared data viewport.
 from __future__ import annotations
 
 import argparse
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -61,6 +62,80 @@ FLAT_LAMBERT_CAPABILITIES = {
     VIEW3D_LIGHT_AMBIENT_CAPABILITY,
     VIEW3D_LIGHT_DIRECTIONAL_CAPABILITY,
 }
+DEVICE_SCALE_ENV = "VISPY2_LIVE_REVIEW_DEVICE_SCALE"
+LIVE_WINDOW_WIDTH = 800
+LIVE_WINDOW_HEIGHT = 600
+
+
+def detect_matplotlib_device_scale() -> float:
+    """Return the active Matplotlib GUI canvas device-pixel ratio."""
+    import matplotlib.pyplot as plt
+
+    probe = plt.figure(figsize=(1.0, 1.0))
+    try:
+        probe.canvas.draw()
+        scale = float(getattr(probe.canvas, "device_pixel_ratio", 1.0))
+    finally:
+        plt.close(probe)
+    if not math.isfinite(scale) or scale <= 0.0:
+        raise RuntimeError("Matplotlib reported an invalid device-pixel ratio")
+    return scale
+
+
+def configure_live_canvas(figure: vp.Figure, device_scale: float) -> None:
+    """Request the same 800×600 host-logical content size in both backends."""
+    if not math.isfinite(device_scale) or device_scale <= 0.0:
+        raise ValueError("live review device scale must be positive and finite")
+    figure.canvas_size = CanvasSize.host_logical_px(
+        LIVE_WINDOW_WIDTH, LIVE_WINDOW_HEIGHT
+    ).with_requested_device_scale(device_scale)
+
+
+def _review_device_scale() -> float:
+    raw = os.environ.get(DEVICE_SCALE_ENV)
+    if raw is None:
+        return detect_matplotlib_device_scale()
+    try:
+        scale = float(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{DEVICE_SCALE_ENV} must be a positive number") from exc
+    if not math.isfinite(scale) or scale <= 0.0:
+        raise RuntimeError(f"{DEVICE_SCALE_ENV} must be a positive number")
+    return scale
+
+
+def normalize_matplotlib_window(renderer: object) -> None:
+    """Correct GUI chrome so the native Matplotlib canvas is exactly 800×600."""
+    figure = getattr(renderer, "figure", None)
+    canvas = getattr(figure, "canvas", None)
+    manager = getattr(canvas, "manager", None)
+    resize = getattr(manager, "resize", None)
+    get_width_height = getattr(canvas, "get_width_height", None)
+    if not callable(resize) or not callable(get_width_height):
+        raise RuntimeError("Matplotlib live review requires a resizable GUI manager")
+    scale = float(getattr(canvas, "device_pixel_ratio", 1.0))
+    for _ in range(2):
+        width, height = get_width_height()
+        width_error = float(width) - LIVE_WINDOW_WIDTH
+        height_error = float(height) - LIVE_WINDOW_HEIGHT
+        if abs(width_error) <= 1.0 and abs(height_error) <= 1.0:
+            return
+        resize(
+            round(LIVE_WINDOW_WIDTH * scale - width_error * scale),
+            round(LIVE_WINDOW_HEIGHT * scale - height_error * scale),
+        )
+        flush_events = getattr(canvas, "flush_events", None)
+        if callable(flush_events):
+            flush_events()
+        draw = getattr(canvas, "draw", None)
+        if callable(draw):
+            draw()
+    width, height = get_width_height()
+    raise RuntimeError(
+        "Matplotlib GUI manager did not honor the shared live canvas size: "
+        f"reported {width}×{height}, expected "
+        f"{LIVE_WINDOW_WIDTH}×{LIVE_WINDOW_HEIGHT}"
+    )
 
 
 def run_datoviz_until_close(renderer: object) -> None:
@@ -127,6 +202,11 @@ def make_figure(case: str) -> vp.Figure:
 
 def _show_child(case: str, backend: str) -> None:
     figure = make_figure(case)
+    configure_live_canvas(figure, _review_device_scale())
+    if backend == "matplotlib":
+        import matplotlib
+
+        matplotlib.rcParams["toolbar"] = "None"
     scene = figure.to_scene()
     layout = resolve_shared_layout(figure) if scene.view3d is not None else None
     required = _required_capabilities(figure) - {"output.file"}
@@ -139,6 +219,8 @@ def _show_child(case: str, backend: str) -> None:
             renderer = figure.display(session, block=False)
         else:
             renderer = figure.display(session, block=False, layout_snapshot=layout)
+        if backend == "matplotlib":
+            normalize_matplotlib_window(renderer)
         print(f"{backend}: window open for {case}; close it when finished.", flush=True)
         if backend == "datoviz":
             run_datoviz_until_close(renderer)
@@ -161,9 +243,10 @@ def _terminate_children(children: list[subprocess.Popen[bytes]]) -> None:
             child.wait()
 
 
-def _launch_pair(case: str) -> None:
+def _launch_pair(case: str, *, device_scale: float) -> None:
     script = Path(__file__).resolve()
     env = dict(os.environ)
+    env[DEVICE_SCALE_ENV] = str(device_scale)
     commands = [
         [sys.executable, str(script), case, "--backend", backend]
         for backend in BACKENDS
@@ -195,9 +278,15 @@ def main() -> None:
     parser.add_argument("--backend", choices=BACKENDS, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.backend is None:
+        device_scale = detect_matplotlib_device_scale()
+        print(
+            f"Using {LIVE_WINDOW_WIDTH}×{LIVE_WINDOW_HEIGHT} host-logical pixels "
+            f"at device scale {device_scale:g} for both backends.",
+            flush=True,
+        )
         cases = CASES if args.case == "all" else (args.case,)
         for case in cases:
-            _launch_pair(case)
+            _launch_pair(case, device_scale=device_scale)
     else:
         if args.case == "all":
             parser.error("'all' is available only from the parent comparison command")

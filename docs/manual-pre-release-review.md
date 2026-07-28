@@ -106,9 +106,11 @@ Lambert, then camera fit/orbit/pan/zoom/reset. For each case it:
 
 1. starts one isolated child process per backend;
 2. opens both live windows at the same time;
-3. applies the same resolved plot viewport to both 3D windows;
-4. waits while you move the windows side by side and inspect them;
-5. continues only after you close both windows.
+3. detects the active GUI device scale and requests the same 800×600 host-logical content size
+   from both backends, with the Matplotlib toolbar hidden;
+4. applies the same resolved plot viewport to both 3D windows;
+5. waits while you move the windows side by side and inspect them;
+6. continues only after you close both windows.
 
 To repeat only one case:
 

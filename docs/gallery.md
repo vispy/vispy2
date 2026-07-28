@@ -33,8 +33,10 @@ python examples/manual_live_compare.py all
 Use a case name instead of `all` to repeat only one pair, for example
 `priority-2d`, `perspective-3d`, `orthographic-3d`, `flat-lambert`, `camera-fit`,
 `camera-orbit`, `camera-pan`, `camera-zoom`, or `camera-reset`. Each backend runs in its own child
-process, while the 3D pair consumes the same resolved plot viewport. Close both windows to advance
-to the next case; terminal `Ctrl-C` terminates both children.
+process. The runner detects the active GUI device scale and gives both backends the same 800×600
+host-logical content area; it hides the Matplotlib toolbar so backend chrome does not distort the
+size comparison. The 3D pair also consumes the same resolved plot viewport. Close both windows to
+advance to the next case; terminal `Ctrl-C` terminates both children.
 
 The [manual pre-release review workbook](manual-pre-release-review.md) is the linear human-review
 path. Generated PNGs belong to automated qualification and are not required for human visual

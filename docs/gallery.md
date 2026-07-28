@@ -21,6 +21,25 @@ Replace `BACKEND` with `matplotlib` or `datoviz`. Run from `examples/` for explo
 acceptance, first verify both candidate heads are clean, then build all four wheels from those
 heads. From the VisPy2 repository:
 
+## Live side-by-side comparison
+
+From one terminal in the VisPy2 repository, launch matching Matplotlib and Datoviz windows
+concurrently:
+
+```console
+python examples/manual_live_compare.py all
+```
+
+Use a case name instead of `all` to repeat only one pair, for example
+`priority-2d`, `perspective-3d`, `orthographic-3d`, `flat-lambert`, `camera-fit`,
+`camera-orbit`, `camera-pan`, `camera-zoom`, or `camera-reset`. Each backend runs in its own child
+process, while the 3D pair consumes the same resolved plot viewport. Close both windows to advance
+to the next case; terminal `Ctrl-C` terminates both children.
+
+The [manual pre-release review workbook](manual-pre-release-review.md) is the linear human-review
+path. Generated PNGs belong to automated qualification and are not required for human visual
+review.
+
 ```console
 test -z "$(git -C ../gsp status --porcelain)"
 test -z "$(git status --porcelain)"

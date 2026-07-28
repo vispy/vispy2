@@ -42,13 +42,12 @@ For each finding, record:
 Stop the release review and report immediately if a native process crashes or hangs, an advertised
 capability fails, data are placed incorrectly, or unsupported behavior silently falls back.
 
-## 1. Prepare two terminals
+## 1. Prepare one terminal and launch paired windows
 
-Terminal A is for IPython and live Matplotlib windows. Terminal B is for ordinary
-one-case-per-process live Datoviz windows. Start both terminals in the VisPy2 repository. The
-examples below assume GSP and Datoviz are sibling checkouts named `gsp` and `datoviz`.
+Use one terminal in the VisPy2 repository. The examples below assume GSP and Datoviz are sibling
+checkouts named `gsp` and `datoviz`.
 
-Run this setup in both terminals:
+Run this setup once:
 
 ```console
 cd /path/to/vispy2
@@ -61,13 +60,6 @@ echo "review output: $VISPY2_REVIEW_OUTPUT"
 
 The output directory is used only by the optional automated wheel qualification near the end. You
 do not need to open or review its PNG files.
-
-Use the same output directory in both terminals. If you opened Terminal B after Terminal A, copy
-the printed directory and set it explicitly:
-
-```console
-export VISPY2_REVIEW_OUTPUT=/the/directory/printed/in/terminal-A
-```
 
 Record exact repository state:
 
@@ -95,7 +87,44 @@ Expected:
 | Datoviz |  |  |
 | Python |  |  |
 
-Start IPython in Terminal A:
+Make sure the terminal is configured for real GUI windows:
+
+```console
+unset MPLBACKEND
+unset GSP_TEST
+```
+
+The primary human-review command opens matching Matplotlib and Datoviz windows concurrently from
+this one terminal:
+
+```console
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py all
+```
+
+The runner visits these cases in order: priority 2D, perspective 3D, orthographic 3D, flat
+Lambert, then camera fit/orbit/pan/zoom/reset. For each case it:
+
+1. starts one isolated child process per backend;
+2. opens both live windows at the same time;
+3. applies the same resolved plot viewport to both 3D windows;
+4. waits while you move the windows side by side and inspect them;
+5. continues only after you close both windows.
+
+To repeat only one case:
+
+```console
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py priority-2d
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py perspective-3d
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py orthographic-3d
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py flat-lambert
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py camera-pan
+```
+
+Use terminal `Ctrl-C` to terminate both children if either window cannot be closed. Backend
+selection is explicit inside each child: one calls `open_session("matplotlib")`, the other calls
+`open_session("datoviz")`. The two GUI event loops never share one process.
+
+After the paired visual pass, start IPython in the same terminal for the API-oriented sections:
 
 ```console
 "$VISPY2_REVIEW_PYTHON" -m IPython
@@ -113,22 +142,6 @@ The guaranteed fallback is the ordinary interpreter:
 "$VISPY2_REVIEW_PYTHON" -i
 ```
 
-In Terminal B, start a fresh ordinary process for each native Datoviz exercise:
-
-```console
-"$VISPY2_REVIEW_PYTHON"
-```
-
-Paste one complete Python block, inspect and close its live window, then press `Ctrl-D`. Do not
-reuse that native process for another case.
-
-For live review, make sure neither terminal has `MPLBACKEND=Agg` or `GSP_TEST=True` set:
-
-```console
-unset MPLBACKEND
-unset GSP_TEST
-```
-
 Every Matplotlib `figure.show()` call blocks until you close its window. Every Datoviz block calls
 `session.run()` and likewise returns only after you close the native window. Keep the window open
 for as long as you need; close it to continue linearly.
@@ -136,13 +149,13 @@ for as long as you need; close it to continue linearly.
 **Checkpoint**
 
 - [ ] Exact commits and Python version recorded.
-- [ ] Terminal A imports the current VisPy2 source.
-- [ ] Terminal B is ready for isolated native cases.
+- [ ] One `manual_live_compare.py` case opened both backend windows concurrently.
+- [ ] The terminal imports the current VisPy2 source.
 - [ ] Review output is outside every repository.
 
 ## 2. Inspect the public API before plotting
 
-Paste this complete block into Terminal A:
+Paste this complete block into IPython:
 
 ```python
 from importlib.util import find_spec
@@ -204,7 +217,7 @@ Notes:
 Goal: exercise the priority 2D visual vocabulary and guides through public VisPy2 methods in a live
 Matplotlib window.
 
-Paste into Terminal A:
+Paste into IPython:
 
 ```python
 import vispy2 as vp
@@ -315,7 +328,7 @@ Review:
 
 ## 4. Review scalar images, color mapping, and a colorbar
 
-Paste into Terminal A:
+Paste into IPython:
 
 ```python
 import numpy as np
@@ -379,7 +392,7 @@ Review:
 Goal: review all priority 3D visual families, camera fitting, and the deliberately narrow
 ambient-plus-one-directional-light contract.
 
-Paste into Terminal A:
+Paste into IPython:
 
 ```python
 import numpy as np
@@ -503,7 +516,7 @@ Review:
 
 ## 6. Review orthographic projection and camera transitions
 
-Paste this independent block into Terminal A:
+Paste this independent block into IPython:
 
 ```python
 import numpy as np
@@ -582,7 +595,7 @@ Review:
 
 ## 7. Review backend discovery and truthful capabilities
 
-Paste into Terminal A:
+Paste into IPython:
 
 ```python
 import gsp
@@ -638,7 +651,7 @@ Optional shortcut:
 
 ## 8. Review explicit session ownership
 
-Paste into Terminal A:
+Paste into IPython:
 
 ```python
 import vispy2 as vp
@@ -678,7 +691,7 @@ Review:
 
 ## 9. Review supported and unsupported queries
 
-Paste into Terminal A:
+Paste into IPython:
 
 ```python
 import vispy2 as vp
@@ -759,7 +772,7 @@ Optional shortcut:
 
 ## 10. Run one isolated native Datoviz 2D case
 
-Leave IPython running in Terminal A. In Terminal B, start a new ordinary Python process:
+Exit IPython with `Ctrl-D`. In the same terminal, start a fresh ordinary Python process:
 
 ```console
 "$VISPY2_REVIEW_PYTHON"
@@ -871,7 +884,7 @@ release or a release-blocking API/backend coverage gap; do not substitute an old
 
 ## 11. Run one isolated native Datoviz 3D and lighting case
 
-Start another fresh ordinary Python process in Terminal B:
+After the previous process exits, start another fresh ordinary Python process in the same terminal:
 
 ```console
 "$VISPY2_REVIEW_PYTHON"
@@ -1009,19 +1022,20 @@ Review:
 
 ## 12. Consolidate the live-window comparison
 
-Do not review checked-in images or generated PNGs. Use only the live windows opened in sections
-3–6 and 10–11, plus the interactive window in section 14. If you want a direct comparison, keep a
-Matplotlib window open in Terminal A while you launch its Datoviz counterpart in Terminal B.
+Do not review checked-in images or generated PNGs. Use the paired live windows launched by
+`manual_live_compare.py`, the API-focused windows in sections 3–6 and 10–11, and the interactive
+window in section 14.
 
 Compare the live realizations in this order:
 
 | Journey | Matplotlib window | Datoviz window | Human check |
 |---|---|---|---|
-| Priority 2D | section 3 | section 10 | all families, placement, relative sizes |
+| Priority 2D | `manual_live_compare.py priority-2d` | same command | all families, placement, relative sizes |
 | Scalar image/colorbar | section 4 | unavailable through current public VisPy2 DATA-image path | decide whether the documented coverage gap blocks the experiment |
-| Perspective 3D | section 5 | section 11 | mesh shape, lighting, depth, framing |
-| Orthographic 3D | section 6 | rerun section 11 after replacing `set_perspective(...)` with `set_orthographic(near=0.0, far=100.0)` and replacing the imported/required perspective capability with `VIEW3D_STATIC_ORTHOGRAPHIC_CAPABILITY` | projection, framing, occlusion |
-| Camera fit/orbit/pan/zoom/reset | section 6 sequential windows | section 14 interactive window | coherent camera meaning and scale |
+| Perspective 3D | `manual_live_compare.py perspective-3d` | same command | mesh, spheres, vectors, text, depth, framing |
+| Orthographic 3D | `manual_live_compare.py orthographic-3d` | same command | projection, primitive, pixels, framing, occlusion |
+| Flat Lambert | `manual_live_compare.py flat-lambert` | same command | distinct face intensities and shape |
+| Camera fit/orbit/pan/zoom/reset | the five matching `manual_live_compare.py camera-*` cases | same commands, plus section 14 for interactive Datoviz | coherent camera meaning and scale |
 
 Known intentional differences:
 
@@ -1052,7 +1066,7 @@ because the validator measures geometry and provenance, but you do not need to o
 them. Skip this section during the human visual review if Mission Control already ran it at the
 recorded commit.
 
-From Terminal B:
+From the shell in the same terminal:
 
 ```console
 mkdir -p "$VISPY2_REVIEW_OUTPUT/wheels"
@@ -1088,7 +1102,7 @@ Expected:
 
 ## 14. Review live Datoviz camera behavior
 
-Close IPython if desired. From Terminal B, run:
+From the shell in the same terminal, run:
 
 ```console
 GSP_DATOVIZ_ENABLE_EXPERIMENTAL_VIEW3D_NAV=1 \

@@ -10,6 +10,8 @@ The M283 installed-wheel gallery is the current cross-backend feature tour:
    shading, generated face normals, and one ambient-plus-directional light.
 6. `gallery_06_capabilities.py` — discovery and explicit selection.
 7. `gallery_07_queries.py` — point hit and structured unsupported query.
+8. `manual_live_compare.py` — launch matching Matplotlib and Datoviz windows together from one
+   terminal while retaining one isolated child process per backend.
 
 See [`../docs/gallery.md`](../docs/gallery.md) for commands, live controls, cleanup, artifact
 interpretation, and the installed-wheel validation harness. `validate_docs.py` compiles every

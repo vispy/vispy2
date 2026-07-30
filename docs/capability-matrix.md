@@ -12,6 +12,13 @@ structured query result. “Probe” means gallery 6 checks installed provider m
 diagnostics. The recorded experimental live-navigation path has completed owner review, but that
 acceptance does not make it a default or universal backend claim.
 
+M300 adds focused candidate evidence for the public DATA-space scalar-image path: retained
+View2D placement, lower-origin texture coordinates, nearest sampling, overlay registration,
+programmatic zoom and reversed-axis updates, canonical scalar mapping, and a linked native
+colorbar. Final paired-live acceptance is pending a machine reboot after a local GPU-driver
+failure. Image rendering remains independent of still-unadvertised Datoviz image-texel
+query/readback.
+
 | Journey / visual | Protocol contract | VisPy2 API | Matplotlib | Datoviz v0.4 | Status | Test | Artifact | Diagnostic / boundary |
 |---|---|---|---|---|---|---|---|---|
 | G1 points | `visual.points` | `Axes.scatter` | yes | yes | strict semantic data; backend raster | installed-wheel G1 | both G1 PNGs | marker raster differs |
@@ -20,6 +27,7 @@ acceptance does not make it a default or universal backend claim.
 | G1 vectors | `visual.vector`, `vectorvisual.straight.v1` | `Axes.vectors` | yes | yes when probed | MPL adapted; DVZ strict lowering | G1 + capability check | both G1 PNGs | cap raster differs |
 | G1 primitive | `visual.primitive`, topology contract | `Axes.primitives` | yes | yes when probed | MPL adapted; DVZ strict lowering | G1 + capability check | both G1 PNGs | raster/depth differs |
 | G1 text | `visual.text` | `Axes.text` | yes | yes when probed | adapted native font/layout | installed-wheel G1 | both G1 PNGs | font and metrics differ |
+| Scalar image/colorbar | DATA `ImageVisual`, color scale, colorbar guide | `Axes.imshow`, `Axes.colorbar` | yes | yes when probed | candidate strict DATA placement and numeric mapping; backend raster/layout | M300 focused unit, offscreen, retained-navigation, and paired-runner headless checks; live acceptance pending reboot | temporary current-runtime captures; no release artifact | Datoviz image-texel query remains unadvertised |
 | G2 mesh | perspective View3D + DATA mesh | `Axes3D.mesh` | yes | yes when probed | MPL adapted projection; DVZ strict retained path | G2 checks | both G2 PNGs | depth/raster differs |
 | G2 spheres | `spherevisual.v1` | `Axes3D.spheres` | yes | yes when probed | MPL flat projected circle; DVZ natively shaded analytic impostor | G2 checks | both G2 PNGs | intentional shading/depth adaptation; no material contract |
 | G2 vectors | 3D DATA vector contract | `Axes3D.vectors` | yes | yes when probed | MPL adapted overlay; DVZ strict lowering | G2 checks | both G2 PNGs | depth/caps differ |

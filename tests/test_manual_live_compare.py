@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import ModuleType
 from unittest.mock import Mock, call
 
 import pytest
+from gsp.protocol import CanvasSizePolicy
 
 import vispy2 as vp
-from gsp.protocol import CanvasSizePolicy
 
 
 def _load_example() -> ModuleType:
@@ -33,6 +33,7 @@ def _load_example() -> ModuleType:
     "case",
     (
         "priority-2d",
+        "scalar-image",
         "perspective-3d",
         "orthographic-3d",
         "flat-lambert",
@@ -57,6 +58,20 @@ def test_manual_live_comparison_rejects_unknown_case() -> None:
 
     with pytest.raises(ValueError, match="unknown comparison case"):
         module.make_figure("unknown")
+
+
+def test_scalar_image_case_keeps_data_extent_colorbar_and_registration_points() -> None:
+    module = _load_example()
+
+    scene = module.make_figure("scalar-image").to_scene()
+
+    image = next(visual for visual in scene.visuals if visual.id == "review:scalar-image")
+    assert image.coordinate_space.value == "data"
+    assert image.extent == (-3.0, 3.0, -2.0, 2.0)
+    assert image.origin.value == "lower"
+    assert image.color_scale_id == "review:viridis"
+    assert scene.colorbar_guides[0].linked_visual_ids == (image.id,)
+    assert any(visual.id == "review:image-registration" for visual in scene.visuals)
 
 
 def test_bounded_datoviz_loop_stops_before_native_reap(monkeypatch: pytest.MonkeyPatch) -> None:

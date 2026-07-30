@@ -31,7 +31,7 @@ python examples/manual_live_compare.py all
 ```
 
 Use a case name instead of `all` to repeat only one pair, for example
-`priority-2d`, `perspective-3d`, `orthographic-3d`, `flat-lambert`, `camera-fit`,
+`priority-2d`, `scalar-image`, `perspective-3d`, `orthographic-3d`, `flat-lambert`, `camera-fit`,
 `camera-orbit`, `camera-pan`, `camera-zoom`, or `camera-reset`. Each backend runs in its own child
 process. The runner detects the active GUI device scale and gives both backends the same 800×600
 host-logical content area; it hides the Matplotlib toolbar so backend chrome does not distort the

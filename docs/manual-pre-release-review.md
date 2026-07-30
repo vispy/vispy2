@@ -101,8 +101,8 @@ this one terminal:
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py all
 ```
 
-The runner visits these cases in order: priority 2D, perspective 3D, orthographic 3D, flat
-Lambert, then camera fit/orbit/pan/zoom/reset. For each case it:
+The runner visits these cases in order: priority 2D, scalar image/colorbar, perspective 3D,
+orthographic 3D, flat Lambert, then camera fit/orbit/pan/zoom/reset. For each case it:
 
 1. starts one isolated child process per backend;
 2. opens both live windows at the same time;
@@ -116,6 +116,7 @@ To repeat only one case:
 
 ```console
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py priority-2d
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py scalar-image
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py perspective-3d
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py orthographic-3d
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py flat-lambert
@@ -878,11 +879,18 @@ Review:
 - [ ] Process exits without crash or hang.
 - [ ] Datoviz 2D finding: _________________________________________________
 
-Current high-level image boundary: section 4 is Matplotlib-only. VisPy2 `imshow()` currently emits
-a DATA-space `ImageVisual`, while the qualified Datoviz v0.4 image lowering accepts only NDC-space
-image extents. Therefore there is no honest live Datoviz window for the same public high-level
-scalar-image example yet. Record whether this is acceptable as **DEFERRED** for the experimental
-release or a release-blocking API/backend coverage gap; do not substitute an old PNG.
+The qualified Datoviz path now retains the same DATA-space image extent under View2D and composes
+it with the linked native colorbar. Review the equivalent live Matplotlib and Datoviz windows:
+
+```console
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py scalar-image
+```
+
+The three red registration points correspond to the lower-left image corner, data origin, and
+upper-right image corner. Verify that both backends preserve that registration, lower-origin row
+orientation, nearest-cell sampling, declared axis ranges, and the `low`/`zero`/`high` colorbar
+mapping. Rasterization and exact colorbar layout may differ; DATA placement and numeric mapping
+must not.
 
 ## 11. Run one isolated native Datoviz 3D and lighting case
 
@@ -1033,7 +1041,7 @@ Compare the live realizations in this order:
 | Journey | Matplotlib window | Datoviz window | Human check |
 |---|---|---|---|
 | Priority 2D | `manual_live_compare.py priority-2d` | same command | all families, placement, relative sizes |
-| Scalar image/colorbar | section 4 | unavailable through current public VisPy2 DATA-image path | decide whether the documented coverage gap blocks the experiment |
+| Scalar image/colorbar | `manual_live_compare.py scalar-image` | same command | DATA extent, lower origin, registration points, nearest cells, and numeric mapping |
 | Perspective 3D | `manual_live_compare.py perspective-3d` | same command | mesh, spheres, vectors, text, depth, framing |
 | Orthographic 3D | `manual_live_compare.py orthographic-3d` | same command | projection, primitive, pixels, framing, occlusion |
 | Flat Lambert | `manual_live_compare.py flat-lambert` | same command | distinct face intensities and shape |

@@ -109,9 +109,10 @@ Scalar `scatter` and `markers` colors can use the same `ColorScale`. A scale ID 
 consistent scale within the figure. Scalar mapping requires `clim`; RGBA input bypasses scalar
 mapping.
 
-The current Matplotlib provider is the qualified publication path for DATA-space images and
-colorbars. The qualified Datoviz v0.4 image binding accepts only NDC image extents, so VisPy2 does
-not silently lower its public DATA-space `imshow` contract through that path.
+Matplotlib is the deterministic reference/publication path for DATA-space images and colorbars.
+The qualified Datoviz v0.4 path retains the same DATA extent under View2D, pre-maps the canonical
+scalar color scale to RGBA8, uploads it as a sampled field, and composes the linked native
+colorbar. Image rendering and image-texel query/readback remain independently capability-gated.
 
 ## Guides and view state
 
@@ -255,7 +256,7 @@ Current product boundaries:
 
 - `Figure.to_scene()` requires exactly one 2D or 3D axes;
 - VisPy2 produces semantic snapshots and imports no concrete adapter;
-- DATA-space `imshow` is not currently available through the qualified Datoviz image path;
+- DATA-space `imshow` and linked colorbars require the qualified Datoviz retained-image binding;
 - live Datoviz View3D navigation is experimental, opt-in, and caller-owned;
 - fonts, text metrics, antialiasing, raster sizes, and some guide behavior vary by backend;
 - unsupported behavior must fail through capabilities, diagnostics, or structured query results.

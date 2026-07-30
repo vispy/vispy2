@@ -11,22 +11,12 @@ from __future__ import annotations
 import argparse
 import math
 import os
-from pathlib import Path
 import subprocess
 import sys
-from typing import Callable
+from collections.abc import Callable
+from pathlib import Path
 
-import vispy2 as vp
-from gsp.protocol import (
-    CanvasSize,
-    MESH3D_DATA_VIEW3D_CAPABILITY,
-    MESH_MATERIAL_FLAT_LAMBERT_CAPABILITY,
-    MESH_NORMAL_GENERATION_FACE_FLAT_CAPABILITY,
-    MESH_NORMALS_FACE3D_CAPABILITY,
-    VIEW3D_LIGHT_AMBIENT_CAPABILITY,
-    VIEW3D_LIGHT_DIRECTIONAL_CAPABILITY,
-)
-
+import numpy as np
 from gallery_01_priority_2d import make_figure as make_priority_2d
 from gallery_02_perspective_3d import make_figure as make_perspective_3d
 from gallery_03_orthographic_3d import make_figure as make_orthographic_3d
@@ -37,7 +27,17 @@ from gallery_shared_layout import (
     _validate_view3d_capabilities,
     resolve_shared_layout,
 )
+from gsp.protocol import (
+    MESH3D_DATA_VIEW3D_CAPABILITY,
+    MESH_MATERIAL_FLAT_LAMBERT_CAPABILITY,
+    MESH_NORMAL_GENERATION_FACE_FLAT_CAPABILITY,
+    MESH_NORMALS_FACE3D_CAPABILITY,
+    VIEW3D_LIGHT_AMBIENT_CAPABILITY,
+    VIEW3D_LIGHT_DIRECTIONAL_CAPABILITY,
+    CanvasSize,
+)
 
+import vispy2 as vp
 
 BACKENDS = ("matplotlib", "datoviz")
 CAMERA_CASES = (
@@ -49,6 +49,7 @@ CAMERA_CASES = (
 )
 CASES = (
     "priority-2d",
+    "scalar-image",
     "perspective-3d",
     "orthographic-3d",
     "flat-lambert",
@@ -181,10 +182,52 @@ def _camera_figure(case: str) -> vp.Figure:
     return figure
 
 
+def _scalar_image_figure() -> vp.Figure:
+    """Build the public DATA-space scalar-image and linked-colorbar review."""
+    values = np.linspace(-1.0, 1.0, 20 * 30, dtype=np.float32).reshape(20, 30)
+    values += 0.35 * np.sin(
+        np.linspace(0.0, 4.0 * np.pi, 30, dtype=np.float32)
+    )[None, :]
+
+    figure, axes = vp.subplots()
+    scale = axes.color_scale(
+        cmap="viridis",
+        clim=(-1.35, 1.35),
+        id="review:viridis",
+        description="paired scalar-field scale",
+    )
+    image = axes.imshow(
+        values,
+        extent=(-3.0, 3.0, -2.0, 2.0),
+        origin="lower",
+        interpolation="nearest",
+        color_scale=scale,
+        id="review:scalar-image",
+    )
+    axes.colorbar(
+        scale,
+        label="value",
+        ticks=[-1.0, 0.0, 1.0],
+        tick_labels=["low", "zero", "high"],
+        linked_visual_ids=[image.id],
+    )
+    axes.scatter(
+        [-3.0, 0.0, 3.0],
+        [-2.0, 0.0, 2.0],
+        color=(255, 32, 32, 255),
+        size=12.0,
+        id="review:image-registration",
+    )
+    axes.set_xlim(-4.0, 4.0)
+    axes.set_ylim(-3.0, 3.0)
+    return figure
+
+
 def make_figure(case: str) -> vp.Figure:
     """Build one backend-neutral semantic scene for a live comparison."""
     builders: dict[str, Callable[[], vp.Figure]] = {
         "priority-2d": make_priority_2d,
+        "scalar-image": _scalar_image_figure,
         "perspective-3d": make_perspective_3d,
         "orthographic-3d": make_orthographic_3d,
         "flat-lambert": make_flat_lambert,

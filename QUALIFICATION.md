@@ -3,6 +3,42 @@
 Qualification records are immutable snapshots. The newest source/documentation gate appears first;
 the original producer-only bootstrap remains below with its exact artifact hashes.
 
+## M303 pre-release mechanical correction gate
+
+Date: 2026-07-30
+
+Committed VisPy2 head: `c60d9941ee2c2b88203a86c653c5b83b3df8f9bc`.
+
+Committed GSP head: `aee00ca22f52b8168ab6d5e6ceb877b218452729`.
+
+| Gate | Result |
+|---|---|
+| VisPy2 source pytest with Matplotlib 3.11.1 | 124 passed |
+| strict mypy | 3 source files clean |
+| Ruff | source, tests, and examples clean |
+| documentation validation | 30 Python blocks compiled; 64 local links resolved |
+| strict MkDocs | passed with recorded informational checkout-link notices |
+| intended publication set from isolated wheels | 628 passed, one Datoviz-only conformance module skipped |
+| installed semantic example | passed from `site-packages` |
+| Twine and wheel contents | passed without warnings |
+| packaged license | SPDX `BSD-3-Clause` and LICENSE present |
+
+The brittle 10,000-exact-pixel flat-Lambert assertion was replaced by a normalized semantic check:
+the rendered face colors occupy a substantial total mesh footprint and each contributes a
+material fraction of that footprint. This passes across the declared Matplotlib 3.10–3.x range
+without weakening the requirement for two visible face tones.
+
+The intended first ordinary publication set contains `gsp-core`, `gsp-matplotlib`, and `vispy2`.
+The `datoviz` extra is intentionally absent until a compatible runtime is ordinarily resolvable;
+local `gsp-datoviz` development and native qualification remain supported separately.
+
+| Artifact | SHA-256 |
+|---|---|
+| `vispy2-0.2.0a1-py3-none-any.whl` | `460ca0bc69b2b935d0e45ac178a05bc1b2446d62ea1d99a6bfe19816edff0f71` |
+
+This gate performs no version, tag, push, or publication operation. P038 still blocks the
+independent Panel and producer-capability protocol refactor.
+
 ## Current committed-head source and documentation gate
 
 Date: 2026-07-28

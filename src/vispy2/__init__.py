@@ -1,5 +1,6 @@
 """High-level scientific plotting producer for GSP."""
 
+from .emission_features import EMISSION_FEATURES, EmissionFeature
 from .protocol import (
     Axes,
     Axes3D,
@@ -27,6 +28,8 @@ __version__ = "0.2.0a1"
 
 __all__ = [
     "__version__",
+    "EMISSION_FEATURES",
+    "EmissionFeature",
     "Axes",
     "Axes3D",
     "Figure",

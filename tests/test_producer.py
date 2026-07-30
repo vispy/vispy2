@@ -14,6 +14,7 @@ from gsp.backends import BackendSession
 from gsp.protocol import (
     AxisDimension,
     CanvasSize,
+    ClipScope,
     CoordinateSpace,
     ImageVisual,
     MarkerVisual,
@@ -48,6 +49,12 @@ def test_subplots_emits_backend_neutral_scene_records() -> None:
 
     assert isinstance(scene, gsp.Scene)
     assert scene.id == "scene:main"
+    assert tuple(field.name for field in fields(type(scene.panels[0]))) == ("id",)
+    assert scene.panel_layout.kind == "layout.panel.explicit_rects.v1"
+    assert scene.panel_layout.placements[0].panel_id == scene.panels[0].id
+    assert scene.panel_layout.placements[0].allocation_rect == (
+        gsp.protocol.NormalizedRenderTargetRect(0.0, 0.0, 1.0, 1.0)
+    )
     assert scene.visuals == (point,)
     assert scene.panels == figure.panels()
     assert scene.attachments == figure.attachments()
@@ -196,9 +203,18 @@ def test_resolve_layout_returns_only_protocol_snapshot() -> None:
     layout = gsp.protocol.ResolvedLayoutSnapshot(
         snapshot_id="layout:resolved",
         render_target=gsp.protocol.RenderTarget(800.0, 600.0),
-        panel_rect_px=gsp.protocol.LogicalPixelRect(0.0, 0.0, 800.0, 600.0),
-        plot_rect_px=gsp.protocol.LogicalPixelRect(100.0, 80.0, 620.0, 440.0),
-        view_id=axes.view.id,
+        panels=(
+            gsp.protocol.ResolvedPanelLayout(
+                panel_id=axes.panel.id,
+                panel_rect_px=gsp.protocol.LogicalPixelRect(
+                    0.0, 0.0, 800.0, 600.0
+                ),
+                plot_rect_px=gsp.protocol.LogicalPixelRect(
+                    100.0, 80.0, 620.0, 440.0
+                ),
+                view_id=axes.view.id,
+            ),
+        ),
     )
     session.render_result = FakeRenderResult(layout)
 
@@ -206,6 +222,29 @@ def test_resolve_layout_returns_only_protocol_snapshot() -> None:
     assert session.renders == [
         (figure.to_scene(), {}),
     ]
+
+
+def test_attachment_clip_scope_is_axes_owned_not_view_owned() -> None:
+    figure, axes = vp.subplots()
+    first = axes.scatter([0.0], [0.0])
+    assert not hasattr(axes.view, "clip")
+    assert figure.to_scene().attachments[0].clip_scope is ClipScope.PLOT
+
+    assert axes.set_clip_scope(ClipScope.RENDER_TARGET) is ClipScope.RENDER_TARGET
+    second = axes.scatter([1.0], [1.0])
+    attachments = {item.visual_id: item for item in figure.to_scene().attachments}
+    assert attachments[first.id].clip_scope is ClipScope.RENDER_TARGET
+    assert attachments[second.id].clip_scope is ClipScope.RENDER_TARGET
+
+
+def test_vispy2_emission_features_are_local_typed_and_non_wire() -> None:
+    assert vp.EMISSION_FEATURES == frozenset(vp.EmissionFeature)
+    assert {feature.value for feature in vp.EMISSION_FEATURES} == {
+        "vispy2.emit.meshvisual.material.texture2d_unlit.v1",
+        "vispy2.emit.meshvisual.texture_filter.linear.v1",
+    }
+    figure, _ = vp.subplots()
+    assert "vispy2.emit." not in repr(figure.to_scene())
 
 
 def test_resolve_layout_rejects_backend_without_snapshot() -> None:

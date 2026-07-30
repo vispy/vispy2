@@ -122,7 +122,8 @@ titles are guide state rather than extra data visuals:
 ```python
 figure, axes = vp.subplots()
 axes.plot([0.0, 1.0], [0.0, 1.0])
-axes.set_view2d(xlim=(0.0, 1.0), ylim=(0.0, 1.0), clip=True)
+axes.set_view2d(xlim=(0.0, 1.0), ylim=(0.0, 1.0))
+axes.set_clip_scope("plot")
 axes.set_xticks([0.0, 0.5, 1.0], ["low", "middle", "high"])
 axes.set_yticks([0.0, 1.0])
 axes.grid(True, axis="y")

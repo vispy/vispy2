@@ -3,6 +3,26 @@
 Qualification records are immutable snapshots. The newest source/documentation gate appears first;
 the original producer-only bootstrap remains below with its exact artifact hashes.
 
+## M305 P038 canonical producer-boundary gate
+
+Date: 2026-07-30
+
+The unpublished P038 working tree emits identity-only panels plus required explicit scene layout,
+owns producer-only feature discovery through exact `vispy2.emit.*` values, and no longer places
+producer identifiers in the GSP wire/session capability namespace.
+
+| Gate | Result |
+|---|---|
+| VisPy2 source pytest | 126 passed |
+| strict mypy | 4 source files clean |
+| Ruff | source, tests, and examples clean |
+| strict MkDocs | passed |
+| Fresh installed-wheel set with GSP | 928 passed |
+| Emission feature import smoke | exact local feature values passed |
+
+The installed-wheel gate used Matplotlib 3.11.1 and NumPy 2.5.1. No version, tag, push,
+publication, or merge operation was performed.
+
 ## M303 pre-release mechanical correction gate
 
 Date: 2026-07-30

@@ -26,6 +26,7 @@ from gsp.protocol import (
     ColorbarPlacement,
     Camera3D,
     CanvasSize,
+    ClipScope,
     CoordinateSpace,
     DirectionalLight3D,
     FontRole,
@@ -33,6 +34,7 @@ from gsp.protocol import (
     ImageInterpolation,
     ImageOrigin,
     ImageVisual,
+    ExplicitPanelLayoutV1,
     LinearNormalize,
     MeshColorMode,
     MeshNormalGeneration,
@@ -45,6 +47,8 @@ from gsp.protocol import (
     Orbit3DPayload,
     OrthographicProjection3D,
     Panel,
+    PanelPlacement,
+    NormalizedRenderTargetRect,
     Pan3DPayload,
     PanelTextGuide,
     PanelTextRole,
@@ -143,6 +147,24 @@ class Figure:
         """Return semantic panels without expanding guide visuals."""
         return tuple(axes.panel for axes in self.axes)
 
+    def panel_layout(self) -> ExplicitPanelLayoutV1:
+        """Return the explicit canonical allocation for the current single axes."""
+        if len(self.axes) != 1:
+            raise ValueError("Figure panel layout requires exactly one Axes")
+        return ExplicitPanelLayoutV1(
+            placements=(
+                PanelPlacement(
+                    panel_id=self.axes[0].panel.id,
+                    allocation_rect=NormalizedRenderTargetRect(
+                        left=0.0,
+                        top=0.0,
+                        width=1.0,
+                        height=1.0,
+                    ),
+                ),
+            )
+        )
+
     def views(self) -> tuple[View2D | View3D, ...]:
         """Return semantic views without expanding guide visuals."""
         return tuple(axes.view for axes in self.axes)
@@ -183,8 +205,9 @@ class Figure:
         )
         return Scene(
             id=scene_id,
-            visuals=self.visuals(),
             panels=self.panels(),
+            panel_layout=self.panel_layout(),
+            visuals=self.visuals(),
             view2d=axes.view if isinstance(axes, Axes) else None,
             view3d=axes.view if isinstance(axes, Axes3D) else None,
             attachments=self.attachments(),
@@ -271,12 +294,13 @@ class Axes:
     axis_guides: list[AxisGuide] = field(default_factory=list)
     panel_text_guides: list[PanelTextGuide] = field(default_factory=list)
     colorbar_guides: list[ColorbarGuide] = field(default_factory=list)
+    _clip_scope: ClipScope = field(default=ClipScope.PLOT, init=False, repr=False)
 
     def __post_init__(self) -> None:
         index = len(self.figure.axes) + 1
         panel_id = f"panel:{index}"
         view_id = f"view:{index}"
-        self.panel = Panel(id=panel_id, figure_id=self.figure.id)
+        self.panel = Panel(id=panel_id)
         self.view = View2D(id=view_id, panel_id=panel_id)
         self.axis_guides.extend(
             [
@@ -322,7 +346,6 @@ class Axes:
         *,
         xlim: tuple[float, float] | None = None,
         ylim: tuple[float, float] | None = None,
-        clip: bool | None = None,
     ) -> View2D:
         """Set deterministic S027 View2D state."""
         next_xlim = self.view.xlim if xlim is None else (float(xlim[0]), float(xlim[1]))
@@ -334,9 +357,28 @@ class Axes:
             y_range=next_ylim,
             aspect_policy=self.view.aspect_policy,
             kind=self.view.kind,
-            clip=self.view.clip if clip is None else bool(clip),
         )
         return self.view
+
+    def set_clip_scope(self, scope: ClipScope | str) -> ClipScope:
+        """Set attachment-owned rectangular clipping for current and future visuals."""
+        resolved = ClipScope(scope)
+        self.attachments = [
+            replace(attachment, clip_scope=resolved)
+            for attachment in self.attachments
+        ]
+        self._clip_scope = resolved
+        return resolved
+
+    def _attach(self, visual_id: str) -> None:
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual_id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+                clip_scope=self._clip_scope,
+            )
+        )
 
     def get_xlim(self) -> tuple[float, float]:
         """Return the semantic x range for this 2D view."""
@@ -520,9 +562,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def pixels(
@@ -548,13 +588,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def vectors(
@@ -592,13 +626,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def primitives(
@@ -623,13 +651,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def quiver(
@@ -695,9 +717,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def segments(
@@ -729,9 +749,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def path(
@@ -765,9 +783,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def plot(
@@ -821,9 +837,7 @@ class Axes:
             transform=_visual_transform(transform),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def mesh(
@@ -874,9 +888,7 @@ class Axes:
         if texture_resource is not None:
             self.figure.texture2d_resources.append(texture_resource)
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def _mesh_texture2d_resource(
@@ -950,9 +962,7 @@ class Axes:
             color_scale_id=color_scale_id,
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(visual_id=visual.id, panel_id=self.panel.id, view_id=self.view.id)
-        )
+        self._attach(visual.id)
         return visual
 
     def _register_color_scale(self, scale: ColorScale) -> None:
@@ -1060,7 +1070,7 @@ class Axes3D:
     def __post_init__(self) -> None:
         index = len(self.figure.axes) + 1
         panel_id = f"panel:{index}"
-        self.panel = Panel(id=panel_id, figure_id=self.figure.id)
+        self.panel = Panel(id=panel_id)
         self.view = View3D(
             id=f"view:{index}",
             panel_id=panel_id,
@@ -1075,6 +1085,16 @@ class Axes3D:
             ),
         )
         self._home_view = self.view
+
+    def _attach(self, visual_id: str) -> None:
+        self.attachments.append(
+            VisualAttachment(
+                visual_id=visual_id,
+                panel_id=self.panel.id,
+                view_id=self.view.id,
+                clip_scope=ClipScope.PLOT,
+            )
+        )
 
     def set_camera(
         self,
@@ -1204,7 +1224,7 @@ class Axes3D:
             self.view,
             Zoom3DPayload(
                 scale=float(scale),
-                anchor_panel_ndc_xy=anchor,
+                anchor_plot_ndc_xy=anchor,
             ),
         )
         return self.view
@@ -1322,13 +1342,7 @@ class Axes3D:
         if texture_resource is not None:
             self.figure.texture2d_resources.append(texture_resource)
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def pixels(
@@ -1351,13 +1365,7 @@ class Axes3D:
             coordinate_space=CoordinateSpace.DATA,
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def text(
@@ -1400,13 +1408,7 @@ class Axes3D:
             z_order=int(z_order),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def spheres(
@@ -1428,13 +1430,7 @@ class Axes3D:
             colors=_colors(color, positions.shape[0]),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def vectors(
@@ -1471,13 +1467,7 @@ class Axes3D:
             end_cap=_vector_cap(end_cap),
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def primitives(
@@ -1500,13 +1490,7 @@ class Axes3D:
             coordinate_space=CoordinateSpace.DATA,
         )
         self.visuals.append(visual)
-        self.attachments.append(
-            VisualAttachment(
-                visual_id=visual.id,
-                panel_id=self.panel.id,
-                view_id=self.view.id,
-            )
-        )
+        self._attach(visual.id)
         return visual
 
     def quiver(

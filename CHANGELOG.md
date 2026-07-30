@@ -5,6 +5,13 @@ describes the current experimental candidate rather than a package-index release
 
 ## Unreleased
 
+### Protocol architecture
+
+- Emit identity-only GSP panels plus explicit full-target panel layout intent.
+- Move clipping policy to visual attachments through `Axes.set_clip_scope`.
+- Expose typed local `EmissionFeature` values for textured-unlit mesh and linear-filter emission;
+  these values are non-wire producer information and never session capabilities.
+
 ### Documentation
 
 - Reconciled historical qualification reports with subsequent owner acceptance.

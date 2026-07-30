@@ -10,7 +10,7 @@ import vispy2 as vp
 from gsp.protocol import (
     PerspectiveProjection3D,
     ResolvedLayoutSnapshot,
-    panel_ndc_to_plot_logical_px,
+    plot_ndc_to_plot_logical_px,
     project_view3d_data_point,
     resolve_view3d_projection_snapshot,
 )
@@ -148,7 +148,7 @@ def _render_evidence(
             point,
             aspect_ratio=aspect,
         )
-        pixel = panel_ndc_to_plot_logical_px(layout, (ndc[0], ndc[1]))
+        pixel = plot_ndc_to_plot_logical_px(layout, (ndc[0], ndc[1]))
         anchors.append(
             {
                 "data": list(point),

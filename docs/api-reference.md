@@ -73,7 +73,8 @@ session. `display`, `resolve_layout`, and `query` do not close or retain the sup
 |---|---|
 | `set_xlim(left, right)`, `set_ylim(bottom, top)` | replace one DATA range |
 | `get_xlim()`, `get_ylim()` | return the current DATA range |
-| `set_view2d(xlim=None, ylim=None, clip=None)` | replace bounded View2D state |
+| `set_view2d(xlim=None, ylim=None)` | replace bounded View2D state |
+| `set_clip_scope(scope)` | set `plot`, `panel`, or `render_target` clipping on current and future attachments |
 | `set_xlabel(text)`, `set_ylabel(text)`, `set_title(text)` | set or clear semantic labels |
 | `get_xlabel()`, `get_ylabel()`, `get_title()` | return current labels |
 | `set_xticks(ticks, labels=None)`, `set_yticks(...)` | set explicit ticks and optional labels |

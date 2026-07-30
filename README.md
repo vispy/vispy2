@@ -6,6 +6,10 @@ Figures and axes own semantic plotting state only. Backend selection, capabiliti
 resources, windows, event loops, and displays belong to GSP sessions. VisPy2 depends on `gsp-core`
 and never imports a concrete backend adapter.
 
+Each scene contains explicit full-target panel layout intent. Panels are scene-scoped identities,
+visual attachments own clipping scope, and `vispy2.EMISSION_FEATURES` reports only what this
+producer can construct—it never substitutes for renderer session capabilities.
+
 ```python
 import vispy2 as vp
 

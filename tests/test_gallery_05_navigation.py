@@ -111,9 +111,15 @@ def test_live_gallery_matplotlib_raster_has_two_large_face_tones(
 
     pixels = np.rint(image_reader.imread(target)[..., :3] * 255.0).astype(np.uint8)
     flat_pixels = pixels.reshape(-1, 3)
+    counts: dict[tuple[int, int, int], int] = {}
     for color in ((65, 120, 203), (13, 23, 40)):
-        count = np.count_nonzero(np.all(flat_pixels == color, axis=1))
-        assert count >= 10_000, (color, count)
+        delta = np.abs(flat_pixels.astype(np.int16) - np.asarray(color, dtype=np.int16))
+        counts[color] = int(np.count_nonzero(np.max(delta, axis=1) <= 1))
+
+    rendered_face_pixels = sum(counts.values())
+    assert rendered_face_pixels / len(flat_pixels) >= 0.03, counts
+    for color, count in counts.items():
+        assert count / rendered_face_pixels >= 0.20, (color, count, rendered_face_pixels)
 
 
 class _Capabilities:

@@ -2,12 +2,29 @@
 name = "vispy2"
 version = "0.2.0a1"
 description = "High-level scientific plotting producer for GSP."
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [{ name = "VisPy developers" }]
 requires-python = ">=3.13,<4"
 dependencies = ["gsp-core==0.2.0a1", "numpy>=2.3,<3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
 
 [project.optional-dependencies]
 matplotlib = ["gsp-matplotlib==0.2.0a1"]
-datoviz = ["gsp-datoviz==0.2.0a1"]
+
+[project.urls]
+Homepage = "https://github.com/vispy/vispy2"
+Documentation = "https://vispy.github.io/vispy2/"
+Repository = "https://github.com/vispy/vispy2"
+Issues = "https://github.com/vispy/vispy2/issues"
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]
@@ -26,4 +43,3 @@ line-length = 100
 [tool.mypy]
 python_version = "3.13"
 strict = true
-

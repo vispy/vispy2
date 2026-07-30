@@ -32,5 +32,6 @@ describes the current experimental candidate rather than a package-index release
 - Scene execution currently accepts exactly one 2D or 3D axes.
 - VisPy2 imports `gsp-core` but no concrete adapter.
 - Non-blocking and interactive execution requires an explicit caller-owned session.
-- Datoviz DATA-space images and comprehensive 3D/item/glyph queries are not currently supported.
+- Datoviz DATA-space scalar images and linked colorbars are supported on the qualified retained
+  View2D path; image-texel readback and comprehensive 3D/item/glyph queries remain unsupported.
 - Live Datoviz View3D navigation remains experimental and opt-in.

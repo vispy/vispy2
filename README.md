@@ -54,10 +54,9 @@ Local wheel commands are in [Installation](docs/installation.md). Contributors s
 [Developing VisPy2](DEVELOPMENT.md), and user-visible changes are recorded in the
 [changelog](CHANGELOG.md).
 
-The optional extras name the intended published package combinations. While these repositories are
-still local and unpublished, install the corresponding built `gsp-core`, adapter, and `vispy2`
-wheels together. Datoviz development additionally requires an explicit `GSP_DATOVIZ_SOURCE` until
-an ordinary RC3-compatible dependency artifact exists.
+The `matplotlib` optional extra names the intended first published rendering combination. Datoviz
+remains a development-only provider until an ordinary RC3-compatible dependency artifact exists;
+install its locally built adapter wheel and select an explicit `GSP_DATOVIZ_SOURCE` checkout.
 
 This repository has a fresh history curated from the experimental `gsp_vispy2` producer in
 `vispy/GSP_API`. Its source repository is [vispy/vispy2](https://github.com/vispy/vispy2); the

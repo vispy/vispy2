@@ -1,6 +1,18 @@
 docs_host := env("VISPY2_DOCS_HOST", "")
 docs_port := env("VISPY2_DOCS_PORT", "8295")
 
+lint:
+    @uvx --from 'ruff==0.16.1' ruff check src tests examples
+    @uvx --from 'ruff==0.16.1' ruff format --check src tests examples
+
+format:
+    @uvx --from 'ruff==0.16.1' ruff check --fix src tests examples
+    @uvx --from 'ruff==0.16.1' ruff format src tests examples
+
+pre-commit-check: lint
+    @git diff --check
+    @git diff --cached --check
+
 docs-build-check:
     @uv run --no-project --with 'mkdocs-material==9.7.7' mkdocs build --strict
 

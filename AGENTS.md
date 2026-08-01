@@ -14,3 +14,6 @@
 Record exact source provenance. Preserve semantic behavior, not unpublished legacy import paths.
 Validate producer-only installation with `gsp-core` and adapter combinations from built wheels.
 
+## Before committing
+
+Before every commit, stage the intended changes and run `just pre-commit-check`. Do not commit if it fails. If `just format` changes files, inspect and re-stage them before rerunning the check.

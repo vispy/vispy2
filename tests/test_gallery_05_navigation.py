@@ -104,9 +104,7 @@ def test_live_gallery_matplotlib_raster_has_two_large_face_tones(
     module = _gallery_module()
     target = tmp_path / "gallery-05-lit.png"
 
-    with module.vp.open_session(
-        "matplotlib", require={"output.file", "visual.mesh"}
-    ) as session:
+    with module.vp.open_session("matplotlib", require={"output.file", "visual.mesh"}) as session:
         session.render(module.make_figure().to_scene(), target=target)
 
     pixels = np.rint(image_reader.imread(target)[..., :3] * 255.0).astype(np.uint8)

@@ -233,9 +233,7 @@ class Figure:
         result = session.render(self.to_scene(), **kwargs)
         snapshot = getattr(result, "layout_snapshot", None)
         if not isinstance(snapshot, ResolvedLayoutSnapshot):
-            authoritative_snapshot = getattr(
-                result, "authoritative_layout_snapshot", None
-            )
+            authoritative_snapshot = getattr(result, "authoritative_layout_snapshot", None)
             if callable(authoritative_snapshot):
                 snapshot = authoritative_snapshot()
         if not isinstance(snapshot, ResolvedLayoutSnapshot):
@@ -364,8 +362,7 @@ class Axes:
         """Set attachment-owned rectangular clipping for current and future visuals."""
         resolved = ClipScope(scope)
         self.attachments = [
-            replace(attachment, clip_scope=resolved)
-            for attachment in self.attachments
+            replace(attachment, clip_scope=resolved) for attachment in self.attachments
         ]
         self._clip_scope = resolved
         return resolved
@@ -1991,9 +1988,7 @@ def _positions3d(
     if y is None and z is None:
         positions = _positions(x, None)
         if positions.shape[1] != 3:
-            raise ValueError(
-                "Axes3D.pixels() requires x/y/z arrays or an array with shape (N, 3)"
-            )
+            raise ValueError("Axes3D.pixels() requires x/y/z arrays or an array with shape (N, 3)")
         return positions
     if y is None or z is None:
         raise ValueError("Axes3D.pixels() requires both y and z")

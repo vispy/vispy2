@@ -62,8 +62,7 @@ def _run_interactive_frames(renderer: Any) -> None:
     should_exit = getattr(dvz, "dvz_app_should_exit", None)
     if not callable(show) or not callable(should_exit):
         raise RuntimeError(
-            "live View3D navigation requires bounded frame pumping and "
-            "dvz_app_should_exit()"
+            "live View3D navigation requires bounded frame pumping and dvz_app_should_exit()"
         )
 
     while True:
@@ -101,9 +100,7 @@ def _validate_capabilities(capabilities: Any) -> None:
                 "live flat-Lambert View3D navigation unavailable: "
                 f"Datoviz does not advertise {capability}"
             )
-    if not capabilities.supports_navigation_capability(
-        VIEW3D_NAVIGATION_ORBIT_PAN_ZOOM_CAPABILITY
-    ):
+    if not capabilities.supports_navigation_capability(VIEW3D_NAVIGATION_ORBIT_PAN_ZOOM_CAPABILITY):
         diagnostic = capabilities.metadata.get(
             "datoviz_view3d_navigation_diagnostics",
             "installed binding did not qualify",

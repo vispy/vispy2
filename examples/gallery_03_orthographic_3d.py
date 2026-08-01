@@ -8,10 +8,9 @@ from pathlib import Path
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
+
 def make_figure() -> vp.Figure:
-    figure, axes = vp.subplots(
-        projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600)
-    )
+    figure, axes = vp.subplots(projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600))
     axes.primitives(
         [
             [-1.2, -0.8, -0.2],
@@ -50,11 +49,7 @@ def render(
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     path = output / f"{backend}-gallery-03-orthographic-3d.png"
-    evidence_path = (
-        Path(evidence_dir) / f"{path.stem}.json"
-        if evidence_dir is not None
-        else None
-    )
+    evidence_path = Path(evidence_dir) / f"{path.stem}.json" if evidence_dir is not None else None
     render_with_shared_layout(
         make_figure(),
         backend,

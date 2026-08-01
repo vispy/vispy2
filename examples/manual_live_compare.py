@@ -153,8 +153,7 @@ def run_datoviz_until_close(renderer: object) -> None:
     should_exit = getattr(dvz, "dvz_app_should_exit", None)
     if not callable(show) or not callable(should_exit):
         raise RuntimeError(
-            "safe Datoviz live review requires bounded frame pumping and "
-            "dvz_app_should_exit()"
+            "safe Datoviz live review requires bounded frame pumping and dvz_app_should_exit()"
         )
     if os.environ.get("GSP_TEST") == "True":
         show(frame_count=1)
@@ -185,9 +184,7 @@ def _camera_figure(case: str) -> vp.Figure:
 def _scalar_image_figure() -> vp.Figure:
     """Build the public DATA-space scalar-image and linked-colorbar review."""
     values = np.linspace(-1.0, 1.0, 20 * 30, dtype=np.float32).reshape(20, 30)
-    values += 0.35 * np.sin(
-        np.linspace(0.0, 4.0 * np.pi, 30, dtype=np.float32)
-    )[None, :]
+    values += 0.35 * np.sin(np.linspace(0.0, 4.0 * np.pi, 30, dtype=np.float32))[None, :]
 
     figure, axes = vp.subplots()
     scale = axes.color_scale(
@@ -290,10 +287,7 @@ def _launch_pair(case: str, *, device_scale: float) -> None:
     script = Path(__file__).resolve()
     env = dict(os.environ)
     env[DEVICE_SCALE_ENV] = str(device_scale)
-    commands = [
-        [sys.executable, str(script), case, "--backend", backend]
-        for backend in BACKENDS
-    ]
+    commands = [[sys.executable, str(script), case, "--backend", backend] for backend in BACKENDS]
     children = [subprocess.Popen(command, env=env) for command in commands]
     print(
         f"Opened {case!r} through Matplotlib and Datoviz. "

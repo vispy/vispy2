@@ -206,12 +206,8 @@ def test_resolve_layout_returns_only_protocol_snapshot() -> None:
         panels=(
             gsp.protocol.ResolvedPanelLayout(
                 panel_id=axes.panel.id,
-                panel_rect_px=gsp.protocol.LogicalPixelRect(
-                    0.0, 0.0, 800.0, 600.0
-                ),
-                plot_rect_px=gsp.protocol.LogicalPixelRect(
-                    100.0, 80.0, 620.0, 440.0
-                ),
+                panel_rect_px=gsp.protocol.LogicalPixelRect(0.0, 0.0, 800.0, 600.0),
+                plot_rect_px=gsp.protocol.LogicalPixelRect(100.0, 80.0, 620.0, 440.0),
                 view_id=axes.view.id,
             ),
         ),

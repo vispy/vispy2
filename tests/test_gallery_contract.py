@@ -227,8 +227,7 @@ def test_galleries_2_to_4_have_exact_required_view3d_capabilities() -> None:
         },
     }
     assert {
-        gallery: required_capabilities(figure)
-        for gallery, figure in figures.items()
+        gallery: required_capabilities(figure) for gallery, figure in figures.items()
     } == expected
 
 
@@ -253,10 +252,13 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
         validator["_assert_manifest_schema"],
     )
 
-    assert logical_import_path(
-        Path("/temporary/gsp/build/site-packages/gsp/__init__.py"),
-        "gsp",
-    ) == "isolated-wheel-site/gsp/__init__.py"
+    assert (
+        logical_import_path(
+            Path("/temporary/gsp/build/site-packages/gsp/__init__.py"),
+            "gsp",
+        )
+        == "isolated-wheel-site/gsp/__init__.py"
+    )
     with pytest.raises(RuntimeError, match="verified gsp/__init__.py"):
         logical_import_path(
             Path("/temporary/gsp/build/site-packages/not-gsp/__init__.py"),
@@ -286,9 +288,7 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
             "python": runtime,
             "imports": {
                 module: logical_import_path(Path(imports[module]), package)
-                for module, package in cast(
-                    dict[str, str], validator["PROJECT_IMPORTS"]
-                ).items()
+                for module, package in cast(dict[str, str], validator["PROJECT_IMPORTS"]).items()
             },
         },
     }
@@ -405,9 +405,7 @@ def test_camera_geometry_gate_accepts_background_difference_but_rejects_scale(
 
     for state in states:
         for backend in ("matplotlib", "datoviz"):
-            evidence[f"{backend}-gallery-04-{state}"] = {
-                "plot_rect": [10.0, 10.0, 80.0, 60.0]
-            }
+            evidence[f"{backend}-gallery-04-{state}"] = {"plot_rect": [10.0, 10.0, 80.0, 60.0]}
             write_capture(backend, state)
 
     result = camera_geometry_evidence(tmp_path, evidence)
@@ -452,10 +450,14 @@ def test_stale_output_cannot_satisfy_failed_capture_or_publish_manifest(
 
     assert old_manifest.read_text(encoding="utf-8") == '{"old": true}\n'
 
-    header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + struct.pack(
-        ">II",
-        800,
-        600,
+    header = (
+        b"\x89PNG\r\n\x1a\n"
+        + b"\x00\x00\x00\rIHDR"
+        + struct.pack(
+            ">II",
+            800,
+            600,
+        )
     )
     for name in expected_names:
         (capture_dir / name).write_bytes(header)
@@ -478,9 +480,7 @@ def test_stale_output_cannot_satisfy_failed_capture_or_publish_manifest(
 
     assert not stale_gallery.exists()
     assert unrelated.read_text(encoding="utf-8") == "preserve me\n"
-    assert {path.name for path in output_dir.glob("*-gallery-*.png")} == set(
-        expected_names
-    )
+    assert {path.name for path in output_dir.glob("*-gallery-*.png")} == set(expected_names)
     assert old_manifest.read_text(encoding="utf-8") == '{"schema": 2}\n'
     assert replacements[-1] == "manifest.json"
 
@@ -499,10 +499,14 @@ def test_failed_publish_invalidates_old_manifest(
     output_dir = tmp_path / "output"
     capture_dir.mkdir()
     output_dir.mkdir()
-    header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + struct.pack(
-        ">II",
-        800,
-        600,
+    header = (
+        b"\x89PNG\r\n\x1a\n"
+        + b"\x00\x00\x00\rIHDR"
+        + struct.pack(
+            ">II",
+            800,
+            600,
+        )
     )
     for name in expected_names:
         (capture_dir / name).write_bytes(header)

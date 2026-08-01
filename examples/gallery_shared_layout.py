@@ -168,9 +168,7 @@ def _render_evidence(
         "projection_snapshot_id": projection.view_projection_snapshot_id,
         "projection_kind": projection.projection_kind.value,
         "effective_perspective_aspect": (
-            aspect
-            if isinstance(scene.view3d.projection, PerspectiveProjection3D)
-            else None
+            aspect if isinstance(scene.view3d.projection, PerspectiveProjection3D) else None
         ),
         "authored_perspective_aspect": (
             scene.view3d.projection.aspect_ratio
@@ -178,9 +176,7 @@ def _render_evidence(
             else None
         ),
         "projected_anchors": anchors,
-        "backend_projection_snapshot_id": _backend_projection_snapshot_id(
-            backend, result, layout
-        ),
+        "backend_projection_snapshot_id": _backend_projection_snapshot_id(backend, result, layout),
         "title_status": title_status,
         "layout_diagnostics": list(layout_diagnostics),
         "render_diagnostics": list(render_diagnostics),

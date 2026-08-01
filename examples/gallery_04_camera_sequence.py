@@ -10,10 +10,9 @@ import numpy as np
 import vispy2 as vp
 from gsp.protocol import CanvasSize
 
+
 def make_figure() -> tuple[vp.Figure, vp.Axes3D]:
-    figure, axes = vp.subplots(
-        projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600)
-    )
+    figure, axes = vp.subplots(projection="3d", canvas_size=CanvasSize.pixel_exact(800, 600))
     axes.mesh(
         np.asarray([[-1, -1, 0], [1, -1, 0], [0, 1, 0.4], [0, 0, 1.5]], dtype=np.float32),
         np.asarray([[0, 1, 2], [0, 3, 1], [1, 3, 2], [2, 3, 0]], dtype=np.uint32),
@@ -50,9 +49,7 @@ def render(
             axes.zoom(1.25)
         path = output / f"{backend}-gallery-04-{name}.png"
         evidence_path = (
-            Path(evidence_dir) / f"{path.stem}.json"
-            if evidence_dir is not None
-            else None
+            Path(evidence_dir) / f"{path.stem}.json" if evidence_dir is not None else None
         )
         render_with_shared_layout(
             figure,

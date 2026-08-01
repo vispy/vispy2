@@ -178,8 +178,7 @@ def _runtime_description(probe: dict[str, object]) -> str:
     system = probe.get("system")
     machine = probe.get("machine")
     if not all(
-        isinstance(value, str) and value
-        for value in (implementation, version, system, machine)
+        isinstance(value, str) and value for value in (implementation, version, system, machine)
     ):
         raise RuntimeError("runtime probe fields must be non-empty strings")
     display_system = "macOS" if system == "Darwin" else system
@@ -189,9 +188,7 @@ def _runtime_description(probe: dict[str, object]) -> str:
 def _logical_import_path(path: Path, package: str) -> str:
     expected_suffix = (package, "__init__.py")
     if path.parts[-2:] != expected_suffix:
-        raise RuntimeError(
-            f"installed import is not a verified {package}/__init__.py path"
-        )
+        raise RuntimeError(f"installed import is not a verified {package}/__init__.py path")
     return str(Path("isolated-wheel-site", *expected_suffix))
 
 
@@ -228,9 +225,7 @@ def _validate_wheels(wheels: dict[str, Path]) -> dict[str, dict[str, str]]:
             raise RuntimeError(f"{expected_name} input is not a .whl file: {path}")
         actual_name = _wheel_project_name(path)
         if actual_name != expected_name:
-            raise RuntimeError(
-                f"{expected_name} wheel contains unknown project {actual_name!r}"
-            )
+            raise RuntimeError(f"{expected_name} wheel contains unknown project {actual_name!r}")
         evidence[expected_name] = {"sha256": _sha256(path)}
     return evidence
 
@@ -360,26 +355,23 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
             for left_value, right_value in zip(
                 left["logical_pixel"], right["logical_pixel"], strict=True
             ):
-                if abs(
-                    _number(left_value, context=f"{suffix} left anchor")
-                    - _number(right_value, context=f"{suffix} right anchor")
-                ) > 1.0:
+                if (
+                    abs(
+                        _number(left_value, context=f"{suffix} left anchor")
+                        - _number(right_value, context=f"{suffix} right anchor")
+                    )
+                    > 1.0
+                ):
                     raise RuntimeError(f"{suffix} projected anchors differ by over one pixel")
 
         aspect = matplotlib["effective_perspective_aspect"]
         if aspect is not None:
             plot_rect = matplotlib["plot_rect"]
             assert isinstance(plot_rect, list)
-            plot_ratio = _number(
-                plot_rect[2], context=f"{suffix} plot width"
-            ) / _number(plot_rect[3], context=f"{suffix} plot height")
-            if (
-                abs(
-                    _number(aspect, context=f"{suffix} aspect ratio")
-                    - plot_ratio
-                )
-                > 1e-12
-            ):
+            plot_ratio = _number(plot_rect[2], context=f"{suffix} plot width") / _number(
+                plot_rect[3], context=f"{suffix} plot height"
+            )
+            if abs(_number(aspect, context=f"{suffix} aspect ratio") - plot_ratio) > 1e-12:
                 raise RuntimeError(f"{suffix} perspective aspect does not use plot ratio")
             if aspect != datoviz["effective_perspective_aspect"]:
                 raise RuntimeError(f"{suffix} perspective aspect mismatch")
@@ -410,9 +402,7 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
                 raise RuntimeError("Datoviz title limitation is not recorded as unsupported")
             if "panel_text_title_unsupported_no_public_renderer_path" not in diagnostics:
                 raise RuntimeError("Datoviz title diagnostic is missing")
-            if render_diagnostics != [
-                "panel_text_title_unsupported_no_public_renderer_path"
-            ]:
+            if render_diagnostics != ["panel_text_title_unsupported_no_public_renderer_path"]:
                 raise RuntimeError(
                     "Datoviz accepted render did not record exactly one title diagnostic"
                 )
@@ -525,15 +515,10 @@ def _validate_capture_set(capture_dir: Path) -> list[Path]:
         missing = sorted(expected_names - actual_names)
         unexpected = sorted(actual_names - expected_names)
         raise RuntimeError(
-            "fresh capture has incorrect PNG set: "
-            f"missing={missing}, unexpected={unexpected}"
+            f"fresh capture has incorrect PNG set: missing={missing}, unexpected={unexpected}"
         )
     pngs = [capture_dir / name for name in sorted(EXPECTED_CAPTURE_NAMES)]
-    wrong_sizes = {
-        path.name: _png_size(path)
-        for path in pngs
-        if _png_size(path) != (800, 600)
-    }
+    wrong_sizes = {path.name: _png_size(path) for path in pngs if _png_size(path) != (800, 600)}
     if wrong_sizes:
         raise RuntimeError(f"gallery PNG dimensions must all be 800x600: {wrong_sizes}")
     return pngs
@@ -592,10 +577,7 @@ def main() -> None:
         "gsp": args.gsp_source.resolve(),
         "vispy2": args.vispy2_source.resolve(),
     }
-    source_revisions = {
-        project: _git_revision(path)
-        for project, path in source_paths.items()
-    }
+    source_revisions = {project: _git_revision(path) for project, path in source_paths.items()}
     env = dict(os.environ)
 
     with tempfile.TemporaryDirectory(prefix="vispy2-m290-gallery-") as temporary:

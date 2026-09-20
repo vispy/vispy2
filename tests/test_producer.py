@@ -362,6 +362,38 @@ def test_mixed_multi_panel_scene_is_passed_whole_to_adapter_session() -> None:
     assert session.queries == [(request, "scene:main")]
 
 
+@pytest.mark.parametrize("projections", [("2d", "3d"), ("3d", "2d")])
+def test_mixed_multi_panel_scene_resolves_end_to_end_with_matplotlib(
+    projections: tuple[str, str],
+) -> None:
+    """A produced mixed scene executes through a real adapter as one figure."""
+    pytest.importorskip("gsp_matplotlib")
+    figure = vp.Figure(canvas_size=CanvasSize.pixel_exact(640, 360))
+    axes = [figure.add_axes(projection=projection) for projection in projections]  # type: ignore[misc]
+    for index, axis in enumerate(axes):
+        axis.set_title(f"panel {index}")
+        if isinstance(axis, vp.Axes3D):
+            axis.mesh(
+                [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.5]],
+                [[0, 1, 2]],
+                color=[60, 120, 220, 255],
+            )
+        else:
+            axis.scatter([0.0], [0.0], color=[220, 60, 80, 255])
+
+    with vp.open_session("matplotlib", require={"visual.points", "visual.mesh"}) as session:
+        snapshot = figure.resolve_layout(session)
+
+    assert tuple(panel.panel_id for panel in snapshot.panels) == tuple(
+        panel.id for panel in figure.panels()
+    )
+    assert tuple(panel.view_id for panel in snapshot.panels) == tuple(
+        figure.to_scene().primary_view_for_panel(panel.id).id for panel in figure.panels()
+    )
+    assert snapshot.render_target.logical_width_px == 640
+    assert snapshot.render_target.logical_height_px == 360
+
+
 def test_query_targets_stable_scene_id_without_retaining_session() -> None:
     figure, axes = vp.subplots()
     axes.scatter([0.0], [0.0])

@@ -53,6 +53,28 @@ Build the producer wheel with:
 For cross-backend release evidence, follow the exact-wheel procedure in
 [the gallery guide](docs/gallery.md). Do not substitute editable installs or old PNGs.
 
+The reusable command for the four GSP/VisPy2 wheels plus the Datoviz runtime
+candidate qualification is:
+
+```console
+VISPY2_QUALIFICATION_PYTHON=.venv/bin/python \
+VISPY2_QUALIFICATION_WHEEL_DIR=../wheels \
+VISPY2_QUALIFICATION_OUTPUT=../qualification/vispy2 \
+VISPY2_QUALIFICATION_GSP_SOURCE=../gsp \
+VISPY2_DATOVIZ_RUNTIME_WHEEL=/path/to/datoviz-0.4.0rc3-wheel.whl \
+just exact-wheel-qualification
+```
+
+The recipe invokes `examples/validate_gallery.py`; it does not duplicate the
+qualification harness. By default it expects the four `0.2.0a1` wheel names
+under `../wheels`. Override `VISPY2_GSP_CORE_WHEEL`,
+`VISPY2_GSP_MATPLOTLIB_WHEEL`, `VISPY2_GSP_DATOVIZ_WHEEL`, or `VISPY2_WHEEL`
+when testing candidate artifacts with different filenames. Set
+`VISPY2_DATOVIZ_RUNTIME_WHEEL` to qualify a Datoviz RC3 wheel; this disables
+source-checkout discovery and records the runtime wheel hash in the manifest.
+For source-checkout development qualification, use
+`VISPY2_QUALIFICATION_DATOVIZ_SOURCE` instead.
+
 ## Change guidelines
 
 - Preserve typed semantic behavior and immutable `Figure.to_scene()` snapshots.

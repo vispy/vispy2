@@ -1,11 +1,12 @@
 """Validate the S065 gallery against wheel-installed packages.
 
 Run this script with a Python interpreter whose environment contains the four
-local wheels. The harness copies gallery scripts to a temporary directory,
-unpacks only the four named project wheels into an isolated project site,
-verifies all project imports and Pillow from the requested interpreter,
-captures galleries 1--4 with both backends, then exercises capability discovery
-and queries. Datoviz subprocesses have a hard timeout and one retry.
+local project wheels. The harness copies gallery scripts to a temporary directory,
+unpacks the named project wheels and an optional Datoviz runtime wheel into an
+isolated project site, verifies project imports and Pillow, captures galleries 1--4
+with both backends, then exercises capability discovery and queries. When supplied,
+the Datoviz runtime wheel and its native binding are also proven isolated. Datoviz
+subprocesses have a hard timeout and one retry.
 """
 
 from __future__ import annotations
@@ -49,6 +50,9 @@ PROJECT_IMPORTS: Final = {
     "gsp_matplotlib": "gsp_matplotlib",
     "gsp_datoviz": "gsp_datoviz",
     "vispy2": "vispy2",
+}
+DATOVIZ_RUNTIME_IMPORTS: Final = {
+    "datoviz": "datoviz",
 }
 CAPTURE_SUFFIXES: Final = (
     "gallery-01-priority-2d",
@@ -210,27 +214,38 @@ def _wheel_project_name(path: Path) -> str:
     return metadata_names[0]
 
 
-def _validate_wheels(wheels: dict[str, Path]) -> dict[str, dict[str, str]]:
+def _validate_wheel(path: Path, expected_name: str) -> dict[str, str]:
+    if not path.is_file():
+        raise RuntimeError(f"{expected_name} wheel does not exist: {path}")
+    if path.suffix != ".whl":
+        raise RuntimeError(f"{expected_name} input is not a .whl file: {path}")
+    actual_name = _wheel_project_name(path)
+    if actual_name != expected_name:
+        raise RuntimeError(f"{expected_name} wheel contains unknown project {actual_name!r}")
+    return {"sha256": _sha256(path)}
+
+
+def _validate_wheels(
+    wheels: dict[str, Path], runtime_wheel: Path | None = None
+) -> dict[str, dict[str, str]]:
     if set(wheels) != set(WHEEL_PROJECTS):
         raise RuntimeError("exactly four named project wheels are required")
     resolved = [path.resolve() for path in wheels.values()]
+    if runtime_wheel is not None:
+        resolved.append(runtime_wheel.resolve())
     if len(set(resolved)) != len(resolved):
         raise RuntimeError("duplicate wheel inputs are not allowed")
     evidence: dict[str, dict[str, str]] = {}
     for expected_name in WHEEL_PROJECTS:
-        path = wheels[expected_name]
-        if not path.is_file():
-            raise RuntimeError(f"{expected_name} wheel does not exist: {path}")
-        if path.suffix != ".whl":
-            raise RuntimeError(f"{expected_name} input is not a .whl file: {path}")
-        actual_name = _wheel_project_name(path)
-        if actual_name != expected_name:
-            raise RuntimeError(f"{expected_name} wheel contains unknown project {actual_name!r}")
-        evidence[expected_name] = {"sha256": _sha256(path)}
+        evidence[expected_name] = _validate_wheel(wheels[expected_name], expected_name)
+    if runtime_wheel is not None:
+        evidence["datoviz"] = _validate_wheel(runtime_wheel, "datoviz")
     return evidence
 
 
-def _unpack_wheels(wheels: dict[str, Path], project_site: Path) -> None:
+def _unpack_wheels(
+    wheels: dict[str, Path], project_site: Path, runtime_wheel: Path | None = None
+) -> None:
     project_site.mkdir(parents=True)
     for project in WHEEL_PROJECTS:
         with zipfile.ZipFile(wheels[project]) as archive:
@@ -239,30 +254,45 @@ def _unpack_wheels(wheels: dict[str, Path], project_site: Path) -> None:
                 if not destination.is_relative_to(project_site.resolve()):
                     raise RuntimeError(f"unsafe wheel member: {member.filename}")
             archive.extractall(project_site)
+    if runtime_wheel is not None:
+        with zipfile.ZipFile(runtime_wheel) as archive:
+            for member in archive.infolist():
+                destination = (project_site / member.filename).resolve()
+                if not destination.is_relative_to(project_site.resolve()):
+                    raise RuntimeError(f"unsafe wheel member: {member.filename}")
+            archive.extractall(project_site)
 
 
-def _parse_probe(stdout: str, project_site: Path) -> dict[str, object]:
+def _parse_probe(
+    stdout: str, project_site: Path, *, require_datoviz_runtime: bool = False
+) -> dict[str, object]:
     try:
         value = json.loads(stdout)
     except json.JSONDecodeError as exc:
         raise RuntimeError("interpreter probe did not return JSON") from exc
     if not isinstance(value, dict):
         raise RuntimeError("interpreter probe must return an object")
-    if set(value) != {
+    expected_fields = {
         "implementation",
         "version",
         "system",
         "machine",
         "pillow",
         "imports",
-    }:
+    }
+    if require_datoviz_runtime:
+        expected_fields.add("datoviz_native")
+    if set(value) != expected_fields:
         raise RuntimeError("interpreter probe has invalid fields")
     _runtime_description(value)
     imports = value.get("imports")
-    if not isinstance(imports, dict) or set(imports) != set(PROJECT_IMPORTS):
+    expected_imports = dict(PROJECT_IMPORTS)
+    if require_datoviz_runtime:
+        expected_imports.update(DATOVIZ_RUNTIME_IMPORTS)
+    if not isinstance(imports, dict) or set(imports) != set(expected_imports):
         raise RuntimeError("interpreter probe has invalid project imports")
     site = project_site.resolve()
-    for module, package in PROJECT_IMPORTS.items():
+    for module, package in expected_imports.items():
         raw_path = imports[module]
         if not isinstance(raw_path, str) or not raw_path:
             raise RuntimeError(f"interpreter probe import {module} must be a path string")
@@ -270,6 +300,15 @@ def _parse_probe(stdout: str, project_site: Path) -> dict[str, object]:
         if not path.is_relative_to(site):
             raise RuntimeError(f"{module} was not imported from the isolated wheel site")
         _logical_import_path(path, package)
+    if require_datoviz_runtime:
+        native_path = value["datoviz_native"]
+        if not isinstance(native_path, str) or not native_path:
+            raise RuntimeError("interpreter probe native binding path must be a string")
+        native = Path(native_path).resolve()
+        if not native.is_relative_to(site):
+            raise RuntimeError("Datoviz native binding was not loaded from the isolated wheel site")
+        if not native.is_file():
+            raise RuntimeError("interpreter probe native binding does not exist")
     pillow = value.get("pillow")
     if not isinstance(pillow, str) or not pillow:
         raise RuntimeError("interpreter probe did not prove Pillow importability")
@@ -561,6 +600,11 @@ def main() -> None:
     parser.add_argument("--gsp-matplotlib-wheel", type=Path, required=True)
     parser.add_argument("--gsp-datoviz-wheel", type=Path, required=True)
     parser.add_argument("--vispy2-wheel", type=Path, required=True)
+    parser.add_argument(
+        "--datoviz-runtime-wheel",
+        type=Path,
+        help="optional RC3 Datoviz runtime wheel; isolates native binding from source checkouts",
+    )
     parser.add_argument("--timeout", type=float, default=20.0)
     args = parser.parse_args()
 
@@ -572,13 +616,20 @@ def main() -> None:
         "gsp-datoviz": args.gsp_datoviz_wheel,
         "vispy2": args.vispy2_wheel,
     }
-    wheel_evidence = _validate_wheels(wheels)
+    wheel_evidence = _validate_wheels(wheels, args.datoviz_runtime_wheel)
     source_paths = {
         "gsp": args.gsp_source.resolve(),
         "vispy2": args.vispy2_source.resolve(),
     }
     source_revisions = {project: _git_revision(path) for project, path in source_paths.items()}
     env = dict(os.environ)
+    require_datoviz_runtime = args.datoviz_runtime_wheel is not None
+    if require_datoviz_runtime:
+        for name in ("DATOVIZ_LIBRARY", "DVZ_WHEEL_RUNTIME_DIRS", "GSP_DATOVIZ_SOURCE"):
+            env.pop(name, None)
+    probe_imports = dict(PROJECT_IMPORTS)
+    if require_datoviz_runtime:
+        probe_imports.update(DATOVIZ_RUNTIME_IMPORTS)
 
     with tempfile.TemporaryDirectory(prefix="vispy2-m290-gallery-") as temporary:
         run_dir = Path(temporary)
@@ -586,35 +637,56 @@ def main() -> None:
         capture_dir = run_dir / "captures"
         evidence_dir = run_dir / "evidence"
         capture_dir.mkdir()
-        _unpack_wheels(wheels, project_site)
+        _unpack_wheels(wheels, project_site, args.datoviz_runtime_wheel)
         env["PYTHONPATH"] = str(project_site)
         env["MPLCONFIGDIR"] = str(run_dir / ".matplotlib")
         for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS, *SHARED_SCRIPTS):
             shutil.copy2(script_dir / name, run_dir / name)
 
+        datoviz_probe_imports = (
+            "import datoviz; import datoviz.raw; import datoviz._ctypes as datoviz_ctypes; "
+            if require_datoviz_runtime
+            else ""
+        )
+        datoviz_probe_values = ", 'datoviz': datoviz.__file__" if require_datoviz_runtime else ""
+        datoviz_native_value = (
+            ", 'datoviz_native': datoviz_ctypes.dvz._name" if require_datoviz_runtime else ""
+        )
         probe = subprocess.run(
             [
                 str(args.python),
                 "-c",
                 (
                     "import json, platform, gsp, gsp_matplotlib, gsp_datoviz, vispy2; "
-                    "from PIL import Image; "
+                    + datoviz_probe_imports
+                    + "from PIL import Image; "
                     "print(json.dumps({'implementation': platform.python_implementation(), "
                     "'version': platform.python_version(), 'system': platform.system(), "
                     "'machine': platform.machine(), 'pillow': Image.__name__, "
                     "'imports': {'gsp': gsp.__file__, "
                     "'gsp_matplotlib': gsp_matplotlib.__file__, "
                     "'gsp_datoviz': gsp_datoviz.__file__, "
-                    "'vispy2': vispy2.__file__}}))"
+                    "'vispy2': vispy2.__file__"
+                    + datoviz_probe_values
+                    + "}"
+                    + datoviz_native_value
+                    + "}))"
                 ),
             ],
             cwd=run_dir,
             env=env,
-            check=True,
+            check=False,
             text=True,
             capture_output=True,
         )
-        probe_value = _parse_probe(probe.stdout, project_site)
+        if probe.returncode != 0:
+            detail = probe.stderr.strip() or probe.stdout.strip() or "no diagnostic output"
+            raise RuntimeError(f"interpreter probe failed: {detail}")
+        probe_value = _parse_probe(
+            probe.stdout,
+            project_site,
+            require_datoviz_runtime=require_datoviz_runtime,
+        )
         import_values = cast(dict[str, str], probe_value["imports"])
 
         for backend in ("matplotlib", "datoviz"):
@@ -653,25 +725,33 @@ def main() -> None:
         _assert_shared_geometry(evidence)
         camera_geometry = _camera_geometry_evidence(capture_dir, evidence)
 
+        provenance: dict[str, object] = {
+            "python": _runtime_description(probe_value),
+            "imports": {
+                module: _logical_import_path(Path(import_values[module]), package)
+                for module, package in probe_imports.items()
+            },
+            "project_wheels": wheel_evidence,
+            "gsp_source_revision": source_revisions["gsp"],
+            "vispy2_source_revision": source_revisions["vispy2"],
+            "execution": (
+                "copied scripts outside both source trees; four project wheels and the "
+                "optional Datoviz runtime wheel unpacked into an isolated project site; "
+                "third-party dependencies provided by the requested Python environment"
+            ),
+            "datoviz_timeout_seconds": args.timeout,
+            "datoviz_retries": 1,
+        }
+        if require_datoviz_runtime:
+            provenance["datoviz_native"] = str(
+                Path("isolated-wheel-site")
+                / Path(cast(str, probe_value["datoviz_native"]))
+                .resolve()
+                .relative_to(project_site.resolve())
+            )
         manifest = {
             "schema": 2,
-            "provenance": {
-                "python": _runtime_description(probe_value),
-                "imports": {
-                    module: _logical_import_path(Path(import_values[module]), package)
-                    for module, package in PROJECT_IMPORTS.items()
-                },
-                "project_wheels": wheel_evidence,
-                "gsp_source_revision": source_revisions["gsp"],
-                "vispy2_source_revision": source_revisions["vispy2"],
-                "execution": (
-                    "copied scripts outside both source trees; four project wheels "
-                    "unpacked into an isolated project site; third-party dependencies "
-                    "provided by the requested Python environment"
-                ),
-                "datoviz_timeout_seconds": args.timeout,
-                "datoviz_retries": 1,
-            },
+            "provenance": provenance,
             "scripts": {
                 name: {"sha256": _sha256(script_dir / name)}
                 for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS, *SHARED_SCRIPTS)

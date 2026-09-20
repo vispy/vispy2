@@ -240,7 +240,7 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
         validator["_logical_import_path"],
     )
     parse_probe = cast(
-        Callable[[str, Path], dict[str, object]],
+        Callable[..., dict[str, object]],
         validator["_parse_probe"],
     )
     runtime_description = cast(
@@ -266,10 +266,17 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
         )
 
     project_site = tmp_path / "project-site"
+    probe_imports = {
+        **cast(dict[str, str], validator["PROJECT_IMPORTS"]),
+        **cast(dict[str, str], validator["DATOVIZ_RUNTIME_IMPORTS"]),
+    }
     imports = {
         module: str(project_site / package / "__init__.py")
-        for module, package in cast(dict[str, str], validator["PROJECT_IMPORTS"]).items()
+        for module, package in probe_imports.items()
     }
+    native_path = project_site / "datoviz" / "libdatoviz.so"
+    native_path.parent.mkdir(parents=True)
+    native_path.write_text("# probe fixture\n", encoding="utf-8")
     probe_payload = {
         "implementation": "DifferentPython",
         "version": "9.8.7",
@@ -277,10 +284,19 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
         "machine": "probe-machine",
         "pillow": "PIL.Image",
         "imports": imports,
+        "datoviz_native": str(native_path),
     }
-    probe = parse_probe(json.dumps(probe_payload), project_site)
+    probe = parse_probe(json.dumps(probe_payload), project_site, require_datoviz_runtime=True)
     runtime = runtime_description(probe)
     assert runtime == "DifferentPython 9.8.7 ProbeOS probe-machine"
+
+    source_probe_payload = dict(probe_payload)
+    source_probe_payload["imports"] = {
+        module: imports[module] for module in cast(dict[str, str], validator["PROJECT_IMPORTS"])
+    }
+    del source_probe_payload["datoviz_native"]
+    source_probe = parse_probe(json.dumps(source_probe_payload), project_site)
+    assert runtime_description(source_probe) == runtime
 
     manifest: dict[str, object] = {
         "schema": 2,
@@ -288,7 +304,7 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
             "python": runtime,
             "imports": {
                 module: logical_import_path(Path(imports[module]), package)
-                for module, package in cast(dict[str, str], validator["PROJECT_IMPORTS"]).items()
+                for module, package in probe_imports.items()
             },
         },
     }
@@ -307,6 +323,34 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
                 "provenance": {"python": r"C:\wheel-env\python.exe"},
             }
         )
+
+
+def test_exact_runtime_probe_rejects_source_tree_native_library(tmp_path: Path) -> None:
+    validator = _load("validate_gallery.py")
+    parse_probe = cast(Callable[..., dict[str, object]], validator["_parse_probe"])
+    project_site = tmp_path / "project-site"
+    imports = {
+        module: str(project_site / package / "__init__.py")
+        for module, package in {
+            **cast(dict[str, str], validator["PROJECT_IMPORTS"]),
+            **cast(dict[str, str], validator["DATOVIZ_RUNTIME_IMPORTS"]),
+        }.items()
+    }
+    source_native = tmp_path / "source-tree" / "libdatoviz.so"
+    source_native.parent.mkdir(parents=True)
+    source_native.write_bytes(b"fixture")
+    payload = {
+        "implementation": "CPython",
+        "version": "3.13.3",
+        "system": "Linux",
+        "machine": "x86_64",
+        "pillow": "PIL.Image",
+        "imports": imports,
+        "datoviz_native": str(source_native),
+    }
+
+    with pytest.raises(RuntimeError, match="isolated wheel site"):
+        parse_probe(json.dumps(payload), project_site, require_datoviz_runtime=True)
 
 
 def _write_wheel(path: Path, project: str) -> None:
@@ -338,6 +382,12 @@ def test_gallery_validator_requires_four_exact_named_unique_wheels(
     assert all(set(item) == {"sha256"} for item in evidence.values())
     assert all(len(item["sha256"]) == 64 for item in evidence.values())
     assert not any(str(tmp_path) in str(item) for item in evidence.values())
+
+    runtime = tmp_path / "datoviz-0.4.0rc3-py3-none-any.whl"
+    _write_wheel(runtime, "datoviz")
+    runtime_evidence = validate_wheels(wheels, runtime)
+    assert set(runtime_evidence) == {*projects, "datoviz"}
+    assert len(runtime_evidence["datoviz"]["sha256"]) == 64
 
     missing = dict(wheels)
     missing.pop("vispy2")

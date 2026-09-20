@@ -140,6 +140,7 @@ def _render_evidence(
         scene.view3d,
         layout_snapshot=layout,
     )
+    panel = layout.only_panel()
     aspect = projection.aspect_ratio
     anchors = []
     for point in anchor_points:
@@ -162,8 +163,8 @@ def _render_evidence(
             layout.render_target.framebuffer_width_px,
             layout.render_target.framebuffer_height_px,
         ],
-        "panel_rect": _rect_values(layout.panel_rect_px),
-        "plot_rect": _rect_values(layout.plot_rect_px),
+        "panel_rect": _rect_values(panel.panel_rect_px),
+        "plot_rect": _rect_values(panel.plot_rect_px),
         "layout_snapshot_id": layout.snapshot_id,
         "projection_snapshot_id": projection.view_projection_snapshot_id,
         "projection_kind": projection.projection_kind.value,

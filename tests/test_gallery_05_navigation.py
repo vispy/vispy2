@@ -49,6 +49,45 @@ class _FakeRenderer:
             raise KeyboardInterrupt
 
 
+class _FakeCapabilities:
+    metadata: dict[str, object] = {}
+
+    def supports_view3d_capability(self, capability: str) -> bool:
+        return True
+
+    def supports_navigation_capability(self, capability: str) -> bool:
+        return True
+
+
+class _FakeSession:
+    capabilities = _FakeCapabilities()
+
+    def __init__(self, *, display_error: Exception | None = None) -> None:
+        self.display_error = display_error
+        self.entered = False
+        self.exited: tuple[object, object, object] | None = None
+
+    def __enter__(self) -> "_FakeSession":
+        self.entered = True
+        return self
+
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+        self.exited = (exc_type, exc_value, traceback)
+
+
+class _FakeFigure:
+    def __init__(self, session: _FakeSession | None) -> None:
+        self.session = session
+
+    def display(self, session: _FakeSession, *, block: bool) -> _FakeRenderer:
+        if self.session is not None:
+            assert session is self.session
+        assert block is False
+        if session.display_error is not None:
+            raise session.display_error
+        return _FakeRenderer(interrupt_at=1)
+
+
 def test_live_gallery_pumps_bounded_frames_until_datoviz_exit() -> None:
     module = _gallery_module()
     renderer = _FakeRenderer()
@@ -156,3 +195,46 @@ def test_live_gallery_requires_exact_semantic_capabilities() -> None:
         "view3d.navigation.orbit_pan_zoom.v1",
         "view3d.static.perspective.v1",
     }
+
+
+def test_live_gallery_closes_each_repeated_session_after_interrupt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _gallery_module()
+    sessions: list[_FakeSession] = []
+
+    def open_session(backend: str, *, require: object) -> _FakeSession:
+        assert backend == "datoviz"
+        assert require == module.REQUIRED_SESSION_CAPABILITIES
+        session = _FakeSession()
+        sessions.append(session)
+        return session
+
+    monkeypatch.setenv("GSP_DATOVIZ_ENABLE_EXPERIMENTAL_VIEW3D_NAV", "1")
+    monkeypatch.setattr(module.vp, "open_session", open_session)
+    monkeypatch.setattr(module, "make_figure", lambda: _FakeFigure(None))
+    module.main()
+    module.main()
+
+    assert len(sessions) == 2
+    assert all(session.entered for session in sessions)
+    assert all(session.exited is not None for session in sessions)
+    assert all(session.exited[0] is KeyboardInterrupt for session in sessions)
+
+
+def test_live_gallery_closes_session_when_display_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _gallery_module()
+    session = _FakeSession(display_error=RuntimeError("display failed"))
+
+    monkeypatch.setenv("GSP_DATOVIZ_ENABLE_EXPERIMENTAL_VIEW3D_NAV", "1")
+    monkeypatch.setattr(module.vp, "open_session", lambda *args, **kwargs: session)
+    monkeypatch.setattr(module, "make_figure", lambda: _FakeFigure(session))
+
+    with pytest.raises(RuntimeError, match="display failed"):
+        module.main()
+
+    assert session.entered
+    assert session.exited is not None
+    assert session.exited[0] is RuntimeError

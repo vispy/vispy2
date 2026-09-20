@@ -163,6 +163,63 @@ def test_to_scene_lowers_multi_axes_to_explicit_horizontal_panels() -> None:
     )
 
 
+@pytest.mark.parametrize("projections", [("2d", "3d"), ("3d", "2d")])
+def test_mixed_multi_panel_scene_routes_visuals_views_and_guides(
+    projections: tuple[str, str],
+) -> None:
+    """Mixed panels retain independent semantic state when lowered to one scene."""
+    figure = vp.Figure(canvas_size=CanvasSize.pixel_exact(640, 480))
+    axes = [figure.add_axes(projection=projection) for projection in projections]  # type: ignore[misc]
+
+    visual_ids: list[str] = []
+    for index, axis in enumerate(axes):
+        axis.set_title(f"panel {index}")
+        if isinstance(axis, vp.Axes3D):
+            visual = axis.mesh(
+                [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.5]],
+                [[0, 1, 2]],
+                color=[60, 120, 220, 255],
+                id=f"visual:mesh-{index}",
+            )
+        else:
+            visual = axis.scatter(
+                [float(index)],
+                [float(index + 1)],
+                color=[220, 60, 80, 255],
+                id=f"visual:point-{index}",
+            )
+        visual_ids.append(visual.id)
+
+    scene = figure.to_scene()
+
+    assert tuple(panel.id for panel in scene.panels) == ("panel:1", "panel:2")
+    views_by_panel = {view.panel_id: view for view in (*scene.views2d, *scene.views3d)}
+    assert tuple(views_by_panel[panel.id].panel_id for panel in scene.panels) == tuple(
+        panel.id for panel in scene.panels
+    )
+    assert tuple(visual.id for visual in scene.visuals) == tuple(visual_ids)
+    assert tuple(attachment.visual_id for attachment in scene.attachments) == tuple(visual_ids)
+    assert tuple(attachment.panel_id for attachment in scene.attachments) == (
+        "panel:1",
+        "panel:2",
+    )
+    assert tuple(attachment.view_id for attachment in scene.attachments) == tuple(
+        views_by_panel[attachment.panel_id].id for attachment in scene.attachments
+    )
+    assert tuple(guide.panel_id for guide in scene.panel_text_guides) == (
+        "panel:1",
+        "panel:2",
+    )
+    assert tuple(placement.panel_id for placement in scene.panel_layout.placements) == (
+        "panel:1",
+        "panel:2",
+    )
+    assert tuple(placement.allocation_rect for placement in scene.panel_layout.placements) == (
+        gsp.protocol.NormalizedRenderTargetRect(0.0, 0.0, 0.5, 1.0),
+        gsp.protocol.NormalizedRenderTargetRect(0.5, 0.0, 0.5, 1.0),
+    )
+
+
 class FakeRenderResult:
     def __init__(
         self,
@@ -270,6 +327,39 @@ def test_display_uses_caller_owned_session_without_retaining_it() -> None:
     assert options == {"block": False}
     assert all(getattr(figure, item.name) is not session for item in fields(figure))
     assert all(getattr(axes, item.name) is not session for item in fields(axes))
+
+
+def test_mixed_multi_panel_scene_is_passed_whole_to_adapter_session() -> None:
+    """The adapter receives one scene and can route queries by panel id."""
+    figure = vp.Figure()
+    axes2d = figure.add_axes()
+    axes3d = figure.add_axes(projection="3d")
+    axes2d.scatter([0.0], [1.0], id="visual:2d")
+    axes3d.mesh(
+        [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 1.0, 0.5]],
+        [[0, 1, 2]],
+        color=[60, 120, 220, 255],
+        id="visual:3d",
+    )
+    session = FakeSession()
+
+    scene, options = figure.display(cast(BackendSession, session), block=False)
+
+    assert scene is session.scenes[0]
+    assert options == {"block": False}
+    assert tuple(panel.id for panel in scene.panels) == (axes2d.panel.id, axes3d.panel.id)
+    assert tuple(attachment.panel_id for attachment in scene.attachments) == (
+        axes2d.panel.id,
+        axes3d.panel.id,
+    )
+
+    request = gsp.protocol.QueryRequest(
+        id="query:3d-panel",
+        panel_id=axes3d.panel.id,
+        coordinate=(0.25, 0.75),
+    )
+    assert figure.query(cast(BackendSession, session), request) is session.query_result
+    assert session.queries == [(request, "scene:main")]
 
 
 def test_query_targets_stable_scene_id_without_retaining_session() -> None:

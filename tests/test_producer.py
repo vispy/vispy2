@@ -58,8 +58,8 @@ def test_subplots_emits_backend_neutral_scene_records() -> None:
     assert scene.visuals == (point,)
     assert scene.panels == figure.panels()
     assert scene.attachments == figure.attachments()
-    assert scene.view2d is figure.views()[0]
-    assert scene.view2d.x_range == (-2.0, 2.0)
+    assert scene.views2d == (figure.views()[0],)
+    assert scene.views2d[0].x_range == (-2.0, 2.0)
     assert len(scene.axis_guides) == 2
     assert scene.axis_guides[0].dimension is AxisDimension.X
     assert scene.axis_guides[0].tick_spec.kind is TickSpecKind.EXPLICIT
@@ -147,12 +147,20 @@ def test_scalar_color_and_colorbar_resources_are_preserved() -> None:
     assert visual.color_scale_id == scale.id
 
 
-def test_to_scene_rejects_currently_unsupported_multi_axes_layout() -> None:
+def test_to_scene_lowers_multi_axes_to_explicit_horizontal_panels() -> None:
     figure = vp.Figure()
-    figure.add_axes()
-    figure.add_axes()
-    with pytest.raises(ValueError, match="exactly one"):
-        figure.to_scene()
+    axes2d = figure.add_axes()
+    axes3d = figure.add_axes(projection="3d")
+
+    scene = figure.to_scene()
+
+    assert scene.panels == (axes2d.panel, axes3d.panel)
+    assert scene.views2d == (axes2d.view,)
+    assert scene.views3d == (axes3d.view,)
+    assert tuple(placement.allocation_rect for placement in scene.panel_layout.placements) == (
+        gsp.protocol.NormalizedRenderTargetRect(0.0, 0.0, 0.5, 1.0),
+        gsp.protocol.NormalizedRenderTargetRect(0.5, 0.0, 0.5, 1.0),
+    )
 
 
 class FakeRenderResult:

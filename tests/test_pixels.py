@@ -36,7 +36,7 @@ def test_axes3d_pixels_accepts_xyz_and_position_array() -> None:
     )
     assert xyz.positions.shape == (2, 3)
     assert array.positions.shape == (1, 3)
-    assert figure.to_scene().view3d is axes.view
+    assert figure.to_scene().views3d == (axes.view,)
     axes.fit_camera()
 
 

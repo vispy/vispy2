@@ -126,13 +126,13 @@ def test_live_gallery_emits_strict_flat_lambert_scene() -> None:
     assert mesh.normal_mode is MeshNormalMode.FACE
     assert mesh.normal_generation is MeshNormalGeneration.FACE_FLAT
     assert mesh.normals is None
-    assert scene.view3d is not None
-    assert scene.view3d.ambient_light_intensity == 0.18
-    assert scene.view3d.directional_light == DirectionalLight3D(
+    assert scene.views3d
+    assert scene.views3d[0].ambient_light_intensity == 0.18
+    assert scene.views3d[0].directional_light == DirectionalLight3D(
         direction_to_light=(-1.0, -1.0, -1.0),
         intensity=0.82,
     )
-    assert scene.view3d.revision == 3
+    assert scene.views3d[0].revision == 3
 
 
 def test_live_gallery_matplotlib_raster_has_two_large_face_tones(

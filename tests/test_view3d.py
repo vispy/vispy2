@@ -79,8 +79,8 @@ def test_typed_subplots_builds_default_axes3d_scene() -> None:
     scene = figure.to_scene()
 
     assert isinstance(scene, gsp.Scene)
-    assert scene.view2d is None
-    assert scene.view3d is axes.view
+    assert scene.views2d == ()
+    assert scene.views3d == (axes.view,)
     assert scene.visuals == tuple(axes.visuals)
     assert scene.attachments == tuple(axes.attachments)
     assert scene.attachments[0].view_id == axes.view.id
@@ -111,7 +111,7 @@ def test_axes3d_text_emits_billboard_semantics_and_contributes_to_fit() -> None:
     assert visual.transform is None
     assert visual.z_order == 7
     assert scene.visuals == (visual,)
-    assert scene.view3d is axes.view
+    assert scene.views3d == (axes.view,)
     before = axes.get_camera()
     axes.fit_camera()
     assert axes.get_camera() != before
@@ -163,9 +163,9 @@ def test_set_lighting_emits_exact_protocol_state_and_one_revision() -> None:
         intensity=0.75,
     )
     scene = figure.to_scene()
-    assert scene.view3d is view
-    assert scene.view3d.ambient_light_intensity == 0.2
-    assert scene.view3d.directional_light == view.directional_light
+    assert scene.views3d == (view,)
+    assert scene.views3d[0].ambient_light_intensity == 0.2
+    assert scene.views3d[0].directional_light == view.directional_light
 
 
 def test_set_lighting_none_clears_directional_light_once() -> None:
@@ -417,13 +417,12 @@ def test_axes3d_reports_explicit_invalid_inputs() -> None:
         axes.fit_camera()
 
 
-def test_figure_rejects_missing_multiple_or_invalid_projection_views() -> None:
-    with pytest.raises(ValueError, match="exactly one"):
+def test_figure_rejects_missing_or_invalid_projection_views() -> None:
+    with pytest.raises(ValueError, match="at least one"):
         vp.Figure().to_scene()
     figure = vp.Figure()
     figure.add_axes()
     figure.add_axes(projection="3d")
-    with pytest.raises(ValueError, match="exactly one"):
-        figure.to_scene()
+    assert len(figure.to_scene().panels) == 2
     with pytest.raises(ValueError, match="projection"):
         vp.subplots(projection="polar")  # type: ignore[call-overload]

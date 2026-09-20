@@ -248,12 +248,12 @@ def _show_child(case: str, backend: str) -> None:
 
         matplotlib.rcParams["toolbar"] = "None"
     scene = figure.to_scene()
-    layout = resolve_shared_layout(figure) if scene.view3d is not None else None
+    layout = resolve_shared_layout(figure) if scene.views3d else None
     required = _required_capabilities(figure) - {"output.file"}
     if case == "flat-lambert" and backend == "datoviz":
         required.update(FLAT_LAMBERT_CAPABILITIES)
     with vp.open_session(backend, require=required) as session:
-        if scene.view3d is not None:
+        if scene.views3d:
             _validate_view3d_capabilities(figure, backend, session.capabilities)
         if layout is None:
             renderer = figure.display(session, block=False)

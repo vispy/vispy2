@@ -27,8 +27,8 @@ def test_gallery_3_uses_uniform_primitive_color_and_distinct_pixel_anchors() -> 
         for pixel_position in pixels.positions
         for primitive_position in primitive.positions
     )
-    assert scene.view3d is not None
-    camera = scene.view3d.camera
+    assert scene.views3d
+    camera = scene.views3d[0].camera
     forward = np.asarray(camera.target) - np.asarray(camera.eye)
     forward /= np.linalg.norm(forward)
     primitive_depths = primitive.positions @ forward

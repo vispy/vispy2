@@ -81,7 +81,7 @@ def _validate_view3d_capabilities(
     capabilities: Any,
 ) -> None:
     scene = figure.to_scene()
-    if scene.view3d is None:
+    if not scene.views3d:
         raise RuntimeError("shared gallery layout requires a View3D")
     required = _required_view3d_capabilities(figure)
     for capability in sorted(required):
@@ -91,12 +91,13 @@ def _validate_view3d_capabilities(
 
 def _required_view3d_capabilities(figure: vp.Figure) -> set[str]:
     scene = figure.to_scene()
-    if scene.view3d is None:
+    if not scene.views3d:
         raise RuntimeError("shared gallery layout requires a View3D")
+    view3d = scene.views3d[0]
     required = {
         (
             "view3d.static.perspective.v1"
-            if isinstance(scene.view3d.projection, PerspectiveProjection3D)
+            if isinstance(view3d.projection, PerspectiveProjection3D)
             else "view3d.static.orthographic.v1"
         )
     }
@@ -134,10 +135,11 @@ def _render_evidence(
     render_diagnostics: tuple[str, ...],
 ) -> dict[str, Any]:
     scene = figure.to_scene()
-    if scene.view3d is None:
+    if not scene.views3d:
         raise RuntimeError("shared gallery evidence requires a View3D")
+    view3d = scene.views3d[0]
     projection = resolve_view3d_projection_snapshot(
-        scene.view3d,
+        view3d,
         layout_snapshot=layout,
     )
     panel = layout.only_panel()
@@ -145,7 +147,7 @@ def _render_evidence(
     anchors = []
     for point in anchor_points:
         ndc = project_view3d_data_point(
-            scene.view3d,
+            view3d,
             point,
             aspect_ratio=aspect,
         )
@@ -169,11 +171,11 @@ def _render_evidence(
         "projection_snapshot_id": projection.view_projection_snapshot_id,
         "projection_kind": projection.projection_kind.value,
         "effective_perspective_aspect": (
-            aspect if isinstance(scene.view3d.projection, PerspectiveProjection3D) else None
+            aspect if isinstance(view3d.projection, PerspectiveProjection3D) else None
         ),
         "authored_perspective_aspect": (
-            scene.view3d.projection.aspect_ratio
-            if isinstance(scene.view3d.projection, PerspectiveProjection3D)
+            view3d.projection.aspect_ratio
+            if isinstance(view3d.projection, PerspectiveProjection3D)
             else None
         ),
         "projected_anchors": anchors,

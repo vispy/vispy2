@@ -148,20 +148,22 @@ class Figure:
         return tuple(axes.panel for axes in self.axes)
 
     def panel_layout(self) -> ExplicitPanelLayoutV1:
-        """Return the explicit canonical allocation for the current single axes."""
-        if len(self.axes) != 1:
-            raise ValueError("Figure panel layout requires exactly one Axes")
+        """Return deterministic left-to-right allocations for the current axes."""
+        if not self.axes:
+            raise ValueError("Figure panel layout requires at least one Axes")
+        width = 1.0 / len(self.axes)
         return ExplicitPanelLayoutV1(
-            placements=(
+            placements=tuple(
                 PanelPlacement(
-                    panel_id=self.axes[0].panel.id,
+                    panel_id=axes.panel.id,
                     allocation_rect=NormalizedRenderTargetRect(
-                        left=0.0,
+                        left=index * width,
                         top=0.0,
-                        width=1.0,
+                        width=width,
                         height=1.0,
                     ),
-                ),
+                )
+                for index, axes in enumerate(self.axes)
             )
         )
 
@@ -195,9 +197,8 @@ class Figure:
 
     def to_scene(self) -> Scene:
         """Freeze current semantic producer state into one immutable GSP scene."""
-        if len(self.axes) != 1:
-            raise ValueError("Figure.to_scene() requires exactly one 2D or 3D Axes")
-        axes = self.axes[0]
+        if not self.axes:
+            raise ValueError("Figure.to_scene() requires at least one 2D or 3D Axes")
         scene_id = (
             self.id.replace("figure:", "scene:", 1)
             if self.id.startswith("figure:")
@@ -208,8 +209,8 @@ class Figure:
             panels=self.panels(),
             panel_layout=self.panel_layout(),
             visuals=self.visuals(),
-            view2d=axes.view if isinstance(axes, Axes) else None,
-            view3d=axes.view if isinstance(axes, Axes3D) else None,
+            views2d=tuple(axes.view for axes in self.axes if isinstance(axes, Axes)),
+            views3d=tuple(axes.view for axes in self.axes if isinstance(axes, Axes3D)),
             attachments=self.attachments(),
             axis_guides=self.axis_guides(),
             panel_text_guides=self.panel_text_guides(),
@@ -368,11 +369,12 @@ class Axes:
         return resolved
 
     def _attach(self, visual_id: str) -> None:
+        visual = next(visual for visual in reversed(self.visuals) if visual.id == visual_id)
         self.attachments.append(
             VisualAttachment(
                 visual_id=visual_id,
                 panel_id=self.panel.id,
-                view_id=self.view.id,
+                view_id=(self.view.id if visual.coordinate_space is CoordinateSpace.DATA else None),
                 clip_scope=self._clip_scope,
             )
         )
@@ -1084,11 +1086,12 @@ class Axes3D:
         self._home_view = self.view
 
     def _attach(self, visual_id: str) -> None:
+        visual = next(visual for visual in reversed(self.visuals) if visual.id == visual_id)
         self.attachments.append(
             VisualAttachment(
                 visual_id=visual_id,
                 panel_id=self.panel.id,
-                view_id=self.view.id,
+                view_id=(self.view.id if visual.coordinate_space is CoordinateSpace.DATA else None),
                 clip_scope=ClipScope.PLOT,
             )
         )

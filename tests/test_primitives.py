@@ -54,7 +54,7 @@ def test_axes3d_primitives_and_camera_fit_include_geometry_bounds() -> None:
     fitted = axes.fit_camera()
     assert visual.positions.shape == (3, 3)
     assert fitted.camera.target == pytest.approx((-1.0, 1.5, 0.5))
-    assert figure.to_scene().view3d is fitted
+    assert figure.to_scene().views3d == (fitted,)
 
 
 def test_module_primitives_is_bounded_2d_convenience() -> None:

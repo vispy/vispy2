@@ -71,8 +71,9 @@ under `../wheels`. Override `VISPY2_GSP_CORE_WHEEL`,
 `VISPY2_GSP_MATPLOTLIB_WHEEL`, `VISPY2_GSP_DATOVIZ_WHEEL`, or `VISPY2_WHEEL`
 when testing candidate artifacts with different filenames. Set
 `VISPY2_DATOVIZ_RUNTIME_WHEEL` to qualify a Datoviz RC3 wheel; this disables
-source-checkout discovery and records the runtime wheel hash in the manifest.
-For source-checkout development qualification, use
+source-checkout discovery, requires distribution metadata with `Name: datoviz` and a version in
+`>=0.4.0rc3,<0.5`, and records the runtime wheel version and hash in the manifest. For
+source-checkout development qualification without that runtime-wheel gate, use
 `VISPY2_QUALIFICATION_DATOVIZ_SOURCE` instead.
 
 ## Change guidelines

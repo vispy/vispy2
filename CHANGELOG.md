@@ -36,7 +36,8 @@ describes the current experimental candidate rather than a package-index release
 
 ### Boundaries
 
-- Scene execution currently accepts exactly one 2D or 3D axes.
+- Scene execution accepts one or more 2D or 3D axes, including mixed figures, and emits an
+  explicit deterministic left-to-right panel layout.
 - VisPy2 imports `gsp-core` but no concrete adapter.
 - Non-blocking and interactive execution requires an explicit caller-owned session.
 - Datoviz DATA-space scalar images and linked colorbars are supported on the qualified retained

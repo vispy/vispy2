@@ -45,8 +45,27 @@ jobs:
           uv build --wheel --out-dir "$RUNNER_TEMP/vispy2-dist" .
       - name: Test installed wheels
         run: |
+          python -m venv "$RUNNER_TEMP/vispy2-producer-wheel-venv"
+          "$RUNNER_TEMP/vispy2-producer-wheel-venv/bin/python" -m pip install \
+            "$RUNNER_TEMP"/vispy2-dist/gsp_core-*.whl \
+            "$RUNNER_TEMP"/vispy2-dist/vispy2-*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/vispy2-producer-wheel-venv/bin/python" - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          import sysconfig
+
+          import gsp
+          import vispy2
+
+          wheel_site = Path(sysconfig.get_path("purelib")).resolve()
+          for module in (gsp, vispy2):
+              module_path = Path(module.__file__).resolve()
+              assert module_path.is_relative_to(wheel_site), (module.__name__, module_path)
+          for adapter in ("gsp_matplotlib", "gsp_datoviz"):
+              assert importlib.util.find_spec(adapter) is None, adapter
+          PY
           python -m venv "$RUNNER_TEMP/vispy2-wheel-venv"
           "$RUNNER_TEMP/vispy2-wheel-venv/bin/python" -m pip install "$RUNNER_TEMP"/vispy2-dist/*.whl "pytest>=8,<10"
-          cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/vispy2-wheel-venv/bin/python" -m pytest -q "$GITHUB_WORKSPACE/tests"
           "$RUNNER_TEMP/vispy2-wheel-venv/bin/python" "$GITHUB_WORKSPACE/examples/semantic_scene.py"

@@ -376,12 +376,12 @@ def test_exact_runtime_probe_rejects_source_tree_native_library(tmp_path: Path) 
         parse_probe(json.dumps(payload), project_site, require_datoviz_runtime=True)
 
 
-def _write_wheel(path: Path, project: str) -> None:
+def _write_wheel(path: Path, project: str, *, version: str = "0.2.0") -> None:
     distribution = project.replace("-", "_")
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr(
-            f"{distribution}-0.2.0.dist-info/METADATA",
-            f"Metadata-Version: 2.4\nName: {project}\nVersion: 0.2.0\n",
+            f"{distribution}-{version}.dist-info/METADATA",
+            f"Metadata-Version: 2.4\nName: {project}\nVersion: {version}\n",
         )
 
 
@@ -407,9 +407,10 @@ def test_gallery_validator_requires_four_exact_named_unique_wheels(
     assert not any(str(tmp_path) in str(item) for item in evidence.values())
 
     runtime = tmp_path / "datoviz-0.4.0rc3-py3-none-any.whl"
-    _write_wheel(runtime, "datoviz")
+    _write_wheel(runtime, "datoviz", version="0.4.0rc3")
     runtime_evidence = validate_wheels(wheels, runtime)
     assert set(runtime_evidence) == {*projects, "datoviz"}
+    assert runtime_evidence["datoviz"]["version"] == "0.4.0rc3"
     assert len(runtime_evidence["datoviz"]["sha256"]) == 64
 
     missing = dict(wheels)
@@ -437,6 +438,57 @@ def test_gallery_validator_requires_four_exact_named_unique_wheels(
     wrong_suffix = {**wheels, "vispy2": not_wheel}
     with pytest.raises(RuntimeError, match=r"not a \.whl"):
         validate_wheels(wrong_suffix)
+
+
+@pytest.mark.parametrize(
+    "version",
+    ["0.4.0rc2", "0.4.0.0rc2", "0.4.0rc3.dev1", "0.3.99", "0.5.0"],
+)
+def test_gallery_validator_rejects_incompatible_datoviz_runtime_metadata(
+    tmp_path: Path,
+    version: str,
+) -> None:
+    validator = _load("validate_gallery.py")
+    validate_wheels = cast(
+        Callable[[dict[str, Path], Path], dict[str, dict[str, str]]],
+        validator["_validate_wheels"],
+    )
+    wheels = {}
+    for project in cast(tuple[str, ...], validator["WHEEL_PROJECTS"]):
+        path = tmp_path / f"{project}-0.2.0-py3-none-any.whl"
+        _write_wheel(path, project)
+        wheels[project] = path
+    runtime = tmp_path / "datoviz-0.4.0rc3-py3-none-any.whl"
+    _write_wheel(runtime, "datoviz", version=version)
+
+    with pytest.raises(RuntimeError, match=r">=0\.4\.0rc3,<0\.5"):
+        validate_wheels(wheels, runtime)
+
+
+@pytest.mark.parametrize("version", ["0.4.0rc3", "0.4.0.0rc3", "0.4.0rc4", "0.4.0", "0.4.9"])
+def test_gallery_validator_accepts_compatible_datoviz_runtime_versions(version: str) -> None:
+    validator = _load("validate_gallery.py")
+    compatible = cast(
+        Callable[[str], bool],
+        validator["_is_compatible_datoviz_runtime_version"],
+    )
+
+    assert compatible(version)
+
+
+def test_gallery_validator_rejects_invalid_datoviz_runtime_version_metadata(
+    tmp_path: Path,
+) -> None:
+    validator = _load("validate_gallery.py")
+    validate_runtime = cast(
+        Callable[[Path], dict[str, str]],
+        validator["_validate_datoviz_runtime_wheel"],
+    )
+    runtime = tmp_path / "datoviz-0.4.0rc3-py3-none-any.whl"
+    _write_wheel(runtime, "datoviz", version="not-a-version")
+
+    with pytest.raises(RuntimeError, match="invalid version metadata"):
+        validate_runtime(runtime)
 
 
 def test_geometry_bounds_uses_plot_background_not_canvas_background(

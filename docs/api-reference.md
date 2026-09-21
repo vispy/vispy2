@@ -23,8 +23,8 @@ topology cardinalities raise `ValueError` or `TypeError` before backend executio
 
 `subplots(*, projection="2d", canvas_size=None) -> (Figure, Axes | Axes3D)`
 
-Creates the supported one-axes figure. `projection` is `"2d"` or `"3d"`. `canvas_size` is a GSP
-`CanvasSize`.
+Creates a figure with one initial axes. `projection` is `"2d"` or `"3d"`. `canvas_size` is a GSP
+`CanvasSize`. Use `Figure.add_axes()` to append further 2D or 3D panels.
 
 ### `open_session`
 
@@ -51,7 +51,7 @@ transform binding.
 | Method | Result |
 |---|---|
 | `add_axes(projection="2d")` | appends and returns an `Axes` or `Axes3D` |
-| `to_scene()` | freezes the current one-axes semantic state as a `gsp.Scene` |
+| `to_scene()` | freezes the complete semantic figure state as a `gsp.Scene` |
 | `visuals()` | visuals in creation order |
 | `panels()`, `views()`, `attachments()` | corresponding scene records |
 | `axis_guides()`, `panel_text_guides()` | guide intent |
@@ -62,8 +62,10 @@ transform binding.
 | `resolve_layout(session, **kwargs)` | renders and returns a backend-neutral layout snapshot |
 | `query(session, request)` | queries this figure's stable scene ID |
 
-`to_scene()` rejects empty and multi-axes figures. `show(block=False)` requires an explicit
-session. `display`, `resolve_layout`, and `query` do not close or retain the supplied session.
+`to_scene()` rejects an empty figure. With multiple axes, it emits one panel and view per axes and
+an explicit deterministic left-to-right layout; 2D and 3D axes may be mixed in any order.
+`show(block=False)` requires an explicit session. `display`, `resolve_layout`, and `query` do not
+close or retain the supplied session.
 
 ## `Axes`
 

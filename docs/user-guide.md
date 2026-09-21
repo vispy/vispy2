@@ -18,8 +18,9 @@ print(vp.__version__)
 print([(item.name, item.available) for item in gsp.discover_backends(probe=True)])
 ```
 
-`vp.subplots()` creates exactly one semantic axes. VisPy2 does not select a backend while you
-construct the figure:
+`vp.subplots()` creates a figure with one initial semantic axes. Add further 2D or 3D axes with
+`figure.add_axes()` when a figure needs multiple or mixed panels. VisPy2 does not select a backend
+while you construct the figure:
 
 ```python
 import vispy2 as vp
@@ -31,6 +32,10 @@ scene = figure.to_scene()
 
 The resulting `gsp.Scene` is an immutable snapshot. Changing the axes later changes the next
 snapshot, not the earlier one.
+
+For multiple axes, `Figure.to_scene()` emits one panel and view per axes plus an explicit
+left-to-right panel layout. Mixed 2D/3D figures preserve each axes' visuals, attachments, and
+guides independently.
 
 ## 2D plotting
 
@@ -255,7 +260,8 @@ depend on the installed binding.
 
 Current product boundaries:
 
-- `Figure.to_scene()` requires exactly one 2D or 3D axes;
+- `Figure.to_scene()` requires at least one axes and supports explicit multi-panel and mixed 2D/3D
+  figures;
 - VisPy2 produces semantic snapshots and imports no concrete adapter;
 - DATA-space `imshow` and linked colorbars require the qualified Datoviz retained-image binding;
 - live Datoviz View3D navigation is experimental, opt-in, and caller-owned;

@@ -28,9 +28,10 @@ with gsp.open_session("datoviz", require={"visual.points"}) as session:
 close a Matplotlib session. Install `vispy2[matplotlib]` for those methods. Non-blocking or
 interactive execution requires a caller-owned session so its lifecycle remains explicit.
 
-The current `Scene` execution boundary requires exactly one `Axes` or `Axes3D`;
-`Figure.to_scene()` rejects empty, mixed, and multi-axes figures instead of silently discarding
-views.
+`Figure.to_scene()` requires at least one axes. Figures may contain multiple `Axes` and `Axes3D`
+instances in any order. Each axes retains its own panel, view, visuals, attachments, and guides;
+the producer emits an explicit deterministic left-to-right panel allocation for the complete
+figure instead of discarding or merging views.
 
 ## Minimal public query
 

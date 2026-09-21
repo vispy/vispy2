@@ -19,6 +19,7 @@ import json
 import math
 import os
 from pathlib import Path, PureWindowsPath
+import re
 import shutil
 import signal
 import struct
@@ -71,6 +72,14 @@ EXPECTED_CAPTURE_NAMES: Final = tuple(
     for suffix in CAPTURE_SUFFIXES
 )
 TERMINATION_TIMEOUT_SECONDS: Final = 2.0
+DATOVIZ_RUNTIME_VERSION_RANGE: Final = ">=0.4.0rc3,<0.5"
+_VERSION_PATTERN: Final = re.compile(
+    r"^(?P<release>[0-9]+(?:\.[0-9]+)*)"
+    r"(?:(?P<pre>a|b|rc)(?P<pre_number>[0-9]+))?"
+    r"(?P<post>\.post[0-9]+)?(?P<dev>\.dev[0-9]+)?"
+    r"(?:\+[a-z0-9]+(?:[._-][a-z0-9]+)*)?$",
+    re.IGNORECASE,
+)
 
 
 class ProcessIsolation(Enum):
@@ -198,22 +207,50 @@ def _logical_import_path(path: Path, package: str) -> str:
     return str(Path("isolated-wheel-site", *expected_suffix))
 
 
-def _wheel_project_name(path: Path) -> str:
-    metadata_names: list[str] = []
+def _wheel_distribution_metadata(path: Path) -> dict[str, str]:
+    metadata_records: list[dict[str, str]] = []
     try:
         with zipfile.ZipFile(path) as archive:
             for name in archive.namelist():
                 if not name.endswith(".dist-info/METADATA"):
                     continue
+                record: dict[str, str] = {}
                 for line in archive.read(name).decode("utf-8").splitlines():
                     if line.startswith("Name: "):
-                        metadata_names.append(line.removeprefix("Name: ").strip())
-                        break
+                        record["name"] = line.removeprefix("Name: ").strip()
+                    elif line.startswith("Version: "):
+                        record["version"] = line.removeprefix("Version: ").strip()
+                metadata_records.append(record)
     except (OSError, UnicodeDecodeError, zipfile.BadZipFile) as exc:
         raise RuntimeError(f"invalid wheel: {path}") from exc
-    if len(metadata_names) != 1 or not metadata_names[0]:
-        raise RuntimeError(f"wheel must contain exactly one project name: {path}")
-    return metadata_names[0]
+    if len(metadata_records) != 1:
+        raise RuntimeError(f"wheel must contain exactly one distribution metadata record: {path}")
+    metadata = metadata_records[0]
+    if set(metadata) != {"name", "version"} or not all(metadata.values()):
+        raise RuntimeError(f"wheel distribution metadata must contain Name and Version: {path}")
+    return metadata
+
+
+def _is_compatible_datoviz_runtime_version(version: str) -> bool:
+    match = _VERSION_PATTERN.fullmatch(version)
+    if match is None:
+        raise RuntimeError(f"Datoviz runtime wheel has invalid version metadata {version!r}")
+    release_parts = [int(item) for item in match.group("release").split(".")]
+    while len(release_parts) > 1 and release_parts[-1] == 0:
+        release_parts.pop()
+    release = tuple(release_parts)
+    if release < (0, 4) or release >= (0, 5):
+        return False
+    if release > (0, 4):
+        return True
+    pre = match.group("pre")
+    if pre is None:
+        return match.group("dev") is None
+    return (
+        pre.lower() == "rc"
+        and int(match.group("pre_number")) >= 3
+        and not (int(match.group("pre_number")) == 3 and match.group("dev") is not None)
+    )
 
 
 def _validate_wheel(path: Path, expected_name: str) -> dict[str, str]:
@@ -221,10 +258,21 @@ def _validate_wheel(path: Path, expected_name: str) -> dict[str, str]:
         raise RuntimeError(f"{expected_name} wheel does not exist: {path}")
     if path.suffix != ".whl":
         raise RuntimeError(f"{expected_name} input is not a .whl file: {path}")
-    actual_name = _wheel_project_name(path)
+    metadata = _wheel_distribution_metadata(path)
+    actual_name = metadata["name"]
     if actual_name != expected_name:
         raise RuntimeError(f"{expected_name} wheel contains unknown project {actual_name!r}")
     return {"sha256": _sha256(path)}
+
+
+def _validate_datoviz_runtime_wheel(path: Path) -> dict[str, str]:
+    evidence = _validate_wheel(path, "datoviz")
+    version = _wheel_distribution_metadata(path)["version"]
+    if not _is_compatible_datoviz_runtime_version(version):
+        raise RuntimeError(
+            f"Datoviz runtime wheel version {version!r} is outside {DATOVIZ_RUNTIME_VERSION_RANGE}"
+        )
+    return {**evidence, "version": version}
 
 
 def _validate_wheels(
@@ -241,7 +289,7 @@ def _validate_wheels(
     for expected_name in WHEEL_PROJECTS:
         evidence[expected_name] = _validate_wheel(wheels[expected_name], expected_name)
     if runtime_wheel is not None:
-        evidence["datoviz"] = _validate_wheel(runtime_wheel, "datoviz")
+        evidence["datoviz"] = _validate_datoviz_runtime_wheel(runtime_wheel)
     return evidence
 
 

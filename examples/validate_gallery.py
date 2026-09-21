@@ -4,7 +4,7 @@ Run this script with a Python interpreter whose environment contains the four
 local project wheels. The harness copies gallery scripts to a temporary directory,
 unpacks the named project wheels and an optional Datoviz runtime wheel into an
 isolated project site, verifies project imports and Pillow, captures galleries 1--4
-with both backends, then exercises capability discovery and queries. When supplied,
+and the mixed-panel gallery with both backends, then exercises capability discovery and queries. When supplied,
 the Datoviz runtime wheel and its native binding are also proven isolated. Datoviz
 subprocesses have a hard timeout and one retry.
 """
@@ -36,6 +36,7 @@ CAPTURE_SCRIPTS: Final = (
     "gallery_02_perspective_3d.py",
     "gallery_03_orthographic_3d.py",
     "gallery_04_camera_sequence.py",
+    "gallery_mixed_panels.py",
 )
 CHECK_SCRIPTS: Final = ("gallery_06_capabilities.py", "gallery_07_queries.py")
 SHARED_SCRIPTS: Final = ("gallery_shared_layout.py",)
@@ -62,6 +63,7 @@ CAPTURE_SUFFIXES: Final = (
     "gallery-04-01-orbit",
     "gallery-04-02-pan",
     "gallery-04-03-zoom",
+    "gallery-mixed-panels",
 )
 EXPECTED_CAPTURE_NAMES: Final = tuple(
     f"{backend}-{suffix}.png"
@@ -347,8 +349,8 @@ def _load_evidence(evidence_dir: Path) -> dict[str, dict[str, object]]:
         if not isinstance(value, dict):
             raise RuntimeError(f"invalid gallery evidence object: {path}")
         evidence[path.stem] = value
-    if len(evidence) != 12:
-        raise RuntimeError(f"expected 12 layout evidence records, found {len(evidence)}")
+    if len(evidence) != 14:
+        raise RuntimeError(f"expected 14 layout evidence records, found {len(evidence)}")
     return evidence
 
 
@@ -423,7 +425,7 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
         raise RuntimeError("Gallery 2 projection evidence is not perspective")
     if orthographic["projection_kind"] != "orthographic":
         raise RuntimeError("Gallery 3 projection evidence is not orthographic")
-    for value in evidence.values():
+    for evidence_name, value in evidence.items():
         backend = value["backend"]
         title_status = value["title_status"]
         diagnostics = value["layout_diagnostics"]
@@ -441,7 +443,11 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
                 raise RuntimeError("Datoviz title limitation is not recorded as unsupported")
             if "panel_text_title_unsupported_no_public_renderer_path" not in diagnostics:
                 raise RuntimeError("Datoviz title diagnostic is missing")
-            if render_diagnostics != ["panel_text_title_unsupported_no_public_renderer_path"]:
+            expected_title_diagnostic = "panel_text_title_unsupported_no_public_renderer_path"
+            if evidence_name.endswith("gallery-mixed-panels"):
+                if set(render_diagnostics) - {expected_title_diagnostic}:
+                    raise RuntimeError("Datoviz mixed-panel render recorded unexpected diagnostics")
+            elif render_diagnostics != [expected_title_diagnostic]:
                 raise RuntimeError(
                     "Datoviz accepted render did not record exactly one title diagnostic"
                 )
@@ -449,6 +455,81 @@ def _assert_shared_geometry(evidence: dict[str, dict[str, object]]) -> None:
             raise RuntimeError("Matplotlib unexpectedly reports titles as unsupported")
         elif render_diagnostics:
             raise RuntimeError("Matplotlib unexpectedly recorded a render diagnostic")
+
+
+def _assert_mixed_panel_evidence(output_dir: Path, evidence: dict[str, dict[str, object]]) -> None:
+    matplotlib, datoviz = _matching_evidence(evidence, "gallery-mixed-panels")
+    expected_panels = ["panel:1", "panel:2"]
+    expected_views = {"panel:1": "view:1", "panel:2": "view:2"}
+    expected_allocations = [[0.0, 0.0, 0.5, 1.0], [0.5, 0.0, 0.5, 1.0]]
+    expected_attachments = [
+        {"visual_id": "visual:mixed-2d", "panel_id": "panel:1", "view_id": "view:1"},
+        {"visual_id": "visual:mixed-3d", "panel_id": "panel:2", "view_id": "view:2"},
+    ]
+    for backend, backend_evidence in (("matplotlib", matplotlib), ("datoviz", datoviz)):
+        if backend_evidence["canvas_size"] != [800, 600]:
+            raise RuntimeError(f"{backend} mixed-panel capture is not 800x600")
+        if backend_evidence["warmup_canvas_size"] != [640, 360]:
+            raise RuntimeError(f"{backend} mixed-panel warmup is not 640x360")
+        if backend_evidence["scene_panels"] != expected_panels:
+            raise RuntimeError(f"{backend} mixed-panel scene identities differ")
+        if backend_evidence["scene_views"] != expected_views:
+            raise RuntimeError(f"{backend} mixed-panel view routing differs")
+        if backend_evidence["allocation_rects"] != expected_allocations:
+            raise RuntimeError(f"{backend} mixed-panel allocations differ")
+        if backend_evidence["attachments"] != expected_attachments:
+            raise RuntimeError(f"{backend} mixed-panel attachments differ")
+        if backend_evidence["session_teardown"] != "closed":
+            raise RuntimeError(f"{backend} mixed-panel session did not close")
+
+        resolved = backend_evidence["resolved_panels"]
+        if not isinstance(resolved, list) or [
+            (item["panel_id"], item["view_id"]) for item in resolved
+        ] != list(expected_views.items()):
+            raise RuntimeError(f"{backend} mixed-panel resolved identities differ")
+        capture = output_dir / f"{backend}-gallery-mixed-panels.png"
+        _assert_panel_contains_color(capture, resolved[0]["plot_rect"], expected_rgb=(220, 60, 80))
+        _assert_panel_contains_color(capture, resolved[1]["plot_rect"], expected_rgb=(60, 120, 220))
+
+        point_query = backend_evidence["point_query"]
+        if not isinstance(point_query, dict) or point_query.get("status") not in {
+            "hit",
+            "unsupported",
+        }:
+            raise RuntimeError(f"{backend} mixed-panel point query was not structured")
+        invalid_query = backend_evidence["invalid_panel_query"]
+        if not isinstance(invalid_query, dict) or invalid_query.get("status") != "unsupported":
+            raise RuntimeError(f"{backend} missing-panel query was not unsupported")
+
+
+def _assert_panel_contains_color(
+    path: Path,
+    plot_rect: list[object],
+    *,
+    expected_rgb: tuple[int, int, int],
+) -> None:
+    image = Image.open(path).convert("RGB")
+    plot_x = _number(plot_rect[0], context="mixed plot x")
+    plot_y = _number(plot_rect[1], context="mixed plot y")
+    plot_width = _number(plot_rect[2], context="mixed plot width")
+    plot_height = _number(plot_rect[3], context="mixed plot height")
+    x0 = max(0, math.floor(plot_x))
+    y0 = max(0, math.floor(plot_y))
+    x1 = min(image.width, math.ceil(plot_x + plot_width))
+    y1 = min(image.height, math.ceil(plot_y + plot_height))
+    matching = sum(
+        max(
+            abs(channel - expected)
+            for channel, expected in zip(image.getpixel((x, y)), expected_rgb)
+        )
+        <= 40
+        for y in range(y0, y1)
+        for x in range(x0, x1)
+    )
+    if matching < 4:
+        raise RuntimeError(
+            f"{path.name} panel does not contain expected RGB {expected_rgb}: {matching} pixels"
+        )
 
 
 def _geometry_bounds(path: Path, plot_rect: list[object]) -> list[int]:
@@ -723,6 +804,7 @@ def main() -> None:
         pngs = _validate_capture_set(capture_dir)
         evidence = _load_evidence(evidence_dir)
         _assert_shared_geometry(evidence)
+        _assert_mixed_panel_evidence(capture_dir, evidence)
         camera_geometry = _camera_geometry_evidence(capture_dir, evidence)
 
         provenance: dict[str, object] = {

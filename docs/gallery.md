@@ -78,7 +78,7 @@ Datoviz captures run as direct children because creating a new session can corru
 successful native teardown; their bounded timeout cleanup terminates and, if necessary, kills only
 the direct child. This exception changes only harness process lifecycle and does not claim any
 third-party dependency or Datoviz rebuild. Only after all
-fourteen new pixel-exact 800×600 PNGs, layout evidence, queries, and the schema-2 manifest validate
+sixteen new pixel-exact 800×600 PNGs, layout evidence, queries, and the schema-2 manifest validate
 does it copy the result to `--output-dir`, so stale destination artifacts cannot satisfy a run.
 The manifest records the probed interpreter runtime, portable logical paths for all four project
 imports, clean candidate source revisions, and stable project-name-to-SHA-256 wheel evidence without

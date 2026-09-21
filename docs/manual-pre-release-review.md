@@ -1098,7 +1098,7 @@ uv build --wheel --out-dir "$VISPY2_REVIEW_OUTPUT/wheels" .
 
 Expected:
 
-- fourteen fresh PNGs and a schema-2 manifest;
+- sixteen fresh PNGs and a schema-2 manifest;
 - exact committed source revisions and wheel hashes;
 - no project import outside the isolated wheel site;
 - shared 800×600 layout and comparable camera geometry;
@@ -1107,7 +1107,7 @@ Expected:
 
 - [ ] Exact-wheel qualification completed.
 - [ ] Manifest commits match section 1.
-- [ ] The validator reported fourteen fresh captures; no manual PNG inspection was used.
+- [ ] The validator reported sixteen fresh captures; no manual PNG inspection was used.
 - [ ] Any retry, timeout, or lifecycle diagnostic recorded: __________________
 
 ## 14. Review live Datoviz camera behavior

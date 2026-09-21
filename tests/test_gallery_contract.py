@@ -231,6 +231,29 @@ def test_galleries_2_to_4_have_exact_required_view3d_capabilities() -> None:
     } == expected
 
 
+def test_mixed_panel_gallery_has_stable_routing_and_permanent_capture_names() -> None:
+    gallery = _load("gallery_mixed_panels.py")
+    figure = cast(Callable[[], vp.Figure], gallery["make_figure"])()
+    scene = figure.to_scene()
+    validator = _load("validate_gallery.py")
+
+    assert tuple(panel.id for panel in scene.panels) == ("panel:1", "panel:2")
+    assert tuple((view.panel_id, view.id) for view in (*scene.views2d, *scene.views3d)) == (
+        ("panel:1", "view:1"),
+        ("panel:2", "view:2"),
+    )
+    assert tuple(
+        (attachment.visual_id, attachment.panel_id, attachment.view_id)
+        for attachment in scene.attachments
+    ) == (
+        ("visual:mixed-2d", "panel:1", "view:1"),
+        ("visual:mixed-3d", "panel:2", "view:2"),
+    )
+    assert "gallery_mixed_panels.py" in validator["CAPTURE_SCRIPTS"]
+    assert "gallery-mixed-panels" in validator["CAPTURE_SUFFIXES"]
+    assert len(validator["EXPECTED_CAPTURE_NAMES"]) == 16
+
+
 def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
     tmp_path: Path,
 ) -> None:

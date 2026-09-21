@@ -37,6 +37,7 @@ def _load_example() -> ModuleType:
         "perspective-3d",
         "orthographic-3d",
         "flat-lambert",
+        "mixed-panels",
         "camera-fit",
         "camera-orbit",
         "camera-pan",
@@ -72,6 +73,55 @@ def test_scalar_image_case_keeps_data_extent_colorbar_and_registration_points() 
     assert image.color_scale_id == "review:viridis"
     assert scene.colorbar_guides[0].linked_visual_ids == (image.id,)
     assert any(visual.id == "review:image-registration" for visual in scene.visuals)
+
+
+def test_mixed_panel_case_preserves_explicit_panel_routing() -> None:
+    module = _load_example()
+
+    scene = module.make_figure("mixed-panels").to_scene()
+
+    assert "mixed-panels" in module.CASES
+    assert tuple(panel.id for panel in scene.panels) == ("panel:1", "panel:2")
+    assert tuple((view.panel_id, view.id) for view in (*scene.views2d, *scene.views3d)) == (
+        ("panel:1", "view:1"),
+        ("panel:2", "view:2"),
+    )
+    assert tuple(attachment.panel_id for attachment in scene.attachments) == (
+        "panel:1",
+        "panel:2",
+    )
+    assert tuple(
+        placement.allocation_rect.width for placement in scene.panel_layout.placements
+    ) == (
+        0.5,
+        0.5,
+    )
+
+
+def test_mixed_panel_case_does_not_use_single_panel_shared_layout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_example()
+    resolve_shared_layout = Mock(side_effect=AssertionError("must not resolve mixed panels"))
+    monkeypatch.setattr(module, "resolve_shared_layout", resolve_shared_layout)
+
+    assert module._comparison_layout(module.make_figure("mixed-panels")) is None
+
+    resolve_shared_layout.assert_not_called()
+
+
+def test_single_panel_3d_case_still_uses_shared_reference_layout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_example()
+    expected = object()
+    resolve_shared_layout = Mock(return_value=expected)
+    monkeypatch.setattr(module, "resolve_shared_layout", resolve_shared_layout)
+    figure = module.make_figure("perspective-3d")
+
+    assert module._comparison_layout(figure) is expected
+
+    resolve_shared_layout.assert_called_once_with(figure)
 
 
 def test_bounded_datoviz_loop_stops_before_native_reap(monkeypatch: pytest.MonkeyPatch) -> None:

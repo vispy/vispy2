@@ -33,12 +33,23 @@ python examples/manual_live_compare.py all
 ```
 
 Use a case name instead of `all` to repeat only one pair, for example
-`priority-2d`, `scalar-image`, `perspective-3d`, `orthographic-3d`, `flat-lambert`, `camera-fit`,
-`camera-orbit`, `camera-pan`, `camera-zoom`, or `camera-reset`. Each backend runs in its own child
-process. The runner detects the active GUI device scale and gives both backends the same 800×600
-host-logical content area; it hides the Matplotlib toolbar so backend chrome does not distort the
-size comparison. The 3D pair also consumes the same resolved plot viewport. Close both windows to
-advance to the next case; terminal `Ctrl-C` terminates both children.
+`priority-2d`, `scalar-image`, `perspective-3d`, `orthographic-3d`, `flat-lambert`, `mixed-panels`,
+`camera-fit`, `camera-orbit`, `camera-pan`, `camera-zoom`, or `camera-reset`. Each backend runs in
+its own child process. The runner detects the active GUI device scale and gives both backends the
+same 800×600 host-logical content area; it hides the Matplotlib toolbar so backend chrome does not
+distort the size comparison. Each single-panel 3D pair consumes the same resolved plot viewport.
+The mixed-panel pair instead retains the figure's explicit two-panel layout so navigation and
+clipping can remain panel-local. Close both windows to advance to the next case; terminal `Ctrl-C`
+terminates both children.
+
+The `mixed-panels` case is a manual post-RC3 qualification harness, not evidence that interactive
+multi-panel behavior has passed. Review and record all of the following before making that claim:
+
+- exactly two side-by-side panels appear, with View2D on the left and View3D on the right;
+- 2D pan/zoom input over the left panel changes only the left panel;
+- 3D orbit, pan, and zoom input over the right panel changes only the right panel;
+- window resize preserves panel-local allocation and clipping without cross-panel drawing;
+- closing each window returns cleanly without a crash, hang, or teardown diagnostic.
 
 The [manual pre-release review workbook](manual-pre-release-review.md) is the linear human-review
 path. Generated PNGs belong to automated qualification and are not required for human visual

@@ -102,13 +102,14 @@ this one terminal:
 ```
 
 The runner visits these cases in order: priority 2D, scalar image/colorbar, perspective 3D,
-orthographic 3D, flat Lambert, then camera fit/orbit/pan/zoom/reset. For each case it:
+orthographic 3D, flat Lambert, mixed panels, then camera fit/orbit/pan/zoom/reset. For each case it:
 
 1. starts one isolated child process per backend;
 2. opens both live windows at the same time;
 3. detects the active GUI device scale and requests the same 800×600 host-logical content size
    from both backends, with the Matplotlib toolbar hidden;
-4. applies the same resolved plot viewport to both 3D windows;
+4. applies the same resolved plot viewport to both single-panel 3D windows, while preserving the
+   mixed case's explicit two-panel layout;
 5. waits while you move the windows side by side and inspect them;
 6. continues only after you close both windows.
 
@@ -120,6 +121,7 @@ To repeat only one case:
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py perspective-3d
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py orthographic-3d
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py flat-lambert
+"$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py mixed-panels
 "$VISPY2_REVIEW_PYTHON" examples/manual_live_compare.py camera-pan
 ```
 
@@ -1045,7 +1047,18 @@ Compare the live realizations in this order:
 | Perspective 3D | `manual_live_compare.py perspective-3d` | same command | mesh, spheres, vectors, text, depth, framing |
 | Orthographic 3D | `manual_live_compare.py orthographic-3d` | same command | projection, primitive, pixels, framing, occlusion |
 | Flat Lambert | `manual_live_compare.py flat-lambert` | same command | distinct face intensities and shape |
+| Mixed panels | `manual_live_compare.py mixed-panels` | same command | two panels, panel-local navigation, resize, clipping, and teardown |
 | Camera fit/orbit/pan/zoom/reset | the five matching `manual_live_compare.py camera-*` cases | same commands, plus section 14 for interactive Datoviz | coherent camera meaning and scale |
+
+The mixed-panel row prepares a post-RC3 manual qualification; its presence in the harness does not
+claim that interaction has passed. Exercise it deliberately and record each result:
+
+- [ ] Exactly two side-by-side panels appear: View2D on the left and View3D on the right.
+- [ ] Panning or zooming over the left panel changes only the 2D view.
+- [ ] Orbiting, panning, or zooming over the right panel changes only the 3D view.
+- [ ] Resizing preserves both panel allocations and keeps clipping panel-local.
+- [ ] Closing both backend windows completes clean teardown without a crash or hang.
+- [ ] Mixed-panel interaction finding: ______________________________________
 
 Known intentional differences:
 

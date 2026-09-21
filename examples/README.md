@@ -13,7 +13,9 @@ The M283 installed-wheel gallery is the current cross-backend feature tour:
 8. `gallery_mixed_panels.py` — permanent mixed View2D/View3D capture, resize, query-routing, and
    lifecycle qualification.
 9. `manual_live_compare.py` — launch matching Matplotlib and Datoviz windows together from one
-   terminal while retaining one isolated child process per backend.
+   terminal while retaining one isolated child process per backend; its `mixed-panels` case is a
+   post-RC3 manual harness for panel-local 2D/3D navigation, resize, clipping, and clean teardown,
+   not a completed interaction qualification.
 
 See [`../docs/gallery.md`](../docs/gallery.md) for commands, live controls, cleanup, artifact
 interpretation, and the installed-wheel validation harness. `validate_docs.py` compiles every

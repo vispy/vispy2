@@ -1,9 +1,9 @@
 """Open matching Matplotlib and Datoviz review windows from one terminal.
 
 The parent process launches one child per backend. This keeps native Datoviz
-isolated while both windows remain visible concurrently. Both children resolve
-the same Matplotlib reference layout before display, so titles and axes do not
-silently change the shared data viewport.
+isolated while both windows remain visible concurrently. Single-panel 3D
+children resolve the same Matplotlib reference layout before display. The mixed
+panel case preserves its authored explicit layout for backend-local interaction.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from gallery_02_perspective_3d import make_figure as make_perspective_3d
 from gallery_03_orthographic_3d import make_figure as make_orthographic_3d
 from gallery_04_camera_sequence import make_figure as make_camera_figure
 from gallery_05_datoviz_navigation import make_figure as make_flat_lambert
+from gallery_mixed_panels import make_figure as make_mixed_panels
 from gallery_shared_layout import (
     _required_capabilities,
     _validate_view3d_capabilities,
@@ -35,6 +36,7 @@ from gsp.protocol import (
     VIEW3D_LIGHT_AMBIENT_CAPABILITY,
     VIEW3D_LIGHT_DIRECTIONAL_CAPABILITY,
     CanvasSize,
+    ResolvedLayoutSnapshot,
 )
 
 import vispy2 as vp
@@ -53,6 +55,7 @@ CASES = (
     "perspective-3d",
     "orthographic-3d",
     "flat-lambert",
+    "mixed-panels",
     *CAMERA_CASES,
 )
 FLAT_LAMBERT_CAPABILITIES = {
@@ -228,6 +231,7 @@ def make_figure(case: str) -> vp.Figure:
         "perspective-3d": make_perspective_3d,
         "orthographic-3d": make_orthographic_3d,
         "flat-lambert": make_flat_lambert,
+        "mixed-panels": make_mixed_panels,
     }
     if case in CAMERA_CASES:
         return _camera_figure(case)
@@ -240,6 +244,14 @@ def make_figure(case: str) -> vp.Figure:
     return figure
 
 
+def _comparison_layout(figure: vp.Figure) -> ResolvedLayoutSnapshot | None:
+    """Resolve the shared reference layout only for a single-panel 3D figure."""
+    scene = figure.to_scene()
+    if len(scene.panels) != 1 or not scene.views3d:
+        return None
+    return resolve_shared_layout(figure)
+
+
 def _show_child(case: str, backend: str) -> None:
     figure = make_figure(case)
     configure_live_canvas(figure, _review_device_scale())
@@ -248,8 +260,10 @@ def _show_child(case: str, backend: str) -> None:
 
         matplotlib.rcParams["toolbar"] = "None"
     scene = figure.to_scene()
-    layout = resolve_shared_layout(figure) if scene.views3d else None
+    layout = _comparison_layout(figure)
     required = _required_capabilities(figure) - {"output.file"}
+    if case == "mixed-panels":
+        required.update({"visual.points", "visual.mesh"})
     if case == "flat-lambert" and backend == "datoviz":
         required.update(FLAT_LAMBERT_CAPABILITIES)
     with vp.open_session(backend, require=required) as session:

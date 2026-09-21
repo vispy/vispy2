@@ -3,6 +3,43 @@
 Qualification records are immutable snapshots. The newest source/documentation gate appears first;
 the original producer-only bootstrap remains below with its exact artifact hashes.
 
+## Permanent mixed-panel installed-wheel gate
+
+Date: 2026-09-21
+
+VisPy2 commit `e9e3c56385135547a55d63a03f8c02159f29d714` and GSP commit
+`43f67b1bddc3212d791435c243090001e042ba1f` make the mixed 2D/3D scene a permanent
+installed-wheel gallery case. The gate also used the exact local Datoviz candidate wheel built
+from clean commit `c54f5c24ce32d09990ce86346a8bb0e112548ca1`.
+
+| Gate | Result |
+|---|---|
+| Complete GSP source pytest | 837 passed |
+| Complete VisPy2 source pytest | 135 passed |
+| Fresh exact-wheel gallery set | 16 Matplotlib/Datoviz captures validated |
+| Mixed-panel rerender | 640×360 warmup and 800×600 final capture passed on both backends |
+| Mixed-panel routing | two panel/view identities, two visual attachments, and explicit allocations passed |
+| Query and lifecycle evidence | valid-panel hit or structured unsupported, invalid-panel unsupported, closed-session rejection passed |
+
+The harness copied the gallery scripts outside both source trees and loaded all five distributions
+from its isolated wheel site. The two new captures prove that each backend placed the 2D red point
+and 3D blue mesh in the intended resolved plot rectangle. Matplotlib returned the expected 2D
+point hit. Datoviz explicitly returned `unsupported` because its adapter does not support data-space
+query coordinates; this is accepted adaptation evidence, not a simulated hit. Both backends rejected
+the missing-panel query structurally and rejected rendering after session teardown.
+
+| Artifact | SHA-256 |
+|---|---|
+| `gsp_core-0.2.0a1-py3-none-any.whl` | `9b9cb29f3dba7a7b2c27306bcbff78b27be0fcaf646513189e13639a9d267010` |
+| `gsp_matplotlib-0.2.0a1-py3-none-any.whl` | `26780a8347ad44235349ab7b61fc07ffb32865b52fb9733df22088812e4cca73` |
+| `gsp_datoviz-0.2.0a1-py3-none-any.whl` | `628eff3be884ae16f556ad771d27c848cd529b2ecd35d219e1ef2bbb22bada06` |
+| `vispy2-0.2.0a1-py3-none-any.whl` | `28ffcb63b9e6526edb880ab6188e2feedbab4aa62d3e00c5c45e1385adee3fae` |
+| `datoviz-0.4.0rc2-py3-none-linux_x86_64.whl` | `fcfb110fda7c2470ace8a34125df1b7bffc73c5a923b4a965beb0766bbf38990` |
+
+The Datoviz filename retains the existing `rc2` package metadata and the wheel is a local Linux
+qualification artifact. This gate does not claim an RC3 version bump, portable repaired wheel,
+tag, publication, or release.
+
 ## ADR-0036 multi-panel producer gate
 
 Date: 2026-09-20

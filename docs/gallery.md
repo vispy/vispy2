@@ -1,7 +1,8 @@
 # Installed-wheel gallery
 
-The [accepted M292 human-review record](M284-human-review.md) links all fourteen qualified
-captures and records the completed live-navigation review.
+The [accepted M292 human-review record](M284-human-review.md) links the original fourteen
+qualified captures and records the completed live-navigation review. The current automated set
+also includes one mixed 2D/3D multi-panel capture per backend.
 
 The seven M283 journeys are deliberately small and backend-neutral. Galleries 1--4 create seven
 PNG states for each backend; gallery 5 is manual and interactive; galleries 6--7 validate
@@ -16,6 +17,7 @@ discovery and queries.
 | 5 | Experimental live Datoviz navigation with flat diffuse lighting | `python gallery_05_datoviz_navigation.py` |
 | 6 | Discovery and ordered selection | `python gallery_06_capabilities.py` |
 | 7 | Point hit and structured unsupported query | `python gallery_07_queries.py` |
+| Mixed panels | 2D points and a 3D mesh in explicit side-by-side panels | `python gallery_mixed_panels.py BACKEND --output-dir artifacts` |
 
 Replace `BACKEND` with `matplotlib` or `datoviz`. Run from `examples/` for exploration. For
 acceptance, first verify both candidate heads are clean, then build all four wheels from those
@@ -109,14 +111,17 @@ Use `Ctrl-C` if the native window cannot be closed. Do not automate this gallery
 
 ## Artifact interpretation
 
-All fourteen checked-in artifacts were requalified during M292 with wheel-installed GSP and
-VisPy2 imports while the scripts ran outside both source trees. They are exactly 800×600 and the
-schema-2 manifest records exact committed source revisions plus script, wheel, and artifact hashes.
-The native run completed all fourteen captures without a crash or retry. The four camera-state
-Datoviz-to-Matplotlib width and height ratios are 0.988–0.995, within the 2% contract. Gallery 5
-also started successfully from the isolated four-wheel site, handled one bounded `Ctrl-C`, exited
-zero, and left no process. See
-`examples/artifacts/M292-EXACT-WHEEL-QUALIFICATION.md` for the final evidence.
+The original fourteen checked-in artifacts were requalified during M292 with wheel-installed GSP
+and VisPy2 imports while the scripts ran outside both source trees. The current sixteen-artifact
+set adds one mixed 2D/3D multi-panel capture per backend and was requalified from four fresh
+project wheels plus the exact local Datoviz candidate wheel. All captures are exactly 800×600;
+the schema-2 manifest records exact committed source revisions plus script, wheel, artifact, panel
+routing, query, resize, and teardown evidence. The latest native run completed all sixteen
+captures without a failed attempt. The four camera-state Datoviz-to-Matplotlib width and height
+ratios remain within the 2% contract. Gallery 5 also started successfully during M292 from the
+isolated four-wheel site, handled one bounded `Ctrl-C`, exited zero, and left no process. See
+`examples/artifacts/M292-EXACT-WHEEL-QUALIFICATION.md` for the immutable M292 evidence and
+the repository-root `QUALIFICATION.md` for the current mixed-panel gate.
 
 The backends are not expected to match pixels, but both now receive the same canonical
 pixel-exact 800×600 canvas. Matplotlib View3D captures suppress the unintended native 2D frame.

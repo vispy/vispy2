@@ -1,87 +1,99 @@
 {
   "artifacts": {
     "datoviz-gallery-01-priority-2d.png": {
-      "bytes": 31547,
+      "bytes": 25404,
       "height": 600,
-      "sha256": "5498ebf4ddbc81510145348a0ac206ed01eebf5a5977842893963f34d37212dc",
+      "sha256": "262c459d1fd33ccce367b48a008bda2a39d8e110632abde4e8a0750fb66a173d",
       "width": 800
     },
     "datoviz-gallery-02-perspective-3d.png": {
-      "bytes": 27586,
+      "bytes": 21324,
       "height": 600,
-      "sha256": "79e591da0d540c4911d693da2b91bf8865feb41489287d20ecc00e5334cbb453",
+      "sha256": "811dd1900aa37eec02bac48d657c9221bfdb01864aae133ddbc0ec6565812ae5",
       "width": 800
     },
     "datoviz-gallery-03-orthographic-3d.png": {
-      "bytes": 14496,
+      "bytes": 6943,
       "height": 600,
-      "sha256": "01dce5e8e6e1960cb809758a95492d6c7af19333e8ab4d6702d6ff3338a1c3a5",
+      "sha256": "9e1716cf81c18bd70736dc80049db02983ed2516d5679baba57f3a02d33b4723",
       "width": 800
     },
     "datoviz-gallery-04-00-fit.png": {
-      "bytes": 13904,
+      "bytes": 6716,
       "height": 600,
-      "sha256": "445423707b4be26163db6c703e29659d4a1e5b4befe2e133022bfc450051c877",
+      "sha256": "832ed3155042f88f5575ee12777ba6d47b3113c5943197972f8fa7ced2faf025",
       "width": 800
     },
     "datoviz-gallery-04-01-orbit.png": {
-      "bytes": 13931,
+      "bytes": 6807,
       "height": 600,
-      "sha256": "30c19f8e924fa27d2072671a52b3983b5d29a622bd79f17bede56186853a5e56",
+      "sha256": "1c60d1bb8921c2ad41df3fe99de1e269f08cbf543b1d094ac191b84f057ca4d1",
       "width": 800
     },
     "datoviz-gallery-04-02-pan.png": {
-      "bytes": 14001,
+      "bytes": 6815,
       "height": 600,
-      "sha256": "15547666b14a264f994b628726f4dfe9363b66ad5e16bfb8266f016807ec3203",
+      "sha256": "452068d2ee4bc6f097bb9d266982c801abbb61de39184711391ffbaacd328def",
       "width": 800
     },
     "datoviz-gallery-04-03-zoom.png": {
-      "bytes": 14448,
+      "bytes": 7117,
       "height": 600,
-      "sha256": "8821b89bf2598af7da1311f012cc8dde25ab37ab404dc49cbe03c4a870b2877d",
+      "sha256": "c9d12cbd20005c33090fc6b9d5d48d48ffa241c71e037f22f96164d99105a467",
+      "width": 800
+    },
+    "datoviz-gallery-mixed-panels.png": {
+      "bytes": 7627,
+      "height": 600,
+      "sha256": "0987101969881f0bfaf4abc7b669c5ec6bbed4b5ed6f04277843bacec04e0441",
       "width": 800
     },
     "matplotlib-gallery-01-priority-2d.png": {
-      "bytes": 21404,
+      "bytes": 23016,
       "height": 600,
-      "sha256": "09209abcd2a67e4286d2ab295beb914f137767fc338a6f929a8ee2bc39348de2",
+      "sha256": "26261c299173273ab3d89bf5dcea62155cf23f6b885c7786bb37fddb4d073b31",
       "width": 800
     },
     "matplotlib-gallery-02-perspective-3d.png": {
-      "bytes": 16287,
+      "bytes": 17810,
       "height": 600,
-      "sha256": "7274468faa7c062ffad3ee55d83f7731fa80e9dd3871904c0fed4f277c3e4705",
+      "sha256": "997295b9f26622c1eb715783ce85ba4a97771bbe8ee48b71fd9331366292cc7e",
       "width": 800
     },
     "matplotlib-gallery-03-orthographic-3d.png": {
-      "bytes": 12468,
+      "bytes": 13384,
       "height": 600,
-      "sha256": "51a66e24b64ebb7e9194404559e3ed0cf78935e6084499468fcd52ccb1c9116f",
+      "sha256": "49f6d61119bb7e32271c502e168aa9611ac38f7f6d891d67909eeba7239a1a67",
       "width": 800
     },
     "matplotlib-gallery-04-00-fit.png": {
-      "bytes": 6165,
+      "bytes": 6474,
       "height": 600,
-      "sha256": "591a8d2e92a9c0d7bb56628b78ef44b820651907063bf6d06f9bc0eb3317d3f1",
+      "sha256": "624bd02538e65bb42a2135e6e416b933e9062dcd42dcd542edf91ddfe08cef7b",
       "width": 800
     },
     "matplotlib-gallery-04-01-orbit.png": {
-      "bytes": 6229,
+      "bytes": 6488,
       "height": 600,
-      "sha256": "fa0ad1a99748ee73502fdddff248519853058345372272262ba60f08e7abf625",
+      "sha256": "83b16cbf86aeb659b2946244ef793d23d202a7165b003219eb4d32c66c4e6879",
       "width": 800
     },
     "matplotlib-gallery-04-02-pan.png": {
-      "bytes": 6289,
+      "bytes": 6539,
       "height": 600,
-      "sha256": "8211464abe4a1692f4a5f50325a879a7ed79b024fd8de2c0d9e4ca687994025f",
+      "sha256": "3a11e19e5ee00c7295ffbf6a6e419f3c7a124bd417418f9951a70a6959d027df",
       "width": 800
     },
     "matplotlib-gallery-04-03-zoom.png": {
-      "bytes": 6526,
+      "bytes": 6784,
       "height": 600,
-      "sha256": "a5baeac037281d7b77ed9a1d0669c3ddc51468673448fc1986cd19c62f54e72b",
+      "sha256": "a757e03a75f3dc2c6d057a4a59c6e56de4f2d94e3963a5da80ed17befd2c0d53",
+      "width": 800
+    },
+    "matplotlib-gallery-mixed-panels.png": {
+      "bytes": 11932,
+      "height": 600,
+      "sha256": "f896878a284d7c5da179f0df27f1762acc2b68edf51c0b135908691fb0fd9845",
       "width": 800
     }
   },
@@ -240,7 +252,7 @@
     "datoviz-gallery-03-orthographic-3d": {
       "authored_perspective_aspect": null,
       "backend": "datoviz",
-      "backend_projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "backend_projection_snapshot_id": "view3d-projection:d4c96753f42d18e9",
       "canvas_size": [
         800,
         600
@@ -283,7 +295,7 @@
           "ndc": [
             -0.8333333069383628,
             -0.4989637717444716,
-            0.07899589099989157
+            0.07899589099989113
           ]
         },
         {
@@ -293,18 +305,18 @@
             1.28
           ],
           "logical_pixel": [
-            464.2874385241516,
+            464.2874385241515,
             221.53158629523185
           ],
           "ndc": [
-            0.17512076943274701,
+            0.1751207694327468,
             0.352677115605057,
-            -0.3356801573366124
+            -0.33568015733661294
           ]
         }
       ],
       "projection_kind": "orthographic",
-      "projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "projection_snapshot_id": "view3d-projection:d4c96753f42d18e9",
       "render_diagnostics": [
         "panel_text_title_unsupported_no_public_renderer_path"
       ],
@@ -371,7 +383,7 @@
           ],
           "ndc": [
             0.0,
-            0.33772747113993046,
+            0.3377274711399305,
             -0.9126415108254083
           ]
         }
@@ -427,8 +439,8 @@
             279.2306865638116
           ],
           "ndc": [
-            0.18320062962789846,
-            0.10289746076272031,
+            0.1832006296278985,
+            0.10289746076272033,
             -0.8750934392522234
           ]
         },
@@ -444,7 +456,7 @@
           ],
           "ndc": [
             0.0,
-            0.31574987852440656,
+            0.3157498785244066,
             -0.9138554707785626
           ]
         }
@@ -500,8 +512,8 @@
             272.09770790224127
           ],
           "ndc": [
-            0.1314290103100491,
-            0.13377615626735392,
+            0.13142901031004914,
+            0.13377615626735395,
             -0.8750934392522234
           ]
         },
@@ -513,11 +525,11 @@
           ],
           "logical_pixel": [
             386.7459462976396,
-            219.72664308203525
+            219.72664308203522
           ],
           "ndc": [
-            -0.07501307645922711,
-            0.36049072258859194,
+            -0.07501307645922713,
+            0.360490722588592,
             -0.9138554707785626
           ]
         }
@@ -570,11 +582,11 @@
           ],
           "logical_pixel": [
             458.1493362681986,
-            266.48022722555027
+            266.4802272255502
           ],
           "ndc": [
-            0.15532043957483413,
-            0.1580942544348475,
+            0.15532043957483416,
+            0.15809425443484754,
             -0.8943373651175136
           ]
         },
@@ -586,11 +598,11 @@
           ],
           "logical_pixel": [
             380.0768683797313,
-            195.84450567580222
+            195.84450567580217
           ],
           "ndc": [
-            -0.09652623103312474,
-            0.46387659880605103,
+            -0.09652623103312476,
+            0.4638765988060511,
             -0.9330993966438528
           ]
         }
@@ -601,6 +613,109 @@
         "panel_text_title_unsupported_no_public_renderer_path"
       ],
       "title_status": "unsupported"
+    },
+    "datoviz-gallery-mixed-panels": {
+      "allocation_rects": [
+        [
+          0.0,
+          0.0,
+          0.5,
+          1.0
+        ],
+        [
+          0.5,
+          0.0,
+          0.5,
+          1.0
+        ]
+      ],
+      "attachments": [
+        {
+          "panel_id": "panel:1",
+          "view_id": "view:1",
+          "visual_id": "visual:mixed-2d"
+        },
+        {
+          "panel_id": "panel:2",
+          "view_id": "view:2",
+          "visual_id": "visual:mixed-3d"
+        }
+      ],
+      "backend": "datoviz",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "invalid_panel_query": {
+        "diagnostic": "panel 'panel:missing' is not present in scene 'scene:main'",
+        "request_id": "query:datoviz:missing-panel",
+        "status": "unsupported"
+      },
+      "layout_diagnostics": [
+        "panel_text_title_unsupported_no_public_renderer_path",
+        "axis_style_mapping_partial",
+        "resolved_layout_plot_viewport_consumption_proven",
+        "layout_snapshot_partial",
+        "guide_layout_snapshot_first_slice",
+        "guide_query_native_verified",
+        "all_rendered_guides_native_verified",
+        "layout_strict_false"
+      ],
+      "point_query": {
+        "diagnostic": "query coordinate space 'data' is not supported for scope 'data'",
+        "request_id": "query:datoviz:mixed-2d",
+        "status": "unsupported",
+        "visual_id": null
+      },
+      "render_diagnostics": [],
+      "resolved_panels": [
+        {
+          "panel_id": "panel:1",
+          "panel_rect": [
+            0.0,
+            0.0,
+            400.0,
+            600.0
+          ],
+          "plot_rect": [
+            61.0,
+            18.0,
+            321.0,
+            540.0
+          ],
+          "view_id": "view:1"
+        },
+        {
+          "panel_id": "panel:2",
+          "panel_rect": [
+            400.0,
+            0.0,
+            400.0,
+            600.0
+          ],
+          "plot_rect": [
+            400.0,
+            0.0,
+            400.0,
+            600.0
+          ],
+          "view_id": "view:2"
+        }
+      ],
+      "scene_panels": [
+        "panel:1",
+        "panel:2"
+      ],
+      "scene_views": {
+        "panel:1": "view:1",
+        "panel:2": "view:2"
+      },
+      "session_teardown": "closed",
+      "title_status": "unsupported",
+      "warmup_canvas_size": [
+        640,
+        360
+      ]
     },
     "matplotlib-gallery-02-perspective-3d": {
       "authored_perspective_aspect": null,
@@ -670,7 +785,7 @@
     "matplotlib-gallery-03-orthographic-3d": {
       "authored_perspective_aspect": null,
       "backend": "matplotlib",
-      "backend_projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "backend_projection_snapshot_id": "view3d-projection:d4c96753f42d18e9",
       "canvas_size": [
         800,
         600
@@ -707,7 +822,7 @@
           "ndc": [
             -0.8333333069383628,
             -0.4989637717444716,
-            0.07899589099989157
+            0.07899589099989113
           ]
         },
         {
@@ -717,18 +832,18 @@
             1.28
           ],
           "logical_pixel": [
-            464.2874385241516,
+            464.2874385241515,
             221.53158629523185
           ],
           "ndc": [
-            0.17512076943274701,
+            0.1751207694327468,
             0.352677115605057,
-            -0.3356801573366124
+            -0.33568015733661294
           ]
         }
       ],
       "projection_kind": "orthographic",
-      "projection_snapshot_id": "view3d-projection:27854cb0056a85d2",
+      "projection_snapshot_id": "view3d-projection:d4c96753f42d18e9",
       "render_diagnostics": [],
       "title_status": "native"
     },
@@ -787,7 +902,7 @@
           ],
           "ndc": [
             0.0,
-            0.33772747113993046,
+            0.3377274711399305,
             -0.9126415108254083
           ]
         }
@@ -835,8 +950,8 @@
             279.2306865638116
           ],
           "ndc": [
-            0.18320062962789846,
-            0.10289746076272031,
+            0.1832006296278985,
+            0.10289746076272033,
             -0.8750934392522234
           ]
         },
@@ -852,7 +967,7 @@
           ],
           "ndc": [
             0.0,
-            0.31574987852440656,
+            0.3157498785244066,
             -0.9138554707785626
           ]
         }
@@ -900,8 +1015,8 @@
             272.09770790224127
           ],
           "ndc": [
-            0.1314290103100491,
-            0.13377615626735392,
+            0.13142901031004914,
+            0.13377615626735395,
             -0.8750934392522234
           ]
         },
@@ -913,11 +1028,11 @@
           ],
           "logical_pixel": [
             386.7459462976396,
-            219.72664308203525
+            219.72664308203522
           ],
           "ndc": [
-            -0.07501307645922711,
-            0.36049072258859194,
+            -0.07501307645922713,
+            0.360490722588592,
             -0.9138554707785626
           ]
         }
@@ -962,11 +1077,11 @@
           ],
           "logical_pixel": [
             458.1493362681986,
-            266.48022722555027
+            266.4802272255502
           ],
           "ndc": [
-            0.15532043957483413,
-            0.1580942544348475,
+            0.15532043957483416,
+            0.15809425443484754,
             -0.8943373651175136
           ]
         },
@@ -978,11 +1093,11 @@
           ],
           "logical_pixel": [
             380.0768683797313,
-            195.84450567580222
+            195.84450567580217
           ],
           "ndc": [
-            -0.09652623103312474,
-            0.46387659880605103,
+            -0.09652623103312476,
+            0.4638765988060511,
             -0.9330993966438528
           ]
         }
@@ -991,35 +1106,137 @@
       "projection_snapshot_id": "view3d-projection:a140e1218e6a1247",
       "render_diagnostics": [],
       "title_status": "native"
+    },
+    "matplotlib-gallery-mixed-panels": {
+      "allocation_rects": [
+        [
+          0.0,
+          0.0,
+          0.5,
+          1.0
+        ],
+        [
+          0.5,
+          0.0,
+          0.5,
+          1.0
+        ]
+      ],
+      "attachments": [
+        {
+          "panel_id": "panel:1",
+          "view_id": "view:1",
+          "visual_id": "visual:mixed-2d"
+        },
+        {
+          "panel_id": "panel:2",
+          "view_id": "view:2",
+          "visual_id": "visual:mixed-3d"
+        }
+      ],
+      "backend": "matplotlib",
+      "canvas_size": [
+        800,
+        600
+      ],
+      "invalid_panel_query": {
+        "diagnostic": "panel 'panel:missing' is not present in scene 'scene:main'",
+        "request_id": "query:matplotlib:missing-panel",
+        "status": "unsupported"
+      },
+      "layout_diagnostics": [
+        "resolved_layout_consumption_plot_and_bounded_title_proven",
+        "layout_strict-awaits-readback-snapshot-contract"
+      ],
+      "point_query": {
+        "diagnostic": null,
+        "request_id": "query:matplotlib:mixed-2d",
+        "status": "hit",
+        "visual_id": "visual:mixed-2d"
+      },
+      "render_diagnostics": [],
+      "resolved_panels": [
+        {
+          "panel_id": "panel:1",
+          "panel_rect": [
+            0.0,
+            0.0,
+            400.0,
+            600.0
+          ],
+          "plot_rect": [
+            50.0,
+            72.0,
+            310.0,
+            462.0
+          ],
+          "view_id": "view:1"
+        },
+        {
+          "panel_id": "panel:2",
+          "panel_rect": [
+            400.0,
+            0.0,
+            400.0,
+            600.0
+          ],
+          "plot_rect": [
+            450.0,
+            72.0,
+            310.0,
+            462.0
+          ],
+          "view_id": "view:2"
+        }
+      ],
+      "scene_panels": [
+        "panel:1",
+        "panel:2"
+      ],
+      "scene_views": {
+        "panel:1": "view:1",
+        "panel:2": "view:2"
+      },
+      "session_teardown": "closed",
+      "title_status": "native",
+      "warmup_canvas_size": [
+        640,
+        360
+      ]
     }
   },
   "provenance": {
+    "datoviz_native": "isolated-wheel-site/datoviz/libdatoviz.so",
     "datoviz_retries": 1,
-    "datoviz_timeout_seconds": 30.0,
-    "execution": "copied scripts outside both source trees; four project wheels unpacked into an isolated project site; third-party dependencies provided by the requested Python environment",
-    "gsp_source_revision": "fd20c94264bf8893eed6c27e35966ff0397f14cb",
+    "datoviz_timeout_seconds": 20.0,
+    "execution": "copied scripts outside both source trees; four project wheels and the optional Datoviz runtime wheel unpacked into an isolated project site; third-party dependencies provided by the requested Python environment",
+    "gsp_source_revision": "43f67b1bddc3212d791435c243090001e042ba1f",
     "imports": {
+      "datoviz": "isolated-wheel-site/datoviz/__init__.py",
       "gsp": "isolated-wheel-site/gsp/__init__.py",
       "gsp_datoviz": "isolated-wheel-site/gsp_datoviz/__init__.py",
       "gsp_matplotlib": "isolated-wheel-site/gsp_matplotlib/__init__.py",
       "vispy2": "isolated-wheel-site/vispy2/__init__.py"
     },
     "project_wheels": {
+      "datoviz": {
+        "sha256": "fcfb110fda7c2470ace8a34125df1b7bffc73c5a923b4a965beb0766bbf38990"
+      },
       "gsp-core": {
-        "sha256": "95b34b86cdbabda4bcd2cf5d6fb0f0910f731707e29201b1f1c56cba96aa74f0"
+        "sha256": "9b9cb29f3dba7a7b2c27306bcbff78b27be0fcaf646513189e13639a9d267010"
       },
       "gsp-datoviz": {
-        "sha256": "db21fb96c9e66f7730ca4a0b9b0c9f17fd193e15b152f52f9c62d1d78e0b45e8"
+        "sha256": "628eff3be884ae16f556ad771d27c848cd529b2ecd35d219e1ef2bbb22bada06"
       },
       "gsp-matplotlib": {
-        "sha256": "989ea49d929f93662cfa53bdb107c83fcc384d3cc48bbd1a0665b2d5e7b0e63a"
+        "sha256": "26780a8347ad44235349ab7b61fc07ffb32865b52fb9733df22088812e4cca73"
       },
       "vispy2": {
-        "sha256": "214eb532c4ea6119cbfa7d1db59b295d949c46aba4572a504c50413e7a930e3b"
+        "sha256": "28ffcb63b9e6526edb880ab6188e2feedbab4aa62d3e00c5c45e1385adee3fae"
       }
     },
-    "python": "CPython 3.13.4 macOS arm64",
-    "vispy2_source_revision": "7d2eb41fdc0639b8321edfee810df1614cec2695"
+    "python": "CPython 3.13.3 Linux x86_64",
+    "vispy2_source_revision": "e9e3c56385135547a55d63a03f8c02159f29d714"
   },
   "schema": 2,
   "scripts": {
@@ -1027,13 +1244,13 @@
       "sha256": "466112fdf4366da246a32ed0b903984b64a7a6ca5412c0a320dff3600a9af295"
     },
     "gallery_02_perspective_3d.py": {
-      "sha256": "cf54e39a5810a88f31dc26f4f343bb1edca0e05615c662cc5ea566e3a87d3f8d"
+      "sha256": "c29fd7a2ebeec9a1cbba938d27b64e1e64635b5767579c6ea6e5d5776228bbc7"
     },
     "gallery_03_orthographic_3d.py": {
-      "sha256": "5f06e4afd01f15ffcc04938f2d8b65dae81d27412666c0132a8a01db027b8c25"
+      "sha256": "2a6ffd8db407d1148063c1aa7ef12bef80b5c960fe47fd76fbaa77762290f6b0"
     },
     "gallery_04_camera_sequence.py": {
-      "sha256": "b38d8dd2450ce339a31b8265f680fb0563314b44e24159caecd647d131a2b609"
+      "sha256": "ddb04a1beeb0ffdfcf43c181436d736a5831d1fd5308f275e3f5c79835b38e22"
     },
     "gallery_06_capabilities.py": {
       "sha256": "8cec518bb7bb9e9a6cd67a3749af649b17fd2a1826b3e7af980642bc30811b19"
@@ -1041,8 +1258,11 @@
     "gallery_07_queries.py": {
       "sha256": "88ca7fc157e629209771216eae8111f611033aa0f2792f64bc9dda85b7c518f7"
     },
+    "gallery_mixed_panels.py": {
+      "sha256": "019801d5d19004ae5a153b80fd5e622536db8b851fc7770143fbcb2f12f1816a"
+    },
     "gallery_shared_layout.py": {
-      "sha256": "978ecf3001ca4325aec0169ee3a093ff60007e50da7f805cd14ff8914d9db783"
+      "sha256": "6eb3c282d6c126e189073a2aa914120d6b35d99413216c7a34834c6715b96172"
     }
   }
 }

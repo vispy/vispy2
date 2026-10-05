@@ -33,9 +33,42 @@ scene = figure.to_scene()
 The resulting `gsp.Scene` is an immutable snapshot. Changing the axes later changes the next
 snapshot, not the earlier one.
 
-For multiple axes, `Figure.to_scene()` emits one panel and view per axes plus an explicit
-left-to-right panel layout. Mixed 2D/3D figures preserve each axes' visuals, attachments, and
+For axes appended with ordinary `Figure.add_axes()`, `Figure.to_scene()` emits one panel and view
+per axes plus equal-width horizontal allocations. Mixed 2D/3D figures preserve each axes' visuals, attachments, and
 guides independently.
+
+## Subplots and custom allocations
+
+```python
+figure, grid = vp.subplots(
+    2, 2, projection=[["2d", "3d"], ["2d", "2d"]], squeeze=False
+)
+grid[0, 0].plot([0, 1], [1, 0])
+grid[1, 0].bar([0, 1], [2, 3])
+```
+
+Rows are allocated from top to bottom and columns from left to right. A single projection string
+applies to every cell; a nested projection grid must match `(nrows, ncols)`. Both dimensions must
+be positive integers. With `squeeze=True`, a 1×1 grid returns an axes, a 1×N or N×1 grid returns a
+one-dimensional NumPy object array, and other grids return a two-dimensional array.
+`squeeze=False` always returns a two-dimensional array.
+
+For an irregular layout, supply an explicit GSP outer-panel rectangle when adding an axes or
+replace it later:
+
+```python
+from gsp.protocol import NormalizedRenderTargetRect
+
+figure = vp.Figure()
+left = figure.add_axes(allocation=NormalizedRenderTargetRect(0, 0, 0.4, 1))
+right = figure.add_axes(projection="3d", allocation=NormalizedRenderTargetRect(0.5, 0.1, 0.5, 0.8))
+figure.set_panel_allocation(left, NormalizedRenderTargetRect(0, 0.1, 0.4, 0.8))
+```
+
+Rectangles use normalized target coordinates with a top-left origin. They must have positive
+width/height, lie inside the target, and not overlap. Specify each allocation in an irregular
+layout: axes without overrides still receive the default horizontal-strip allocation. The GSP
+layout contract validates overlap when the layout or scene is constructed.
 
 ## 2D plotting
 
@@ -74,11 +107,49 @@ The visual families are:
 | `text` | explicit DATA-anchored labels |
 | `mesh` | indexed triangle mesh, including the bounded texture path |
 | `imshow` | scalar or RGBA image with a DATA-space extent |
+| `bar`, `hist` | bounded rectangles lowered to triangle-list visuals |
+| `fill_between` | a finite non-crossing band lowered to triangles |
+| `axhline`, `axvline` | reference segments spanning the current other-axis range |
+| `axhspan`, `axvspan` | reference bands spanning the current other-axis range |
 
 `quiver` is a thin alias for `vectors`; it does not emulate Matplotlib's keyword surface.
 `primitives` is intentionally bounded and exposes no shader, pipeline, material, native handle,
 depth, culling, or instancing API. Two-dimensional visuals accept an optional affine transform;
 use `vp.affine2d(matrix)` or pass a compatible matrix directly.
+
+## Bars, histograms, and filled bands
+
+```python
+figure, axes = vp.subplots()
+counts, edges, visual = axes.hist(
+    [0.2, 0.8, 1.5, 2.2, 3.0], bins=[0, 1, 3, 5], weights=[1, 2, 3, 4, 5]
+)
+axes.bar([6, 8], [2, -1], width=[0.5, 1], bottom=1)
+axes.fill_between([0, 1, 3], [1, 2, 4], 0, color=[220, 120, 80, 128])
+axes.fit_data()
+axes.axhline(0)
+```
+
+`bar` centers each finite bar on x. Height, positive width, and bottom accept scalars or matching
+arrays; negative heights are allowed. Color accepts one RGBA value or one per bar. Bars and
+histograms produce ordinary `PrimitiveVisual` triangle lists, including zero-height bins.
+
+`hist` accepts finite one-dimensional samples, optional matching weights, and either a positive
+integer bin count or strictly increasing finite edges. `range` bounds integer-bin generation.
+It returns float64 values, float64 edges, and the appended visual. Without normalization, values
+are counts or weighted bin totals. `density=True` divides by total weight and each bin width, so
+the integral is one even with unequal bins. `cumulative=True` sums bin totals;
+combined with density it returns normalized cumulative weight ending at one. Density requires a
+positive finite total weight. Empty or non-finite input is rejected.
+
+`fill_between` requires finite, strictly increasing or decreasing x and non-crossing curves.
+Each y input may be scalar or match x. Curves may touch; zero-area triangles are omitted. An
+entirely zero-area band raises `ValueError` without appending a visual. General polygon
+triangulation, masks, step modes, and crossing-curve interpolation are deferred.
+
+Reference lines and spans are DATA geometry that capture the current other-axis limits once.
+Changing limits later does not resize them. These conveniences create no new GSP visual family
+and add no automatic legend or layout semantics.
 
 ## Scalar color and images
 
@@ -137,6 +208,34 @@ axes.set_title("Guides remain semantic")
 
 Providers may differ in fonts, metrics, antialiasing, and guide layout. Unsupported guide paths
 must be diagnosed rather than silently advertised.
+
+## Explicit fitting and linked 2D limits
+
+```python
+figure, axes = vp.subplots(1, 2, squeeze=False)
+a, b = axes[0]
+a.scatter([10, 20], [30, 40])
+a.fit_data(margin=1.1)
+b.sharex(a)
+b.set_xlim(5, 25)  # updates both x ranges
+```
+
+`fit_data()` and its `autoscale()` alias fit current finite DATA geometry once. The margin is a
+span multiplier, finite and at least one. Bounds include image extents, segment and vector
+endpoints, and inline affine transforms. Screen-sized markers and strokes do not enlarge the
+bounds. Reversed limits stay reversed; degenerate ranges receive a small finite span. Missing
+finite data, three-dimensional geometry, or a referenced transform that cannot be resolved raises
+an explicit error. Adding later visuals leaves limits unchanged until the next fit call.
+
+`Figure.link_axes(*axes, x=True, y=True)` links at least two distinct 2D axes in that figure.
+It initially copies the first axes' selected limits; `axes.sharex(other)` and `sharey(other)` adopt
+the other's limits. Overlapping groups merge transitively. Setters, `Figure.set_limits`, and fitting
+propagate the selected dimensions atomically. Every axes keeps its own panel and immutable GSP
+view record with a distinct view ID.
+
+Links are producer/programmatic state. Backend mouse navigation does not propagate through
+these groups, and links are not serialized as a new GSP contract. Redisplay after changing limits
+on an already rendered figure; native linked navigation remains deferred.
 
 ## 3D plotting, camera, and lighting
 
@@ -213,6 +312,43 @@ with vp.open_session("datoviz", require={"visual.points"}) as session:
 
 The context manager owns cleanup. `Figure`, `Axes`, and `Scene` never retain the session or native
 renderer. Calling `figure.show(block=False)` without an explicit session is an error.
+
+## Optional retained point updates
+
+A session advertising `scene.update.points.v1` may replace values on an existing retained
+`PointVisual` without rebuilding the native scene:
+
+```python
+from dataclasses import replace
+import numpy as np
+from gsp import PointUpdateSession
+
+figure, axes = vp.subplots()
+point = axes.scatter([0, 1], [1, 0])
+with vp.open_session("matplotlib", require={"scene.update.points.v1"}) as session:
+    if not isinstance(session, PointUpdateSession):
+        raise RuntimeError("session lacks the point-update extension")
+    session.render(figure.to_scene())
+    updated = replace(point, positions=np.array([[0.25, 0.5], [0.5, 0.25]], dtype=np.float32))
+    revision = figure.update_point(session, updated)
+    print(revision, session.scene_revision(figure.to_scene().id))
+```
+
+The original scene must already exist in the same open session. Updates keep the visual ID,
+point count/dimension, coordinate space, attachment, transform binding, and scalar-color binding.
+Positions, colors/scalar values, and sizes may change within that topology. Hidden attachments
+are unsupported. Changing views, guides, resources, or point count requires a full render.
+Provider support remains capability-gated; this is a local optional session extension.
+
+The first successful render has scene revision zero. Further successful renders and point
+updates increment that session-owned revision; rejected updates do not. It is independent of
+View3D camera revisions. `Figure.update_point` forwards the stable scene ID and replaces its
+producer visual only after session success. Earlier snapshots keep their original records.
+Direct `session.update_point(...)` changes session state only; it does not update a VisPy2 figure.
+
+A point update preserves the backend's current live view. Producer changes to limits, linked
+groups, or guides made after rendering require a full rerender; `update_point()` synchronizes
+only the point values and does not apply those pending producer changes.
 
 ## Queries
 

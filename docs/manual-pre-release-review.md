@@ -1,9 +1,10 @@
 # VisPy2 manual pre-release review workbook
 
-This is the linear, human-in-the-loop review for the first experimental VisPy2/GSP release. Read
-it from beginning to end. Run the exercises, inspect the results, and write observations directly
-into a copy of this file or a separate review note. This workbook does not authorize version
-changes, tags, uploads, or a release.
+This workbook is the detailed, linear review for the first experimental VisPy2/GSP release. For a
+guided whole-project tour with resumable findings and paired windows, start with the
+[interactive review](review.md). You can also use this workbook directly: run its exercises,
+inspect the results, and write observations into a copy or a separate review note. Neither review
+authorizes version changes, tags, uploads, or a release.
 
 The review covers:
 
@@ -14,8 +15,9 @@ The review covers:
 - documented adaptations, experimental behavior, and unsupported behavior;
 - enough implementation structure to assess whether the public claims are honest.
 
-The implementation baselines when this workbook was written were GSP `fd20c94`, VisPy2 `c51ca4c`,
-and Datoviz `b45d692e4`. Record the exact commits you actually review in section 1.
+Record the exact commits you actually review in section 1. The review can include working-tree
+changes. If you need to qualify a clean checkout, establish that separately; the review tour
+fingerprints its inputs and invalidates passes when those inputs change.
 
 ## Review rules
 
@@ -75,7 +77,7 @@ git -C ../datoviz rev-parse HEAD
 
 Expected:
 
-- VisPy2 and GSP are clean.
+- Record working-tree changes so findings identify the code that was actually reviewed.
 - Datoviz may contain unrelated owner files, but no review command should modify them.
 - Python is 3.13.
 - Record all three commit hashes below.
@@ -216,6 +218,41 @@ Notes:
 | Defaults |  |  |
 | Return values |  |  |
 | Discoverability |  |  |
+
+### Review new producer conveniences
+
+```python
+import numpy as np
+import vispy2 as vp
+
+figure, grid = vp.subplots(2, 2, squeeze=False)
+counts, edges, bars = grid[0, 0].hist(
+    [0.2, 0.8, 1.5, 2.2, 3.0], bins=[0, 1, 3, 5],
+    weights=[1, 2, 3, 4, 5], density=True,
+)
+print("density integral:", np.sum(counts * np.diff(edges)))
+grid[0, 1].bar([1, 3], [2, -1])
+grid[1, 0].fill_between([0, 1, 2], [0, 1, 0])
+for axes in grid.flat:
+    if axes.visuals:
+        axes.fit_data()
+figure.link_axes(grid[0, 0], grid[0, 1], x=True, y=False)
+grid[0, 1].set_xlim(-1, 6)
+print("linked x ranges:", grid[0, 0].get_xlim(), grid[0, 1].get_xlim())
+figure.show()
+```
+
+- [ ] Does `squeeze=False` make subplot indexing predictable?
+- [ ] Is the histogram density integral one for unequal bins?
+- [ ] Are negative bars and touching filled-band endpoints visible?
+- [ ] Do programmatic limits propagate without sharing view IDs?
+- [ ] Is it clear that backend mouse navigation is not linked by this producer API?
+- [ ] Are fitting and reference lines/spans understood as one-shot operations?
+
+For retained point values, run the [user-guide update sequence](user-guide.md#optional-retained-point-updates)
+with a caller-owned session requiring `scene.update.points.v1`. Confirm revision one after the
+first update, rejection of changed point counts, and preservation of earlier scene snapshots.
+This does not establish native linking or general mutable-scene support.
 
 ## 3. Build and inspect a complete 2D semantic figure
 
@@ -1168,7 +1205,7 @@ Do not read every line. Trace representative public calls vertically.
 
 ### Slice A: a 2D point
 
-1. VisPy2 producer: [`Axes.scatter`](../src/vispy2/protocol.py)
+1. VisPy2 producer: [`Axes.scatter`](../src/vispy2/_axes2d.py)
 2. GSP record: [`PointVisual`](../../gsp/packages/gsp-core/src/gsp/protocol/visuals.py)
 3. Matplotlib lowering: [`protocol_renderer.py`](../../gsp/packages/gsp-matplotlib/src/gsp_matplotlib/protocol_renderer.py)
 4. Datoviz lowering: [`protocol_renderer.py`](../../gsp/packages/gsp-datoviz/src/gsp_datoviz/protocol_renderer.py)
@@ -1183,7 +1220,7 @@ Check:
 ### Slice B: a lit 3D mesh and camera
 
 1. VisPy2 `Axes3D.mesh`, camera methods, and `set_lighting`:
-   [`protocol.py`](../src/vispy2/protocol.py)
+   [`_axes3d.py`](../src/vispy2/_axes3d.py)
 2. GSP records and reducers:
    [`visuals.py`](../../gsp/packages/gsp-core/src/gsp/protocol/visuals.py),
    [`view3d.py`](../../gsp/packages/gsp-core/src/gsp/protocol/view3d.py), and

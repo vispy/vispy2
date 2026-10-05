@@ -6,7 +6,11 @@ also includes one mixed 2D/3D multi-panel capture per backend.
 
 The seven M283 journeys are deliberately small and backend-neutral. Galleries 1--4 create seven
 PNG states for each backend; gallery 5 is manual and interactive; galleries 6--7 validate
-discovery and queries.
+discovery and queries. The exact-wheel harness also runs the retained point-update, readback, and
+topology-rejection check against both backends, plus Datoviz mesh FACE HIT/MISS and stale-snapshot
+checks. A scientific-grid check renders a 2×2 histogram, filled band, linked ranges, points, and
+reference spans through both adapters and verifies colored content in each resolved panel.
+The manifest includes all these check-script hashes.
 
 | Gallery | Journey | Run |
 |---|---|---|
@@ -58,6 +62,7 @@ review.
 ```console
 test -z "$(git -C ../gsp status --porcelain)"
 test -z "$(git status --porcelain)"
+test -z "$(git -C ../datoviz status --porcelain)"
 wheel_dir=../wheels
 mkdir -p "$wheel_dir"
 ../gsp/.venv/bin/python -m build --no-isolation --wheel \
@@ -73,17 +78,19 @@ python examples/validate_gallery.py \
   --output-dir examples/artifacts \
   --gsp-source ../gsp \
   --vispy2-source . \
+  --datoviz-source ../datoviz \
   --gsp-core-wheel "$wheel_dir/gsp_core-0.2.0a1-py3-none-any.whl" \
   --gsp-matplotlib-wheel "$wheel_dir/gsp_matplotlib-0.2.0a1-py3-none-any.whl" \
   --gsp-datoviz-wheel "$wheel_dir/gsp_datoviz-0.2.0a1-py3-none-any.whl" \
   --vispy2-wheel "$wheel_dir/vispy2-0.2.0a1-py3-none-any.whl"
 ```
 
-This is a shell template; adjust the relative interpreter and wheel locations if needed. The harness copies scripts to
-a temporary directory outside both repositories and unpacks exactly the four named newly built
-project wheels into an isolated project site. The requested prequalified Python environment supplies
-only third-party dependencies; the probe rejects any of the four project imports outside that site
-and also proves Pillow is importable. The qualified M292 run applied a 30-second timeout; the
+This is a shell template; adjust the relative interpreter and wheel locations if needed. The harness copies scripts to a temporary directory outside the source checkouts and unpacks exactly
+the four named newly built project wheels into an isolated project site. The requested prequalified Python environment supplies
+third-party dependencies and the explicitly selected Datoviz source candidate. The probe rejects
+the four project imports outside the isolated site, requires the Datoviz binding and native library
+to come from the requested source checkout, and hashes the native library after probing it. The
+qualified M292 run applied a 30-second timeout; the
 harness retries each Datoviz capture once and renders into a fresh temporary capture directory.
 Subprocesses normally run in
 isolated process groups so timeout cleanup can terminate the entire group. On macOS only, native
@@ -91,14 +98,32 @@ Datoviz captures run as direct children because creating a new session can corru
 successful native teardown; their bounded timeout cleanup terminates and, if necessary, kills only
 the direct child. This exception changes only harness process lifecycle and does not claim any
 third-party dependency or Datoviz rebuild. Only after all
-sixteen new pixel-exact 800×600 PNGs, layout evidence, queries, and the schema-2 manifest validate
-does it copy the result to `--output-dir`, so stale destination artifacts cannot satisfy a run.
-The manifest records the probed interpreter runtime, portable logical paths for all four project
-imports, clean candidate source revisions, and stable project-name-to-SHA-256 wheel evidence without
-wheel paths; it rejects host-absolute paths before publication. The build-and-run procedure, rather
-than wheel introspection, establishes that those exact wheel hashes came from the recorded clean
-candidate heads. For galleries 2–4, exact shared `plot_rect` equality proves that Datoviz's
+sixteen new pixel-exact 800×600 PNGs, layout evidence, queries, retained update checks, and the
+schema-2 manifest validate does it copy the result to `--output-dir`, so stale destination artifacts cannot satisfy a run.
+The manifest records the probed interpreter runtime, portable import and native-library paths,
+native-library SHA-256, source baseline commits and dirty state, tracked and untracked working-file hashes, and
+project-wheel hashes without wheel paths; it rejects host-absolute paths before publication. Clean
+sources are required by default. `--allow-dirty-project-sources` records dirty state and tracked
+content hashes, and then explicitly withholds any claim that the tested wheels correspond to their
+baseline commits. The four project wheel hashes identify the artifacts actually tested. When a
+Datoviz runtime wheel is used, both its binding and native library must load from the isolated wheel
+site, with source bootstrap disabled.
+
+The ordinary runtime-wheel gate accepts only `>=0.4.0rc3,<0.5`. Local Datoviz 0.4 `rc1`/`rc2`
+candidate wheels require both `--pre-rc3-runtime` and a full
+`--datoviz-runtime-source-revision <sha>`; that revision is recorded as caller-declared and is not
+verified against the wheel contents. `--datoviz-source-revision <sha>` optionally checks the Git
+HEAD of a source candidate before probing. For galleries 2–4, exact shared `plot_rect` equality
+proves that Datoviz's
 explicitly unsupported title neither resizes nor shifts the data viewport.
+
+The [pinned-main qualification workflow](../.github/workflows/datoviz-main-qualification.yml) builds
+Datoviz commit `066a7451195b38c5e95dcf7af7383b89ec5ec903` with Mesa lavapipe and runs the exact-wheel
+gallery plus available native query and live-update binding checks. Its manual `gsp_ref` input selects
+the GSP branch, tag, or commit paired with the VisPy2 candidate. Use the matching candidate when the
+new VisPy2 API requires a GSP core extension: GSP's published `0.2.0a1` version is unchanged, so the
+wheel version alone does not identify that source capability. The default `main` ref is suitable
+only when it contains the required GSP change.
 
 ## Live flat-Lambert navigation
 
@@ -126,8 +151,8 @@ The original fourteen checked-in artifacts were requalified during M292 with whe
 and VisPy2 imports while the scripts ran outside both source trees. The current sixteen-artifact
 set adds one mixed 2D/3D multi-panel capture per backend and was requalified from four fresh
 project wheels plus the exact local Datoviz candidate wheel. All captures are exactly 800×600;
-the schema-2 manifest records exact committed source revisions plus script, wheel, artifact, panel
-routing, query, resize, and teardown evidence. The latest native run completed all sixteen
+the historical M292 schema-2 manifest records exact committed source revisions plus script, wheel,
+artifact, panel routing, query, resize, and teardown evidence. The latest native run completed all sixteen
 captures without a failed attempt. The four camera-state Datoviz-to-Matplotlib width and height
 ratios remain within the 2% contract. Gallery 5 also started successfully during M292 from the
 isolated four-wheel site, handled one bounded `Ctrl-C`, exited zero, and left no process. See

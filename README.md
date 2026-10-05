@@ -21,6 +21,23 @@ scene = figure.to_scene()
 figure.savefig("figure.png")
 ```
 
+Create a grid, fit its data once, and link programmatic limits:
+
+```python
+figure, grid = vp.subplots(2, 2, squeeze=False)
+grid[0, 0].hist([1, 2, 2, 3], bins=[0, 1, 2, 3, 4])
+grid[0, 1].bar([1, 2], [3, -1])
+grid[1, 0].fill_between([0, 1, 2], [0, 1, 0])
+for axes in grid.flat:
+    if axes.visuals:
+        axes.fit_data()
+figure.link_axes(grid[0, 0], grid[0, 1], x=True, y=False)
+```
+
+`subplots()` keeps its single-axes return. Larger grids return an object array, with singleton
+rows/columns squeezed by default; `squeeze=False` keeps two dimensions. Links apply to producer
+setters and fitting. Native mouse navigation across linked axes is deferred.
+
 For a static 3D scene, request an `Axes3D`, add a DATA-space mesh, and fit the semantic camera:
 
 ```python
@@ -52,7 +69,8 @@ control. See [Producer and backend boundary](docs/producer-and-backends.md).
 
 For an end-to-end introduction, see the [user guide](docs/user-guide.md), the
 [public API reference](docs/api-reference.md), the [installed-wheel gallery](docs/gallery.md),
-and the exact [capability matrix](docs/capability-matrix.md).
+the exact [capability matrix](docs/capability-matrix.md), and the
+[interactive project review](docs/review.md).
 
 Local wheel commands are in [Installation](docs/installation.md). Contributors should read
 [Developing VisPy2](DEVELOPMENT.md), and user-visible changes are recorded in the
@@ -65,3 +83,8 @@ install its locally built adapter wheel and select an explicit `GSP_DATOVIZ_SOUR
 This repository has a fresh history curated from the experimental `gsp_vispy2` producer in
 `vispy/GSP_API`. Its source repository is [vispy/vispy2](https://github.com/vispy/vispy2); the
 package is not yet published.
+
+During this experimental phase, refactor growing implementation modules early. Preserve the
+public producer API, its tests, and the authoritative GSP contracts while separating figure/layout,
+2D axes, 3D axes, conversion, fitting, and scientific geometry. Internal file locations are not
+compatibility promises; VisPy2 continues to import no concrete adapters.

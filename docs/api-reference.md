@@ -21,10 +21,15 @@ topology cardinalities raise `ValueError` or `TypeError` before backend executio
 
 ### `subplots`
 
-`subplots(*, projection="2d", canvas_size=None) -> (Figure, Axes | Axes3D)`
+`subplots(nrows=1, ncols=1, *, projection="2d", canvas_size=None, squeeze=True)`
 
-Creates a figure with one initial axes. `projection` is `"2d"` or `"3d"`. `canvas_size` is a GSP
-`CanvasSize`. Use `Figure.add_axes()` to append further 2D or 3D panels.
+Creates a row-major subplot grid. `projection` is one `"2d"` / `"3d"` string or a nested sequence
+matching `(nrows, ncols)`. Both dimensions must be positive integers. `canvas_size` is a GSP
+`CanvasSize`. The result is `(Figure, axes)`: a 1×1 grid returns an `Axes` / `Axes3D`; singleton
+rows or columns are squeezed to a one-dimensional object array; larger grids return a
+two-dimensional array. `squeeze=False` always returns a two-dimensional array.
+
+Use `Figure.add_axes()` for incremental construction and custom allocations.
 
 ### `open_session`
 
@@ -50,7 +55,12 @@ transform binding.
 
 | Method | Result |
 |---|---|
-| `add_axes(projection="2d")` | appends and returns an `Axes` or `Axes3D` |
+| `add_axes(projection="2d", allocation=None)` | appends and returns an `Axes` or `Axes3D` |
+| `set_panel_allocation(axes, allocation)` | replaces one owned axes' normalized outer-panel rectangle |
+| `panel_layout()` | validates and returns explicit panel allocations |
+| `link_axes(*axes, x=True, y=True)` | merges selected producer/programmatic 2D limit groups |
+| `set_limits(axes, xlim=None, ylim=None)` | atomically replaces ranges and propagates linked dimensions |
+| `update_point(session, visual)` | updates retained point values, then producer state; returns scene revision |
 | `to_scene()` | freezes the complete semantic figure state as a `gsp.Scene` |
 | `visuals()` | visuals in creation order |
 | `panels()`, `views()`, `attachments()` | corresponding scene records |
@@ -63,9 +73,25 @@ transform binding.
 | `query(session, request)` | queries this figure's stable scene ID |
 
 `to_scene()` rejects an empty figure. With multiple axes, it emits one panel and view per axes and
-an explicit deterministic left-to-right layout; 2D and 3D axes may be mixed in any order.
+an explicit layout; 2D and 3D axes may be mixed in any order. Ordinary `add_axes()` uses equal-width
+horizontal strips; `subplots()` allocates a grid. Overrides use GSP `NormalizedRenderTargetRect`
+with a top-left origin and coordinates inside `[0, 1]`. Positive, contained, non-overlapping
+allocations are required; overlap is checked by `panel_layout()` / `to_scene()`.
 `show(block=False)` requires an explicit session. `display`, `resolve_layout`, and `query` do not
 close or retain the supplied session.
+
+`link_axes` requires at least two distinct owned 2D axes and at least one linked dimension.
+Selected limits initially come from the first axes. Groups merge transitively; each axes keeps
+its own view ID. Links apply to setters and data fitting, and remain producer state. Native
+backend navigation across linked axes is deferred.
+
+`update_point` accepts an open `gsp.PointUpdateSession` advertising `scene.update.points.v1` after
+this scene has been rendered there. The replacement must preserve ID, point count/dimension,
+coordinate space, attachment, transform, and scalar-color binding. Values and sizes may change;
+hidden attachments are unsupported. It validates before forwarding, and updates producer state
+only after success. Earlier snapshots are unaffected. The session's `scene_revision(scene_id)`
+starts at zero on first render and increments after successful rerenders or point updates.
+Other scene changes require a full render.
 
 ## `Axes`
 
@@ -75,13 +101,21 @@ close or retain the supplied session.
 |---|---|
 | `set_xlim(left, right)`, `set_ylim(bottom, top)` | replace one DATA range |
 | `get_xlim()`, `get_ylim()` | return the current DATA range |
-| `set_view2d(xlim=None, ylim=None)` | replace bounded View2D state |
+| `set_view2d(xlim=None, ylim=None)` | replace ranges and propagate linked dimensions |
+| `fit_data(margin=1.1)`, `autoscale(margin=1.1)` | explicitly fit current finite DATA geometry once |
+| `sharex(other)`, `sharey(other)` | link the selected limit group, initially adopting the other's limits |
 | `set_clip_scope(scope)` | set `plot`, `panel`, or `render_target` clipping on current and future attachments |
 | `set_xlabel(text)`, `set_ylabel(text)`, `set_title(text)` | set or clear semantic labels |
 | `get_xlabel()`, `get_ylabel()`, `get_title()` | return current labels |
 | `set_xticks(ticks, labels=None)`, `set_yticks(...)` | set explicit ticks and optional labels |
 | `get_xticks()`, `get_yticks()` | return explicit ticks or `()` |
 | `grid(visible=True, axis="both")` | set grid intent for `"x"`, `"y"`, or `"both"` |
+
+`fit_data` includes image extents, segment/vector endpoints, and inline affine transforms. It
+preserves reversed axes and expands degenerate ranges. Screen-sized marks do not enlarge bounds.
+The finite margin is a span multiplier of at least one. Non-empty finite 2D DATA geometry is
+required; unresolved referenced transforms raise `ValueError`. Later visuals do not trigger
+fitting automatically.
 
 ### Points and markers
 
@@ -113,6 +147,44 @@ the ordered positions; colors and widths are per path.
 `vectors(x, y, u, v, *, color=None, width=1.0, scale=1.0, anchor="tail", start_cap="butt",
 end_cap="triangle_out", transform=None, id=None)` creates straight displacement vectors.
 `anchor` is `"tail"`, `"center"`, or `"head"`. `quiver` is an exact thin alias.
+
+### Scientific conveniences
+
+`bar(x, height, *, width=0.8, bottom=0, color=None, id=None) -> PrimitiveVisual`
+
+Finite one-dimensional x centers define bars. Height, positive width, and bottom are scalar or
+matching arrays. Negative and zero heights are allowed. Color is uniform RGBA or per-bar RGBA.
+Each rectangle lowers to six DATA-space triangle-list vertices.
+
+`hist(x, *, bins=10, range=None, weights=None, density=False, cumulative=False, color=None,
+id=None) -> (values, edges, PrimitiveVisual)`
+
+Samples and matching optional weights must be finite, non-empty, one-dimensional arrays.
+Bins are a positive integer or finite strictly increasing edges. An optional finite increasing
+range bounds integer-bin generation. Returned values and edges are float64 arrays. Values are
+bin counts/weight totals, density per unit x when `density=True`, cumulative totals when
+`cumulative=True`, or normalized cumulative weight when both are true. Unequal bin widths are
+accounted for in density. Density requires a positive finite total weight. Zero-count bins are
+accepted. Empty or non-finite input is rejected.
+
+`fill_between(x, y1, y2=0, *, color=None, id=None) -> PrimitiveVisual`
+
+Requires at least two finite strictly monotonic x values. Both y inputs are finite scalar or
+matching arrays. Curves may touch but must not cross. The band lowers to triangle lists with
+zero-area triangles omitted; an entirely zero-area band is rejected before append. Masks, step
+modes, general polygons, and crossing interpolation are outside this bounded method.
+
+`axhline(y=0, *, color=None, width=1, id=None) -> SegmentVisual`
+
+`axvline(x=0, *, color=None, width=1, id=None) -> SegmentVisual`
+
+`axhspan(ymin, ymax, *, color=None, id=None) -> PrimitiveVisual`
+
+`axvspan(xmin, xmax, *, color=None, id=None) -> PrimitiveVisual`
+
+Reference lines and spans capture the current other-axis limits as ordinary DATA geometry.
+They do not track subsequent limit changes. There is no automatic legend or special query-guide
+semantics attached to these helpers.
 
 ### Geometry
 

@@ -54,8 +54,9 @@ and implicit blocking `Figure.show` require this provider.
 
 ## Development-only Datoviz installation
 
-The current Datoviz adapter additionally needs an RC3-compatible Datoviz v0.4 binding. During
-local development, build its unpublished adapter wheel and identify its checkout explicitly:
+The current Datoviz adapter additionally needs a compatible Datoviz v0.4 binding. Build the native
+engine and Python binding from a Datoviz checkout using its documented source-build steps. During
+local development, build the unpublished adapter wheel and identify the source checkout:
 
 ```console
 python -m build --wheel --outdir ../wheels ../gsp/packages/gsp-datoviz
@@ -71,10 +72,21 @@ PYTHONPATH=../datoviz \
 ```
 
 There is deliberately no `vispy2[datoviz]` publication extra while the compatible Datoviz runtime
-cannot be resolved from an ordinary package artifact. This source selector is a development
-bootstrap, not a published dependency claim. Do not enable experimental live View3D navigation
-for ordinary rendering. The isolated manual-review command and opt-in variable are documented in
-the [gallery guide](gallery.md).
+cannot be resolved from an ordinary package artifact. The source selector is a development
+bootstrap, not a published dependency claim. The gallery qualification harness accepts that
+checkout with `--datoviz-source ../datoviz`; it probes the imported binding and loaded native
+library, then records portable paths, the native library SHA-256, the checkout revision, dirty
+state, and tracked and untracked working-file hashes. An expected full checkout SHA can be required with
+`--datoviz-source-revision <40-character-sha>`.
+
+The default `--datoviz-runtime-wheel` mode remains strict: it accepts only `datoviz>=0.4.0rc3,<0.5`,
+disables source bootstrap, and verifies that both the Python binding and loaded native library came
+from the isolated wheel site. For a local pre-RC3 candidate wheel, opt in explicitly with
+`--pre-rc3-runtime --datoviz-runtime-source-revision <40-character-sha>`. This accepts only a
+Datoviz 0.4 `rc1` or `rc2` metadata version and records the supplied SHA as caller-declared; it does
+not verify the source commit from the wheel contents. Do not enable experimental live View3D
+navigation for ordinary rendering. The isolated manual-review command and opt-in variable are
+documented in the [gallery guide](gallery.md).
 
 ## Verify provider discovery
 

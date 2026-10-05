@@ -39,12 +39,15 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.superfences
 
+hooks:
+  - tools/docs_site.py
+
 plugins:
   - search
 
 validation:
   links:
-    not_found: info
+    not_found: warn
 
 nav:
   - Home: index.md
@@ -54,5 +57,6 @@ nav:
   - Producer and backends: producer-and-backends.md
   - Gallery: gallery.md
   - Capability matrix: capability-matrix.md
+  - Interactive project review: review.md
   - Manual pre-release review: manual-pre-release-review.md
   - Accepted human-review record: M284-human-review.md

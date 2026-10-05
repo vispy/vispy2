@@ -30,8 +30,45 @@ interactive execution requires a caller-owned session so its lifecycle remains e
 
 `Figure.to_scene()` requires at least one axes. Figures may contain multiple `Axes` and `Axes3D`
 instances in any order. Each axes retains its own panel, view, visuals, attachments, and guides;
-the producer emits an explicit deterministic left-to-right panel allocation for the complete
-figure instead of discarding or merging views.
+the producer emits explicit normalized panel allocations for the complete figure. Ordinary
+`add_axes()` uses equal-width horizontal strips; `subplots(nrows, ncols)` uses a row-major grid.
+Custom outer allocations remain GSP `NormalizedRenderTargetRect` intent, not backend layout state.
+
+## Producer conveniences and linked limits
+
+2D `fit_data()` / `autoscale()` computes finite DATA bounds once. Bars, histograms, and filled
+bands lower to existing GSP triangle-list `PrimitiveVisual` records; reference lines lower to
+`SegmentVisual`. They introduce no protocol visual family, native object, automatic legend, or
+new renderer capability. Providers still require their existing primitive/segment contracts.
+
+`Figure.link_axes`, `Axes.sharex`, and `Axes.sharey` maintain producer-owned groups of 2D limits.
+Setters and fitting propagate selected dimensions, preserving separate immutable views and view
+IDs. Links are not serialized as a GSP link contract. Native session navigation does not update
+other linked panels; programmatic changes require redisplay after rendering. Native linked
+navigation remains deferred.
+
+Internal implementation modules may be refactored early as responsibilities grow. Keep the public
+producer imports/API, semantic behavior, tests, and authoritative GSP contracts stable through
+those changes. Figure/layout, axes, input conversion, fitting, and scientific geometry have
+separate responsibilities. Concrete adapter imports remain outside VisPy2.
+
+## Optional retained point-update session
+
+`Figure.update_point(session, visual)` delegates to GSP's optional `PointUpdateSession`, advertised
+as `scene.update.points.v1`. The figure's scene must already be rendered in that same open session.
+The operation preserves visual topology, attachment, coordinate space, transform, and scalar-color
+binding, while replacing positions, colors/scalar values, or sizes. Hidden attachments are outside
+the extension. Changes to point count, guides, views, or resources require full rendering.
+
+VisPy2 validates before forwarding the stable scene ID, then replaces its semantic visual only
+after session success. It retains no session. Earlier snapshots remain unchanged. Calling
+`session.update_point` directly affects only renderer/session state, so callers must separately
+manage their producer state if they bypass the figure convenience.
+
+Session `scene_revision(scene_id)` starts at zero for the first successful render and increases
+with successful rerenders/updates. Rejected updates do not advance it. This is separate from a
+View3D camera revision and from any producer link state. Querying updated values remains governed
+by the provider's independent query capability and the current retained view.
 
 ## Minimal public query
 

@@ -5,6 +5,20 @@ describes the current experimental candidate rather than a package-index release
 
 ## Unreleased
 
+### Producer conveniences
+
+- Added subplot grids with squeezing, mixed projections, and custom normalized panel allocations;
+  single-axes construction and ordinary `add_axes()` horizontal strips remain compatible.
+- Added explicit 2D `fit_data()` / `autoscale()` with finite geometry bounds and inline transforms.
+- Added transitive programmatic linked x/y limits through `link_axes`, `sharex`, and `sharey`;
+  native linked navigation remains deferred.
+- Added triangle-based bars, weighted/density/cumulative histograms, non-crossing filled bands,
+  and reference lines/spans capturing the current ranges.
+- Added optional retained point updates through caller-owned `PointUpdateSession`, preserving
+  visual topology and updating producer state only after session success.
+- Split the producer implementation into focused internal modules while keeping public imports.
+- Semantic records own immutable array payloads, so caller mutations cannot alter a snapshot.
+
 ### Protocol architecture
 
 - Emit identity-only GSP panels plus explicit full-target panel layout intent.
@@ -13,6 +27,9 @@ describes the current experimental candidate rather than a package-index release
   these values are non-wire producer information and never session capabilities.
 
 ### Documentation
+
+- Publish checked-in gallery PNGs in the documentation site and resolve repository source links
+  to GitHub while retaining local review links.
 
 - Reconciled historical qualification reports with subsequent owner acceptance.
 - Expanded the user guide to cover the complete public 2D surface, scalar images, color scales,

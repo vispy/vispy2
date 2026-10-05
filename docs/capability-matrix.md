@@ -51,3 +51,23 @@ panel titles as unsupported with
 `panel_text_title_unsupported_no_public_renderer_path`; it does not claim an invisible
 adaptation. M284's 25/25 static and 25/25 live lifecycle evidence remains exact-runtime evidence,
 not a universal lifecycle claim.
+
+## Current producer conveniences and optional updates
+
+The table above records historical exact-wheel evidence. The following additions have focused
+current tests; they do not retroactively extend the M292 qualification manifest.
+
+| Surface | Semantic/backend requirement | Current evidence | Boundary |
+|---|---|---|---|
+| Subplot grids and custom allocations | explicit normalized GSP panel layout | mixed-grid semantic tests; Matplotlib 2×2 layout render | provider layout remains authoritative |
+| 2D fitting | finite DATA geometry and inline transforms | transformed points, image extents, vectors, segments, reversed/degenerate ranges | one-shot; screen sizes excluded; referenced transforms rejected |
+| Linked 2D limits | producer setters and separate View2D records | transitive/dimension-specific/atomic setter and fit tests | native linked navigation deferred |
+| Bars, histograms, filled bands | `visual.primitive`, triangle-list contract | numerical/area tests; Matplotlib render | existing topology capabilities; no new native statistical visual |
+| Reference lines/spans | `visual.segments` or `visual.primitive` | endpoint/area tests | capture current ranges once |
+| Retained point values | `scene.update.points.v1`, optional `PointUpdateSession` | producer forwarding/failure tests; Matplotlib session update/revision test | same point count/dimension and bindings; full render for other changes |
+
+Histograms cover weighted totals and density/cumulative values with unequal bin widths. Filled
+bands permit touching endpoints and reject crossings or an entirely zero-area band. General
+polygons, automatic legends, and shared native mouse navigation remain deferred. Datoviz support
+for the optional update extension is qualified by the installed runtime's probe and the separate
+exact-wheel update checks; it cannot be inferred from point rendering alone.

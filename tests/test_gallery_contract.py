@@ -254,6 +254,19 @@ def test_mixed_panel_gallery_has_stable_routing_and_permanent_capture_names() ->
     assert len(validator["EXPECTED_CAPTURE_NAMES"]) == 16
 
 
+def test_retained_update_check_is_manifested_and_runs_for_both_backends() -> None:
+    validator = _load("validate_gallery.py")
+    check_scripts = cast(tuple[str, ...], validator["CHECK_SCRIPTS"])
+    backends = cast(dict[str, tuple[str, ...]], validator["CHECK_SCRIPT_BACKENDS"])
+
+    assert "check_retained_updates.py" in check_scripts
+    assert "check_mesh_pick.py" in check_scripts
+    assert "check_scientific_grid.py" in check_scripts
+    assert backends["check_retained_updates.py"] == ("matplotlib", "datoviz")
+    assert backends["check_mesh_pick.py"] == ("datoviz",)
+    assert backends["check_scientific_grid.py"] == ("matplotlib", "datoviz")
+
+
 def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
     tmp_path: Path,
 ) -> None:
@@ -273,6 +286,10 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
     assert_manifest_schema = cast(
         Callable[[dict[str, object]], None],
         validator["_assert_manifest_schema"],
+    )
+    provenance_for_probe = cast(
+        Callable[..., dict[str, str]],
+        validator["_datoviz_probe_provenance"],
     )
 
     assert (
@@ -312,6 +329,16 @@ def test_gallery_manifest_provenance_is_portable_and_uses_probed_runtime(
     probe = parse_probe(json.dumps(probe_payload), project_site, require_datoviz_runtime=True)
     runtime = runtime_description(probe)
     assert runtime == "DifferentPython 9.8.7 ProbeOS probe-machine"
+    assert provenance_for_probe(
+        probe,
+        project_site,
+        runtime_wheel=True,
+        datoviz_source=None,
+    ) == {
+        "datoviz_import": "isolated-wheel-site/datoviz/__init__.py",
+        "datoviz_native": "isolated-wheel-site/datoviz/libdatoviz.so",
+        "datoviz_native_sha256": validator["_sha256"](native_path),
+    }
 
     source_probe_payload = dict(probe_payload)
     source_probe_payload["imports"] = {
@@ -374,6 +401,74 @@ def test_exact_runtime_probe_rejects_source_tree_native_library(tmp_path: Path) 
 
     with pytest.raises(RuntimeError, match="isolated wheel site"):
         parse_probe(json.dumps(payload), project_site, require_datoviz_runtime=True)
+
+
+def test_source_candidate_probe_records_normalized_binding_and_native_hash(
+    tmp_path: Path,
+) -> None:
+    validator = _load("validate_gallery.py")
+    parse_probe = cast(Callable[..., dict[str, object]], validator["_parse_probe"])
+    provenance_for_probe = cast(
+        Callable[..., dict[str, str]],
+        validator["_datoviz_probe_provenance"],
+    )
+    project_site = tmp_path / "isolated-wheel-site"
+    source = tmp_path / "datoviz-source"
+    package = source / "datoviz"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    native = source / "build" / "src" / "libdatoviz.so"
+    native.parent.mkdir(parents=True)
+    native.write_bytes(b"native candidate")
+    imports = {
+        module: str(project_site / package_name / "__init__.py")
+        for module, package_name in cast(dict[str, str], validator["PROJECT_IMPORTS"]).items()
+    }
+    imports["datoviz"] = str(package / "__init__.py")
+    payload = {
+        "implementation": "CPython",
+        "version": "3.13.3",
+        "system": "Linux",
+        "machine": "x86_64",
+        "pillow": "PIL.Image",
+        "imports": imports,
+        "datoviz_native": str(native),
+    }
+
+    probe = parse_probe(json.dumps(payload), project_site, datoviz_source=source)
+    provenance = provenance_for_probe(
+        probe,
+        project_site,
+        runtime_wheel=False,
+        datoviz_source=source,
+    )
+    assert provenance == {
+        "datoviz_import": "datoviz-source/datoviz/__init__.py",
+        "datoviz_native": "datoviz-source/build/src/libdatoviz.so",
+        "datoviz_native_sha256": validator["_sha256"](native),
+    }
+
+    payload["datoviz_native"] = str(project_site / "datoviz" / "libdatoviz.so")
+    with pytest.raises(RuntimeError, match="requested source"):
+        parse_probe(json.dumps(payload), project_site, datoviz_source=source)
+
+
+def test_source_candidate_import_paths_are_portable_in_manifest(
+    tmp_path: Path,
+) -> None:
+    validator = _load("validate_gallery.py")
+    logical_imports = cast(Callable[..., dict[str, str]], validator["_logical_imports"])
+    source = tmp_path / "datoviz-source"
+    binding = source / "datoviz" / "__init__.py"
+    binding.parent.mkdir(parents=True)
+    binding.touch()
+
+    assert logical_imports(
+        {"datoviz": str(binding)},
+        {"datoviz": "datoviz"},
+        datoviz_source=source,
+        runtime_wheel=False,
+    ) == {"datoviz": "datoviz-source/datoviz/__init__.py"}
 
 
 def _write_wheel(path: Path, project: str, *, version: str = "0.2.0") -> None:
@@ -474,6 +569,89 @@ def test_gallery_validator_accepts_compatible_datoviz_runtime_versions(version: 
     )
 
     assert compatible(version)
+
+
+@pytest.mark.parametrize("version", ["0.4.0rc1", "0.4.0rc2", "0.4.0.0rc2"])
+def test_pre_rc3_mode_accepts_only_explicitly_qualified_rc1_or_rc2_wheels(
+    tmp_path: Path,
+    version: str,
+) -> None:
+    validator = _load("validate_gallery.py")
+    validate_wheels = cast(
+        Callable[..., dict[str, dict[str, str]]],
+        validator["_validate_wheels"],
+    )
+    wheels = {}
+    for project in cast(tuple[str, ...], validator["WHEEL_PROJECTS"]):
+        path = tmp_path / f"{project}-0.2.0-py3-none-any.whl"
+        _write_wheel(path, project)
+        wheels[project] = path
+    runtime = tmp_path / f"datoviz-{version}-py3-none-any.whl"
+    _write_wheel(runtime, "datoviz", version=version)
+
+    with pytest.raises(RuntimeError, match=r">=0\.4\.0rc3,<0\.5"):
+        validate_wheels(wheels, runtime)
+    assert (
+        validate_wheels(wheels, runtime, allow_pre_rc3_runtime=True)["datoviz"]["version"]
+        == version
+    )
+
+
+@pytest.mark.parametrize("version", ["0.4.0rc3", "0.4.0", "0.3.9rc2", "0.5.0rc1"])
+def test_pre_rc3_mode_rejects_non_candidate_datoviz_versions(version: str) -> None:
+    validator = _load("validate_gallery.py")
+    is_pre_rc3 = cast(Callable[[str], bool], validator["_is_pre_rc3_datoviz_runtime_version"])
+    assert not is_pre_rc3(version)
+
+
+def test_runtime_source_sha_must_be_full_git_revision() -> None:
+    validator = _load("validate_gallery.py")
+    validate_revision = cast(Callable[..., str], validator["_validate_revision"])
+    revision = "ab" * 20
+    assert validate_revision(revision.upper(), option="--datoviz-source-revision") == revision
+    with pytest.raises(RuntimeError, match="full 40-character Git SHA"):
+        validate_revision("abc123", option="--datoviz-source-revision")
+
+
+def test_pre_rc3_mode_requires_wheel_and_caller_declared_revision() -> None:
+    validator = _load("validate_gallery.py")
+    validate_mode = cast(
+        Callable[..., tuple[str | None, str | None]], validator["_validate_datoviz_mode"]
+    )
+    candidate_sha = "12" * 20
+    wheel = Path("datoviz-0.4.0rc2-py3-none-any.whl")
+
+    with pytest.raises(RuntimeError, match="requires --datoviz-runtime-wheel"):
+        validate_mode(
+            datoviz_source=None,
+            datoviz_source_revision=None,
+            runtime_wheel=None,
+            pre_rc3_runtime=True,
+            runtime_source_revision=candidate_sha,
+        )
+    with pytest.raises(RuntimeError, match="requires --datoviz-runtime-source-revision"):
+        validate_mode(
+            datoviz_source=None,
+            datoviz_source_revision=None,
+            runtime_wheel=wheel,
+            pre_rc3_runtime=True,
+            runtime_source_revision=None,
+        )
+    with pytest.raises(RuntimeError, match="requires --pre-rc3-runtime"):
+        validate_mode(
+            datoviz_source=None,
+            datoviz_source_revision=None,
+            runtime_wheel=wheel,
+            pre_rc3_runtime=False,
+            runtime_source_revision=candidate_sha,
+        )
+    assert validate_mode(
+        datoviz_source=None,
+        datoviz_source_revision=None,
+        runtime_wheel=wheel,
+        pre_rc3_runtime=True,
+        runtime_source_revision=candidate_sha,
+    ) == (None, candidate_sha)
 
 
 def test_gallery_validator_rejects_invalid_datoviz_runtime_version_metadata(
@@ -685,3 +863,91 @@ def test_source_revision_must_be_clean_and_stable(tmp_path: Path) -> None:
     subprocess.run(["git", "commit", "-qm", "second"], cwd=repository, check=True)
     with pytest.raises(RuntimeError, match="HEAD changed"):
         verify_git_revision(repository, first_revision)
+
+
+def test_source_state_records_tracked_content_and_detects_drift(tmp_path: Path) -> None:
+    validator = _load("validate_gallery.py")
+    source_state = cast(Callable[..., dict[str, object]], validator["_git_source_state"])
+    verify_source_state = cast(
+        Callable[..., None],
+        validator["_verify_git_source_state"],
+    )
+    sha256 = cast(Callable[[Path], str], validator["_sha256"])
+    repository = tmp_path / "candidate"
+    repository.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "gallery-test@example.invalid"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Gallery Test"],
+        cwd=repository,
+        check=True,
+    )
+    tracked = repository / "source.txt"
+    tracked.write_text("baseline\n", encoding="utf-8")
+    subprocess.run(["git", "add", "source.txt"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-qm", "baseline"], cwd=repository, check=True)
+
+    clean = source_state(repository, allow_dirty=False)
+    assert clean["dirty"] is False
+    assert clean["tracked_worktree_files"] == {}
+    verify_source_state(repository, clean, allow_dirty=False)
+
+    tracked.write_text("candidate edit\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="must be clean"):
+        source_state(repository, allow_dirty=False)
+    dirty = source_state(repository, allow_dirty=True)
+    assert dirty["dirty"] is True
+    assert dirty["baseline_revision"] == clean["baseline_revision"]
+    assert dirty["tracked_worktree_files"] == {"source.txt": sha256(tracked)}
+    assert len(dirty["tracked_worktree_diff_sha256"]) == 64
+    verify_source_state(repository, dirty, allow_dirty=True)
+
+    tracked.write_text("changed during validation\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="changed during validation"):
+        verify_source_state(repository, dirty, allow_dirty=True)
+
+
+def test_source_state_records_untracked_dirty_without_claiming_tracked_content(
+    tmp_path: Path,
+) -> None:
+    validator = _load("validate_gallery.py")
+    source_state = cast(Callable[..., dict[str, object]], validator["_git_source_state"])
+    repository = tmp_path / "candidate"
+    repository.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "gallery-test@example.invalid"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Gallery Test"],
+        cwd=repository,
+        check=True,
+    )
+    tracked = repository / "source.txt"
+    tracked.write_text("baseline\n", encoding="utf-8")
+    subprocess.run(["git", "add", "source.txt"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-qm", "baseline"], cwd=repository, check=True)
+    untracked = repository / "untracked.txt"
+    untracked.write_text("candidate\n", encoding="utf-8")
+
+    state = source_state(repository, allow_dirty=True)
+    assert state["dirty"] is True
+    assert state["tracked_worktree_files"] == {}
+    assert state["untracked_worktree_files"] == {"untracked.txt": validator["_sha256"](untracked)}
+
+
+def test_dirty_sources_do_not_claim_wheels_correspond_to_baseline_commits() -> None:
+    validator = _load("validate_gallery.py")
+    source_relation = cast(
+        Callable[[dict[str, dict[str, object]]], str],
+        validator["_project_wheel_source_relation"],
+    )
+
+    relation = source_relation({"gsp": {"baseline_revision": "a" * 40, "dirty": True}})
+    assert "no correspondence to baseline commits is claimed" in relation

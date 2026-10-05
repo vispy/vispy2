@@ -39,7 +39,18 @@ CAPTURE_SCRIPTS: Final = (
     "gallery_04_camera_sequence.py",
     "gallery_mixed_panels.py",
 )
-CHECK_SCRIPTS: Final = ("gallery_06_capabilities.py", "gallery_07_queries.py")
+CHECK_SCRIPTS: Final = (
+    "gallery_06_capabilities.py",
+    "gallery_07_queries.py",
+    "check_retained_updates.py",
+    "check_mesh_pick.py",
+    "check_scientific_grid.py",
+)
+CHECK_SCRIPT_BACKENDS: Final = {
+    "check_retained_updates.py": ("matplotlib", "datoviz"),
+    "check_mesh_pick.py": ("datoviz",),
+    "check_scientific_grid.py": ("matplotlib", "datoviz"),
+}
 SHARED_SCRIPTS: Final = ("gallery_shared_layout.py",)
 WHEEL_PROJECTS: Final = (
     "gsp-core",
@@ -182,6 +193,141 @@ def _git_revision(path: Path) -> str:
     return result.stdout.strip()
 
 
+def _git_source_state(path: Path, *, allow_dirty: bool) -> dict[str, object]:
+    status = subprocess.run(
+        ["git", "-C", str(path), "status", "--porcelain", "--untracked-files=all"],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    dirty = bool(status.stdout)
+    if dirty and not allow_dirty:
+        raise RuntimeError(f"source checkout must be clean before validation: {path}")
+    revision = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "HEAD"],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout.strip()
+    changed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(path),
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "-z",
+            "HEAD",
+            "--",
+        ],
+        check=True,
+        capture_output=True,
+    ).stdout
+    tracked_files = _hash_worktree_paths(path, changed)
+    untracked = subprocess.run(
+        ["git", "-C", str(path), "ls-files", "--others", "--exclude-standard", "-z"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    untracked_files = _hash_worktree_paths(path, untracked)
+    tracked_diff = subprocess.run(
+        ["git", "-C", str(path), "diff", "--binary", "--submodule=diff", "HEAD", "--"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    return {
+        "baseline_revision": revision,
+        "dirty": dirty,
+        "tracked_worktree_files": tracked_files,
+        "tracked_worktree_diff_sha256": hashlib.sha256(tracked_diff).hexdigest(),
+        "untracked_worktree_files": untracked_files,
+    }
+
+
+def _hash_worktree_paths(path: Path, names: bytes) -> dict[str, str | None]:
+    hashes: dict[str, str | None] = {}
+    for raw_name in names.split(b"\0"):
+        if not raw_name:
+            continue
+        name = os.fsdecode(raw_name)
+        file_path = path / name
+        if file_path.is_symlink():
+            digest = hashlib.sha256(os.fsencode(os.readlink(file_path))).hexdigest()
+        elif file_path.is_file():
+            digest = _sha256(file_path)
+        elif file_path.is_dir():
+            submodule = subprocess.run(
+                ["git", "-C", str(file_path), "rev-parse", "HEAD"],
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip()
+            digest = hashlib.sha256(submodule.encode("ascii")).hexdigest()
+        else:
+            digest = None
+        hashes[name] = digest
+    return hashes
+
+
+def _verify_git_source_state(path: Path, expected: dict[str, object], *, allow_dirty: bool) -> None:
+    if _git_source_state(path, allow_dirty=allow_dirty) != expected:
+        raise RuntimeError(f"source checkout changed during validation: {path}")
+
+
+def _project_wheel_source_relation(source_states: dict[str, dict[str, object]]) -> str:
+    if any(state["dirty"] for state in source_states.values()):
+        return (
+            "source checkouts were dirty; wheel hashes identify the tested artifacts, but no "
+            "correspondence to baseline commits is claimed"
+        )
+    return (
+        "candidate checkouts were clean at recorded commits; wheel build provenance is not "
+        "independently verified"
+    )
+
+
+def _validate_revision(value: str, *, option: str) -> str:
+    if re.fullmatch(r"[0-9a-fA-F]{40}", value) is None:
+        raise RuntimeError(f"{option} must be a full 40-character Git SHA")
+    return value.lower()
+
+
+def _validate_datoviz_mode(
+    *,
+    datoviz_source: Path | None,
+    datoviz_source_revision: str | None,
+    runtime_wheel: Path | None,
+    pre_rc3_runtime: bool,
+    runtime_source_revision: str | None,
+) -> tuple[str | None, str | None]:
+    if datoviz_source_revision and datoviz_source is None:
+        raise RuntimeError("--datoviz-source-revision requires --datoviz-source")
+    source_revision = (
+        _validate_revision(datoviz_source_revision, option="--datoviz-source-revision")
+        if datoviz_source_revision
+        else None
+    )
+    if pre_rc3_runtime:
+        if runtime_wheel is None:
+            raise RuntimeError("--pre-rc3-runtime requires --datoviz-runtime-wheel")
+        if not runtime_source_revision:
+            raise RuntimeError("--pre-rc3-runtime requires --datoviz-runtime-source-revision")
+    elif runtime_source_revision:
+        raise RuntimeError("--datoviz-runtime-source-revision requires --pre-rc3-runtime")
+    declared_revision = (
+        _validate_revision(
+            runtime_source_revision,
+            option="--datoviz-runtime-source-revision",
+        )
+        if runtime_source_revision
+        else None
+    )
+    if runtime_wheel is None and datoviz_source is None:
+        raise RuntimeError("Datoviz captures require --datoviz-runtime-wheel or --datoviz-source")
+    return source_revision, declared_revision
+
+
 def _verify_git_revision(path: Path, expected: str) -> None:
     if _git_revision(path) != expected:
         raise RuntimeError(f"source HEAD changed during validation: {path}")
@@ -205,6 +351,25 @@ def _logical_import_path(path: Path, package: str) -> str:
     if path.parts[-2:] != expected_suffix:
         raise RuntimeError(f"installed import is not a verified {package}/__init__.py path")
     return str(Path("isolated-wheel-site", *expected_suffix))
+
+
+def _logical_imports(
+    import_paths: dict[str, str],
+    packages: dict[str, str],
+    *,
+    datoviz_source: Path | None,
+    runtime_wheel: bool,
+) -> dict[str, str]:
+    logical: dict[str, str] = {}
+    for module, package in packages.items():
+        imported_path = Path(import_paths[module]).resolve()
+        if module == "datoviz" and datoviz_source is not None and not runtime_wheel:
+            logical[module] = str(
+                Path("datoviz-source") / imported_path.relative_to(datoviz_source.resolve())
+            )
+        else:
+            logical[module] = _logical_import_path(imported_path, package)
+    return logical
 
 
 def _wheel_distribution_metadata(path: Path) -> dict[str, str]:
@@ -275,8 +440,26 @@ def _validate_datoviz_runtime_wheel(path: Path) -> dict[str, str]:
     return {**evidence, "version": version}
 
 
+def _is_pre_rc3_datoviz_runtime_version(version: str) -> bool:
+    match = _VERSION_PATTERN.fullmatch(version)
+    if match is None:
+        raise RuntimeError(f"Datoviz runtime wheel has invalid version metadata {version!r}")
+    release = tuple(int(item) for item in match.group("release").split("."))
+    while len(release) > 1 and release[-1] == 0:
+        release = release[:-1]
+    return (
+        release == (0, 4)
+        and match.group("pre") is not None
+        and match.group("pre").lower() == "rc"
+        and int(match.group("pre_number")) < 3
+    )
+
+
 def _validate_wheels(
-    wheels: dict[str, Path], runtime_wheel: Path | None = None
+    wheels: dict[str, Path],
+    runtime_wheel: Path | None = None,
+    *,
+    allow_pre_rc3_runtime: bool = False,
 ) -> dict[str, dict[str, str]]:
     if set(wheels) != set(WHEEL_PROJECTS):
         raise RuntimeError("exactly four named project wheels are required")
@@ -289,7 +472,16 @@ def _validate_wheels(
     for expected_name in WHEEL_PROJECTS:
         evidence[expected_name] = _validate_wheel(wheels[expected_name], expected_name)
     if runtime_wheel is not None:
-        evidence["datoviz"] = _validate_datoviz_runtime_wheel(runtime_wheel)
+        if allow_pre_rc3_runtime:
+            wheel_evidence = _validate_wheel(runtime_wheel, "datoviz")
+            version = _wheel_distribution_metadata(runtime_wheel)["version"]
+            if not _is_pre_rc3_datoviz_runtime_version(version):
+                raise RuntimeError(
+                    "pre-RC3 mode accepts only Datoviz 0.4 release candidates before rc3"
+                )
+            evidence["datoviz"] = {**wheel_evidence, "version": version}
+        else:
+            evidence["datoviz"] = _validate_datoviz_runtime_wheel(runtime_wheel)
     return evidence
 
 
@@ -314,7 +506,11 @@ def _unpack_wheels(
 
 
 def _parse_probe(
-    stdout: str, project_site: Path, *, require_datoviz_runtime: bool = False
+    stdout: str,
+    project_site: Path,
+    *,
+    require_datoviz_runtime: bool = False,
+    datoviz_source: Path | None = None,
 ) -> dict[str, object]:
     try:
         value = json.loads(stdout)
@@ -330,14 +526,15 @@ def _parse_probe(
         "pillow",
         "imports",
     }
-    if require_datoviz_runtime:
+    require_datoviz_binding = require_datoviz_runtime or datoviz_source is not None
+    if require_datoviz_binding:
         expected_fields.add("datoviz_native")
     if set(value) != expected_fields:
         raise RuntimeError("interpreter probe has invalid fields")
     _runtime_description(value)
     imports = value.get("imports")
     expected_imports = dict(PROJECT_IMPORTS)
-    if require_datoviz_runtime:
+    if require_datoviz_binding:
         expected_imports.update(DATOVIZ_RUNTIME_IMPORTS)
     if not isinstance(imports, dict) or set(imports) != set(expected_imports):
         raise RuntimeError("interpreter probe has invalid project imports")
@@ -347,22 +544,57 @@ def _parse_probe(
         if not isinstance(raw_path, str) or not raw_path:
             raise RuntimeError(f"interpreter probe import {module} must be a path string")
         path = Path(raw_path).resolve()
-        if not path.is_relative_to(site):
-            raise RuntimeError(f"{module} was not imported from the isolated wheel site")
-        _logical_import_path(path, package)
-    if require_datoviz_runtime:
+        if module == "datoviz" and datoviz_source is not None and not require_datoviz_runtime:
+            if not path.is_relative_to(datoviz_source.resolve()):
+                raise RuntimeError("Datoviz binding was not imported from the requested source")
+            if path.parts[-2:] != (package, "__init__.py"):
+                raise RuntimeError("Datoviz source import is not a verified package path")
+        else:
+            if not path.is_relative_to(site):
+                raise RuntimeError(f"{module} was not imported from the isolated wheel site")
+            _logical_import_path(path, package)
+    if require_datoviz_binding:
         native_path = value["datoviz_native"]
         if not isinstance(native_path, str) or not native_path:
             raise RuntimeError("interpreter probe native binding path must be a string")
         native = Path(native_path).resolve()
-        if not native.is_relative_to(site):
-            raise RuntimeError("Datoviz native binding was not loaded from the isolated wheel site")
+        source_binding = datoviz_source is not None and not require_datoviz_runtime
+        expected_root = datoviz_source.resolve() if source_binding else site
+        if not native.is_relative_to(expected_root):
+            origin = "requested source checkout" if source_binding else "isolated wheel site"
+            raise RuntimeError(f"Datoviz native binding was not loaded from the {origin}")
         if not native.is_file():
             raise RuntimeError("interpreter probe native binding does not exist")
     pillow = value.get("pillow")
     if not isinstance(pillow, str) or not pillow:
         raise RuntimeError("interpreter probe did not prove Pillow importability")
     return value
+
+
+def _datoviz_probe_provenance(
+    probe: dict[str, object],
+    project_site: Path,
+    *,
+    runtime_wheel: bool,
+    datoviz_source: Path | None,
+) -> dict[str, str]:
+    imports = cast(dict[str, str], probe["imports"])
+    imported_binding = Path(imports["datoviz"]).resolve()
+    native_path = Path(cast(str, probe["datoviz_native"])).resolve()
+    if runtime_wheel:
+        binding = _logical_import_path(imported_binding, "datoviz")
+        native = str(Path("isolated-wheel-site") / native_path.relative_to(project_site.resolve()))
+    elif datoviz_source is not None:
+        source = datoviz_source.resolve()
+        binding = str(Path("datoviz-source") / imported_binding.relative_to(source))
+        native = str(Path("datoviz-source") / native_path.relative_to(source))
+    else:
+        raise RuntimeError("Datoviz probe provenance requires a wheel or source checkout")
+    return {
+        "datoviz_import": binding,
+        "datoviz_native": native,
+        "datoviz_native_sha256": _sha256(native_path),
+    }
 
 
 def _assert_no_absolute_paths(value: object, *, context: str = "manifest") -> None:
@@ -725,6 +957,20 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--gsp-source", type=Path, required=True)
     parser.add_argument("--vispy2-source", type=Path, required=True)
+    parser.add_argument(
+        "--allow-dirty-project-sources",
+        action="store_true",
+        help="record dirty source checkouts while withholding any claim that wheels match them",
+    )
+    parser.add_argument(
+        "--datoviz-source",
+        type=Path,
+        help="Datoviz source checkout used for binding bootstrap or source provenance",
+    )
+    parser.add_argument(
+        "--datoviz-source-revision",
+        help="optional full SHA expected for --datoviz-source",
+    )
     parser.add_argument("--gsp-core-wheel", type=Path, required=True)
     parser.add_argument("--gsp-matplotlib-wheel", type=Path, required=True)
     parser.add_argument("--gsp-datoviz-wheel", type=Path, required=True)
@@ -734,8 +980,26 @@ def main() -> None:
         type=Path,
         help="optional RC3 Datoviz runtime wheel; isolates native binding from source checkouts",
     )
+    parser.add_argument(
+        "--pre-rc3-runtime",
+        action="store_true",
+        help="explicitly qualify a local Datoviz 0.4 rc1/rc2 metadata wheel",
+    )
+    parser.add_argument(
+        "--datoviz-runtime-source-revision",
+        help="caller-declared full source SHA for a pre-RC3 Datoviz runtime wheel",
+    )
     parser.add_argument("--timeout", type=float, default=20.0)
     args = parser.parse_args()
+
+    datoviz_source = args.datoviz_source.resolve() if args.datoviz_source else None
+    expected_datoviz_revision, declared_runtime_revision = _validate_datoviz_mode(
+        datoviz_source=datoviz_source,
+        datoviz_source_revision=args.datoviz_source_revision,
+        runtime_wheel=args.datoviz_runtime_wheel,
+        pre_rc3_runtime=args.pre_rc3_runtime,
+        runtime_source_revision=args.datoviz_runtime_source_revision,
+    )
 
     script_dir = Path(__file__).resolve().parent
     output_dir = args.output_dir.resolve()
@@ -745,19 +1009,36 @@ def main() -> None:
         "gsp-datoviz": args.gsp_datoviz_wheel,
         "vispy2": args.vispy2_wheel,
     }
-    wheel_evidence = _validate_wheels(wheels, args.datoviz_runtime_wheel)
+    wheel_evidence = _validate_wheels(
+        wheels,
+        args.datoviz_runtime_wheel,
+        allow_pre_rc3_runtime=args.pre_rc3_runtime,
+    )
     source_paths = {
         "gsp": args.gsp_source.resolve(),
         "vispy2": args.vispy2_source.resolve(),
     }
-    source_revisions = {project: _git_revision(path) for project, path in source_paths.items()}
+    if datoviz_source is not None:
+        source_paths["datoviz"] = datoviz_source
+    source_states = {
+        project: _git_source_state(path, allow_dirty=args.allow_dirty_project_sources)
+        for project, path in source_paths.items()
+    }
+    if (
+        expected_datoviz_revision is not None
+        and source_states["datoviz"]["baseline_revision"] != expected_datoviz_revision
+    ):
+        raise RuntimeError("Datoviz source HEAD does not match --datoviz-source-revision")
     env = dict(os.environ)
     require_datoviz_runtime = args.datoviz_runtime_wheel is not None
     if require_datoviz_runtime:
         for name in ("DATOVIZ_LIBRARY", "DVZ_WHEEL_RUNTIME_DIRS", "GSP_DATOVIZ_SOURCE"):
             env.pop(name, None)
+        env["GSP_DATOVIZ_SOURCE"] = "none"
+    elif datoviz_source is not None:
+        env["GSP_DATOVIZ_SOURCE"] = str(datoviz_source)
     probe_imports = dict(PROJECT_IMPORTS)
-    if require_datoviz_runtime:
+    if require_datoviz_runtime or datoviz_source is not None:
         probe_imports.update(DATOVIZ_RUNTIME_IMPORTS)
 
     with tempfile.TemporaryDirectory(prefix="vispy2-m290-gallery-") as temporary:
@@ -767,19 +1048,23 @@ def main() -> None:
         evidence_dir = run_dir / "evidence"
         capture_dir.mkdir()
         _unpack_wheels(wheels, project_site, args.datoviz_runtime_wheel)
-        env["PYTHONPATH"] = str(project_site)
+        python_paths = [str(project_site)]
+        if datoviz_source is not None and not require_datoviz_runtime:
+            python_paths.append(str(datoviz_source))
+        env["PYTHONPATH"] = os.pathsep.join(python_paths)
         env["MPLCONFIGDIR"] = str(run_dir / ".matplotlib")
         for name in (*CAPTURE_SCRIPTS, *CHECK_SCRIPTS, *SHARED_SCRIPTS):
             shutil.copy2(script_dir / name, run_dir / name)
 
+        require_datoviz_binding = require_datoviz_runtime or datoviz_source is not None
         datoviz_probe_imports = (
             "import datoviz; import datoviz.raw; import datoviz._ctypes as datoviz_ctypes; "
-            if require_datoviz_runtime
+            if require_datoviz_binding
             else ""
         )
-        datoviz_probe_values = ", 'datoviz': datoviz.__file__" if require_datoviz_runtime else ""
+        datoviz_probe_values = ", 'datoviz': datoviz.__file__" if require_datoviz_binding else ""
         datoviz_native_value = (
-            ", 'datoviz_native': datoviz_ctypes.dvz._name" if require_datoviz_runtime else ""
+            ", 'datoviz_native': datoviz_ctypes.dvz._name" if require_datoviz_binding else ""
         )
         probe = subprocess.run(
             [
@@ -815,8 +1100,15 @@ def main() -> None:
             probe.stdout,
             project_site,
             require_datoviz_runtime=require_datoviz_runtime,
+            datoviz_source=datoviz_source,
         )
         import_values = cast(dict[str, str], probe_value["imports"])
+        logical_imports = _logical_imports(
+            import_values,
+            probe_imports,
+            datoviz_source=datoviz_source,
+            runtime_wheel=require_datoviz_runtime,
+        )
 
         for backend in ("matplotlib", "datoviz"):
             for script in CAPTURE_SCRIPTS:
@@ -842,12 +1134,23 @@ def main() -> None:
                     ),
                 )
         for script in CHECK_SCRIPTS:
-            _run(
-                [str(args.python), script],
-                cwd=run_dir,
-                env=env,
-                timeout=args.timeout,
-            )
+            backends = CHECK_SCRIPT_BACKENDS.get(script, (None,))
+            for backend in backends:
+                command = [str(args.python), script]
+                if backend is not None:
+                    command.extend(["--backend", backend])
+                _run(
+                    command,
+                    cwd=run_dir,
+                    env=env,
+                    timeout=args.timeout,
+                    retries=1 if backend == "datoviz" else 0,
+                    isolation=(
+                        _datoviz_process_isolation(platform=sys.platform)
+                        if backend == "datoviz"
+                        else ProcessIsolation.PROCESS_GROUP
+                    ),
+                )
 
         pngs = _validate_capture_set(capture_dir)
         evidence = _load_evidence(evidence_dir)
@@ -857,13 +1160,10 @@ def main() -> None:
 
         provenance: dict[str, object] = {
             "python": _runtime_description(probe_value),
-            "imports": {
-                module: _logical_import_path(Path(import_values[module]), package)
-                for module, package in probe_imports.items()
-            },
+            "imports": logical_imports,
             "project_wheels": wheel_evidence,
-            "gsp_source_revision": source_revisions["gsp"],
-            "vispy2_source_revision": source_revisions["vispy2"],
+            "source_checkouts": source_states,
+            "project_wheel_source_relation": _project_wheel_source_relation(source_states),
             "execution": (
                 "copied scripts outside both source trees; four project wheels and the "
                 "optional Datoviz runtime wheel unpacked into an isolated project site; "
@@ -873,12 +1173,32 @@ def main() -> None:
             "datoviz_retries": 1,
         }
         if require_datoviz_runtime:
-            provenance["datoviz_native"] = str(
-                Path("isolated-wheel-site")
-                / Path(cast(str, probe_value["datoviz_native"]))
-                .resolve()
-                .relative_to(project_site.resolve())
+            provenance.update(
+                _datoviz_probe_provenance(
+                    probe_value,
+                    project_site,
+                    runtime_wheel=True,
+                    datoviz_source=datoviz_source,
+                )
             )
+        elif datoviz_source is not None:
+            provenance.update(
+                _datoviz_probe_provenance(
+                    probe_value,
+                    project_site,
+                    runtime_wheel=False,
+                    datoviz_source=datoviz_source,
+                )
+            )
+        if args.pre_rc3_runtime:
+            provenance["datoviz_runtime_source"] = {
+                "revision": declared_runtime_revision,
+                "qualification": "caller-declared; not verified against runtime wheel contents",
+                "api_qualification": (
+                    "the wheel binding was imported from the isolated site and its native "
+                    "library passed gallery capture, query, and retained update checks"
+                ),
+            }
         manifest = {
             "schema": 2,
             "provenance": provenance,
@@ -904,7 +1224,11 @@ def main() -> None:
             encoding="utf-8",
         )
         for project, path in source_paths.items():
-            _verify_git_revision(path, source_revisions[project])
+            _verify_git_source_state(
+                path,
+                source_states[project],
+                allow_dirty=args.allow_dirty_project_sources,
+            )
         _publish_capture(capture_dir, output_dir)
     print(f"validated {len(pngs)} captures; manifest={output_dir / 'manifest.json'}")
 

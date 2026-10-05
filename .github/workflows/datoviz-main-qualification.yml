@@ -1,0 +1,134 @@
+name: Datoviz main qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      gsp_ref:
+        description: "GSP branch, tag, or commit to pair with this VisPy2 candidate"
+        required: true
+        default: main
+        type: string
+  push:
+    paths:
+      - ".github/workflows/datoviz-main-qualification.yml"
+      - "src/**"
+      - "examples/**"
+      - "tests/**"
+      - "docs/gallery.md"
+      - "docs/installation.md"
+      - "DEVELOPMENT.md"
+  pull_request:
+    paths:
+      - ".github/workflows/datoviz-main-qualification.yml"
+      - "src/**"
+      - "examples/**"
+      - "tests/**"
+      - "docs/gallery.md"
+      - "docs/installation.md"
+      - "DEVELOPMENT.md"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-pinned-datoviz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: vispy2
+    env:
+      DATOVIZ_REVISION: 066a7451195b38c5e95dcf7af7383b89ec5ec903
+      DVZ_CMAKE_ARGS: >-
+        -DDVZ_ENABLE_SHADERC=ON
+        -DDVZ_SHADERC_RUNTIME_LIBRARY=libshaderc.so.1
+        -DDVZ_VALIDATE_SPIRV=ON
+        -DDVZ_REQUIRE_PRECOMPILED_SHADERS=ON
+      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: vispy2
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: vispy/gsp
+          ref: ${{ inputs.gsp_ref || 'main' }}
+          path: _gsp
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: vispy/datoviz
+          ref: 066a7451195b38c5e95dcf7af7383b89ec5ec903
+          path: _datoviz
+          persist-credentials: false
+      - name: Initialize Datoviz source dependencies
+        working-directory: ${{ github.workspace }}/_datoviz
+        run: >-
+          git submodule update --init --recursive
+          external/cglm external/cimgui external/glfw external/kvazaar
+          external/msdf-atlas-gen
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: extractions/setup-just@v4
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential ccache cmake glslc libfreetype-dev libvulkan-dev \
+            spirv-tools libshaderc-dev mesa-vulkan-drivers ninja-build \
+            vulkan-tools vulkan-validationlayers webp xorg-dev xvfb
+          test -f "$VK_ICD_FILENAMES"
+          vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo-summary.txt"
+          grep -Eqi 'llvmpipe|lavapipe' "$RUNNER_TEMP/vulkaninfo-summary.txt"
+      - name: Build frozen Datoviz native engine
+        working-directory: ${{ github.workspace }}/_datoviz
+        run: just build
+      - name: Install Python build tools and Datoviz source dependencies
+        run: |
+          python -m pip install --upgrade pip build uv
+          python -m pip install numpy requests platformdirs
+      - name: Build the four project wheels
+        run: |
+          mkdir -p "$RUNNER_TEMP/vispy2-dist"
+          uv build --wheel --out-dir "$RUNNER_TEMP/vispy2-dist" ../_gsp/packages/gsp-core
+          uv build --wheel --out-dir "$RUNNER_TEMP/vispy2-dist" ../_gsp/packages/gsp-matplotlib
+          uv build --wheel --out-dir "$RUNNER_TEMP/vispy2-dist" ../_gsp/packages/gsp-datoviz
+          python -m build --wheel --outdir "$RUNNER_TEMP/vispy2-dist" .
+      - name: Create exact-wheel qualification environment
+        run: |
+          python -m venv "$RUNNER_TEMP/qualification-venv"
+          "$RUNNER_TEMP/qualification-venv/bin/python" -m pip install \
+            "$RUNNER_TEMP"/vispy2-dist/*.whl \
+            numpy requests platformdirs "pytest>=8,<10" Pillow matplotlib
+      - name: Run exact-wheel gallery against pinned Datoviz source
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24 -extension MIT-SHM" \
+            "$RUNNER_TEMP/qualification-venv/bin/python" examples/validate_gallery.py \
+              --python "$RUNNER_TEMP/qualification-venv/bin/python" \
+              --output-dir "$RUNNER_TEMP/datoviz-main-gallery" \
+              --gsp-source ../_gsp \
+              --vispy2-source . \
+              --datoviz-source ../_datoviz \
+              --datoviz-source-revision "$DATOVIZ_REVISION" \
+              --gsp-core-wheel "$RUNNER_TEMP/vispy2-dist/gsp_core-0.2.0a1-py3-none-any.whl" \
+              --gsp-matplotlib-wheel "$RUNNER_TEMP/vispy2-dist/gsp_matplotlib-0.2.0a1-py3-none-any.whl" \
+              --gsp-datoviz-wheel "$RUNNER_TEMP/vispy2-dist/gsp_datoviz-0.2.0a1-py3-none-any.whl" \
+              --vispy2-wheel "$RUNNER_TEMP/vispy2-dist/vispy2-0.2.0a1-py3-none-any.whl"
+      - name: Run native Datoviz query and live-update binding tests
+        env:
+          GSP_DATOVIZ_SOURCE: ${{ github.workspace }}/_datoviz
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24 -extension MIT-SHM" \
+            "$RUNNER_TEMP/qualification-venv/bin/python" -m pytest -q \
+              ../_gsp/packages/gsp-datoviz/tests/test_datoviz_v04_protocol_renderer.py \
+              -k "imported_datoviz_query or imported_datoviz_union_input_stream"
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: datoviz-main-${{ env.DATOVIZ_REVISION }}
+          path: ${{ runner.temp }}/datoviz-main-gallery
+          if-no-files-found: ignore

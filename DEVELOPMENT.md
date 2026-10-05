@@ -71,10 +71,34 @@ under `../wheels`. Override `VISPY2_GSP_CORE_WHEEL`,
 `VISPY2_GSP_MATPLOTLIB_WHEEL`, `VISPY2_GSP_DATOVIZ_WHEEL`, or `VISPY2_WHEEL`
 when testing candidate artifacts with different filenames. Set
 `VISPY2_DATOVIZ_RUNTIME_WHEEL` to qualify a Datoviz RC3 wheel; this disables
-source-checkout discovery, requires distribution metadata with `Name: datoviz` and a version in
-`>=0.4.0rc3,<0.5`, and records the runtime wheel version and hash in the manifest. For
-source-checkout development qualification without that runtime-wheel gate, use
-`VISPY2_QUALIFICATION_DATOVIZ_SOURCE` instead.
+source-checkout bootstrap, requires distribution metadata with `Name: datoviz` and a version in
+`>=0.4.0rc3,<0.5`, and verifies that the probed binding and loaded native library came from that
+isolated wheel site. For source-checkout qualification, pass `--datoviz-source PATH`; the harness
+records its baseline commit, dirty state, tracked and untracked working-file hashes, imported binding path, and
+loaded native library SHA-256. An optional `--datoviz-source-revision SHA` requires the source
+checkout HEAD to match a full 40-character SHA. Dirty GSP, VisPy2, or Datoviz checkouts are rejected
+by default. `--allow-dirty-project-sources` records their tracked changes and dirty state, but the
+manifest then makes no claim that the tested wheels correspond to those baseline commits.
+
+The default runtime-wheel version gate remains `>=0.4.0rc3,<0.5`. To qualify a local Datoviz 0.4
+`rc1`/`rc2` candidate wheel, provide both `--pre-rc3-runtime` and
+`--datoviz-runtime-source-revision SHA`. The SHA must be a full 40-character revision and is marked
+caller-declared; it is not verified from wheel contents. The native library must still load from
+the supplied wheel, with all Datoviz source-bootstrap variables disabled.
+
+The `just exact-wheel-qualification` recipe exposes these options through environment variables:
+
+```console
+VISPY2_DATOVIZ_RUNTIME_WHEEL=../wheels/datoviz-0.4.0rc2-...whl \
+VISPY2_PRE_RC3_RUNTIME=1 \
+VISPY2_DATOVIZ_RUNTIME_SOURCE_REVISION=0123456789abcdef0123456789abcdef01234567 \
+just exact-wheel-qualification
+```
+
+For source mode, set `VISPY2_QUALIFICATION_DATOVIZ_SOURCE=../datoviz`; optionally set
+`VISPY2_DATOVIZ_SOURCE_REVISION` to require its baseline HEAD. Set
+`VISPY2_QUALIFICATION_ALLOW_DIRTY=1` only when the manifest should qualify the wheel artifacts
+without claiming correspondence to dirty source checkouts.
 
 ## Change guidelines
 

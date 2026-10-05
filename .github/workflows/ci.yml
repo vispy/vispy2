@@ -35,8 +35,13 @@ jobs:
         run: python -m mypy src --strict --show-error-codes
       - name: Lint
         run: |
-          python -m ruff check src tests examples
-          python -m ruff format --check src tests examples
+          python -m ruff check src tests examples tools
+          python -m ruff format --check src tests examples tools
+      - name: Check documentation examples and published links
+        run: |
+          python examples/validate_docs.py README.md CHANGELOG.md DEVELOPMENT.md docs
+          python -m pip install "mkdocs-material==9.7.7"
+          python -m mkdocs build --strict --site-dir "$RUNNER_TEMP/vispy2-docs"
       - name: Build wheels
         run: |
           mkdir -p "$RUNNER_TEMP/vispy2-dist"
